@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 #if UNITY_EDITOR
@@ -18,6 +19,7 @@ namespace PawSlayers
         public CardDatabase cardDatabase;
         public List<RelicData> relicDatabase = new List<RelicData>();
         public HeroProgressionManager progressionManager;
+        public RunSaveManager runSaveManager;
 
         [Header("Scenes")]
         public string heroSelectionSceneName = "HeroSelection";
@@ -32,6 +34,7 @@ namespace PawSlayers
         [SerializeField] private int totalNormalBattlesBeforeBoss = 3;
         [SerializeField] private bool bossBattleStarted;
         [SerializeField] private bool runWon;
+        [SerializeField] private bool runLost;
         [SerializeField] private MapNodeType selectedMapNodeType = MapNodeType.None;
         [SerializeField] private bool supportNodeUsedThisStage;
         [SerializeField] private bool pendingBetweenBattleRecovery;
@@ -49,6 +52,7 @@ namespace PawSlayers
         public int TotalNormalBattlesBeforeBoss => totalNormalBattlesBeforeBoss;
         public bool BossBattleStarted => bossBattleStarted;
         public bool RunWon => runWon;
+        public bool RunLost => runLost;
         public bool IsBossBattle => bossBattleStarted;
         public MapNodeType SelectedMapNodeType => selectedMapNodeType;
         public bool SupportNodeUsedThisStage => supportNodeUsedThisStage;
@@ -56,6 +60,7 @@ namespace PawSlayers
         public List<RelicId> OwnedRelics => ownedRelics;
         public int Gold => gold;
         public HeroProgressionManager ProgressionManager => progressionManager;
+        public RunSaveManager SaveManager => runSaveManager;
         public List<RuntimeCardState> RunDeck => deckManager == null ? new List<RuntimeCardState>() : deckManager.RunDeck.ToList();
         public List<RuntimeCardState> DiscardPile => deckManager == null ? new List<RuntimeCardState>() : deckManager.DiscardPile.ToList();
         public List<RuntimeCardState> DrawPile => deckManager == null ? new List<RuntimeCardState>() : deckManager.DrawPile.ToList();
@@ -84,7 +89,14 @@ namespace PawSlayers
                 progressionManager = gameObject.AddComponent<HeroProgressionManager>();
             }
 
+            runSaveManager = GetComponent<RunSaveManager>();
+            if (runSaveManager == null)
+            {
+                runSaveManager = gameObject.AddComponent<RunSaveManager>();
+            }
+
             EnsurePrototypeData();
+            runSaveManager.Initialize(this);
         }
 
         public void StartRunWithSelection(List<HeroId> selectedHeroes)
@@ -96,11 +108,13 @@ namespace PawSlayers
             currentBattleIndex = 1;
             bossBattleStarted = false;
             runWon = false;
+            runLost = false;
             selectedMapNodeType = MapNodeType.None;
             supportNodeUsedThisStage = false;
             pendingBetweenBattleRecovery = false;
             InitializeRelicPool();
             PrepareEncounterDeck();
+            AutoSaveCurrentRun(mapSceneName);
 
             Debug.Log("Loading BattleScene with selected heroes: " + string.Join(", ", selectedHeroIds));
             LoadConfiguredScene(battleSceneName);
@@ -108,6 +122,7 @@ namespace PawSlayers
 
         public void ResetRunAndReturnToSelection()
         {
+            DeleteCurrentRunSave();
             ResetRunState();
             LoadConfiguredScene(heroSelectionSceneName);
         }
@@ -126,6 +141,7 @@ namespace PawSlayers
             Debug.Log("Deck count: " + currentRunDeck.Count);
             Debug.Log("Owned relics: " + string.Join(", ", ownedRelics));
             Debug.Log("Current gold: " + gold);
+            AutoSaveCurrentRun(mapSceneName);
             LoadConfiguredScene(mapSceneName);
         }
 
@@ -215,6 +231,7 @@ namespace PawSlayers
 
             Debug.Log("Reward selected: " + runtimeCard.DisplayName);
             Debug.Log("Updated run deck count: " + currentRunDeck.Count);
+            AutoSaveCurrentRun(mapSceneName);
         }
 
         public bool UpgradeCard(RuntimeCardState card)
@@ -234,6 +251,7 @@ namespace PawSlayers
             Debug.Log("Card upgraded: " + card.DisplayName);
             Debug.Log("Upgraded card values: " + card.Description);
             Debug.Log("Current deck upgraded count: " + upgradedCount);
+            AutoSaveCurrentRun(mapSceneName);
             return true;
         }
 
@@ -261,6 +279,7 @@ namespace PawSlayers
             }
 
             Debug.Log("Current deck count: " + currentRunDeck.Count);
+            AutoSaveCurrentRun(mapSceneName);
             return true;
         }
 
@@ -291,7 +310,7 @@ namespace PawSlayers
             return availableRelicsPool
                 .Select(GetRelicData)
                 .Where(relic => relic != null)
-                .OrderBy(_ => Random.value)
+                .OrderBy(_ => UnityEngine.Random.value)
                 .Take(count)
                 .ToList();
         }
@@ -322,6 +341,8 @@ namespace PawSlayers
                 ApplyIronSnack();
             }
 
+            AutoSaveCurrentRun(mapSceneName);
+
             return true;
         }
 
@@ -329,6 +350,7 @@ namespace PawSlayers
         {
             gold += Mathf.Max(0, amount);
             Debug.Log("Current gold: " + gold);
+            AutoSaveCurrentRun(mapSceneName);
         }
 
         public bool TrySpendGold(int amount)
@@ -343,6 +365,7 @@ namespace PawSlayers
 
             gold -= spendAmount;
             Debug.Log("Current gold: " + gold);
+            AutoSaveCurrentRun(mapSceneName);
             return true;
         }
 
@@ -350,12 +373,14 @@ namespace PawSlayers
         {
             SelectMapNode(MapNodeType.Treasure);
             supportNodeUsedThisStage = true;
+            AutoSaveCurrentRun(mapSceneName);
         }
 
         public void MarkShopNodeResolved()
         {
             SelectMapNode(MapNodeType.Shop);
             supportNodeUsedThisStage = true;
+            AutoSaveCurrentRun(mapSceneName);
         }
 
         public void ApplyTreasureHealReward()
@@ -380,6 +405,8 @@ namespace PawSlayers
                     hero.isDown = false;
                 }
             }
+
+            AutoSaveCurrentRun(mapSceneName);
         }
 
         public void ApplyShopHealReward()
@@ -404,6 +431,8 @@ namespace PawSlayers
                     hero.isDown = false;
                 }
             }
+
+            AutoSaveCurrentRun(mapSceneName);
         }
 
         public string GetRelicSummaryText()
@@ -545,6 +574,7 @@ namespace PawSlayers
             currentBattleIndex = 1;
             bossBattleStarted = false;
             runWon = false;
+            runLost = false;
             selectedMapNodeType = MapNodeType.None;
             supportNodeUsedThisStage = false;
             pendingBetweenBattleRecovery = false;
@@ -609,6 +639,7 @@ namespace PawSlayers
                 else
                 {
                     bossBattleStarted = true;
+                    AutoSaveCurrentRun(mapSceneName);
                 }
             }
         }
@@ -663,6 +694,7 @@ namespace PawSlayers
             supportNodeUsedThisStage = false;
             currentBattleIndex = Mathf.Clamp(currentBattleIndex + 1, 1, totalNormalBattlesBeforeBoss);
             bossBattleStarted = false;
+            AutoSaveCurrentRun(mapSceneName);
             LoadConfiguredScene(battleSceneName);
         }
 
@@ -678,6 +710,7 @@ namespace PawSlayers
 
             supportNodeUsedThisStage = false;
             bossBattleStarted = true;
+            AutoSaveCurrentRun(mapSceneName);
             LoadConfiguredScene(battleSceneName);
         }
 
@@ -690,6 +723,8 @@ namespace PawSlayers
             {
                 AddRewardCard(rewardCard);
             }
+
+            AutoSaveCurrentRun(mapSceneName);
         }
 
         public bool ResolveTreasureRelicNode(RelicId relicId)
@@ -704,6 +739,7 @@ namespace PawSlayers
             RecoverHeroesForNextBattle();
             pendingBetweenBattleRecovery = false;
             supportNodeUsedThisStage = true;
+            AutoSaveCurrentRun(mapSceneName);
         }
 
         public void ResolveCampfireUpgradeNode()
@@ -711,6 +747,7 @@ namespace PawSlayers
             SelectMapNode(MapNodeType.Campfire);
             pendingBetweenBattleRecovery = false;
             supportNodeUsedThisStage = true;
+            AutoSaveCurrentRun(mapSceneName);
         }
 
         public void RecoverHeroesForNextBattle()
@@ -741,6 +778,15 @@ namespace PawSlayers
         public void MarkRunWon()
         {
             runWon = true;
+            runLost = false;
+            AutoSaveCurrentRun(heroSelectionSceneName);
+        }
+
+        public void MarkRunLost()
+        {
+            runLost = true;
+            runWon = false;
+            AutoSaveCurrentRun(heroSelectionSceneName);
         }
 
         public string GetRunProgressLabel()
@@ -814,6 +860,7 @@ namespace PawSlayers
             currentBattleIndex = 0;
             bossBattleStarted = false;
             runWon = false;
+            runLost = false;
             selectedMapNodeType = MapNodeType.None;
             supportNodeUsedThisStage = false;
             pendingBetweenBattleRecovery = false;
@@ -1045,6 +1092,31 @@ namespace PawSlayers
             SceneManager.LoadScene(sceneName);
         }
 
+        public void LoadSceneByName(string sceneName)
+        {
+            LoadConfiguredScene(sceneName);
+        }
+
+        public bool HasSavedRun()
+        {
+            return runSaveManager != null && runSaveManager.HasSavedRun();
+        }
+
+        public bool ContinueSavedRun()
+        {
+            return runSaveManager != null && runSaveManager.ContinueSavedRun();
+        }
+
+        public void DeleteCurrentRunSave()
+        {
+            runSaveManager?.DeleteCurrentRunSave();
+        }
+
+        public void AutoSaveCurrentRun(string sceneNameOverride = null)
+        {
+            runSaveManager?.SaveCurrentRun(sceneNameOverride);
+        }
+
         private void ApplyStartingDeckProgressionBonuses()
         {
             if (progressionManager == null || currentRunDeck == null)
@@ -1061,7 +1133,7 @@ namespace PawSlayers
 
                 RuntimeCardState cardToUpgrade = currentRunDeck
                     .Where(card => card != null && card.OwnerHeroId == heroId && card.baseCard != null && card.baseCard.isStarterCard && !card.isUpgraded && card.CanUpgrade)
-                    .OrderBy(_ => Random.value)
+                    .OrderBy(_ => UnityEngine.Random.value)
                     .FirstOrDefault();
 
                 if (cardToUpgrade == null)
@@ -1122,6 +1194,179 @@ namespace PawSlayers
                     }
                 }
             }
+        }
+
+        public RunSaveData BuildRunSaveData(string sceneNameOverride = null)
+        {
+            EnsurePrototypeData();
+            RunSaveData saveData = new RunSaveData
+            {
+                hasActiveRun = selectedHeroIds.Count > 0 && !runWon && !runLost,
+                runWon = runWon,
+                runLost = runLost,
+                selectedHeroIds = new List<HeroId>(selectedHeroIds),
+                ownedRelics = new List<RelicId>(ownedRelics),
+                gold = gold,
+                currentBattleIndex = currentBattleIndex,
+                totalNormalBattlesBeforeBoss = totalNormalBattlesBeforeBoss,
+                bossAvailable = currentBattleIndex >= totalNormalBattlesBeforeBoss,
+                bossStarted = bossBattleStarted,
+                supportNodeUsedThisStage = supportNodeUsedThisStage,
+                pendingBetweenBattleRecovery = pendingBetweenBattleRecovery,
+                currentSceneName = string.IsNullOrWhiteSpace(sceneNameOverride) ? mapSceneName : sceneNameOverride,
+                currentNodeType = selectedMapNodeType.ToString(),
+                mapStep = currentBattleIndex,
+                savedAtUnixTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds()
+            };
+
+            foreach (RuntimeHeroState hero in activeHeroesRuntime)
+            {
+                if (hero == null || hero.heroData == null)
+                {
+                    continue;
+                }
+
+                saveData.heroes.Add(new HeroRuntimeSaveData
+                {
+                    heroId = hero.heroData.heroId,
+                    currentHp = hero.currentHp,
+                    maxHp = hero.MaxHp,
+                    block = hero.block,
+                    isDown = hero.isDown,
+                    statuses = BuildStatusSaveData(hero.statuses)
+                });
+            }
+
+            foreach (RuntimeCardState card in currentRunDeck.Where(card => card != null && card.baseCard != null))
+            {
+                saveData.currentRunDeck.Add(new CardInstanceSaveData
+                {
+                    cardId = card.baseCard.cardId,
+                    ownerHeroId = card.OwnerHeroId,
+                    isUpgraded = card.isUpgraded,
+                    isTemporary = false
+                });
+            }
+
+            Debug.Log("Hero HP saved: " + string.Join(", ", saveData.heroes.Select(hero => $"{hero.heroId}:{hero.currentHp}/{hero.maxHp}")));
+            return saveData;
+        }
+
+        public void ApplyRunSaveData(RunSaveData data)
+        {
+            if (data == null)
+            {
+                return;
+            }
+
+            EnsurePrototypeData();
+            ResetRunState();
+
+            selectedHeroIds = new List<HeroId>(data.selectedHeroIds ?? new List<HeroId>());
+            activeHeroesRuntime = BuildRuntimeHeroes(selectedHeroIds);
+            currentBattleIndex = data.currentBattleIndex;
+            totalNormalBattlesBeforeBoss = data.totalNormalBattlesBeforeBoss > 0 ? data.totalNormalBattlesBeforeBoss : 3;
+            bossBattleStarted = data.bossStarted;
+            runWon = data.runWon;
+            runLost = data.runLost;
+            supportNodeUsedThisStage = data.supportNodeUsedThisStage;
+            pendingBetweenBattleRecovery = data.pendingBetweenBattleRecovery;
+            gold = data.gold;
+            ownedRelics = new List<RelicId>(data.ownedRelics ?? new List<RelicId>());
+
+            if (!string.IsNullOrWhiteSpace(data.currentNodeType) && Enum.TryParse(data.currentNodeType, out MapNodeType parsedNode))
+            {
+                selectedMapNodeType = parsedNode;
+            }
+
+            RestoreSavedHeroes(data);
+            RestoreSavedDeck(data);
+            InitializeRelicPool();
+            PrepareEncounterDeck();
+
+            Debug.Log("Current run deck count loaded: " + currentRunDeck.Count);
+            Debug.Log("Relic count loaded: " + ownedRelics.Count);
+            Debug.Log("Gold loaded: " + gold);
+            Debug.Log("Selected heroes loaded: " + string.Join(", ", selectedHeroIds));
+            Debug.Log("Hero HP loaded: " + string.Join(", ", activeHeroesRuntime.Where(hero => hero != null && hero.heroData != null).Select(hero => $"{hero.heroData.heroId}:{hero.currentHp}/{hero.MaxHp}")));
+        }
+
+        private void RestoreSavedHeroes(RunSaveData data)
+        {
+            foreach (HeroRuntimeSaveData savedHero in data.heroes)
+            {
+                RuntimeHeroState runtimeHero = GetHeroState(savedHero.heroId);
+                if (runtimeHero == null || runtimeHero.heroData == null)
+                {
+                    continue;
+                }
+
+                runtimeHero.bonusMaxHp = Mathf.Max(0, savedHero.maxHp - runtimeHero.heroData.maxHp);
+                runtimeHero.currentHp = Mathf.Clamp(savedHero.currentHp, 0, runtimeHero.MaxHp);
+                runtimeHero.block = savedHero.block;
+                runtimeHero.isDown = savedHero.isDown || runtimeHero.currentHp <= 0;
+                ApplyStatusSaveData(runtimeHero.statuses, savedHero.statuses);
+            }
+        }
+
+        private void RestoreSavedDeck(RunSaveData data)
+        {
+            currentRunDeck = new List<RuntimeCardState>();
+            foreach (CardInstanceSaveData savedCard in data.currentRunDeck)
+            {
+                if (savedCard == null || savedCard.isTemporary || string.IsNullOrWhiteSpace(savedCard.cardId))
+                {
+                    continue;
+                }
+
+                CardData cardDefinition = cardDatabase.cards.FirstOrDefault(card => card != null && card.cardId == savedCard.cardId);
+                if (cardDefinition == null)
+                {
+                    Debug.LogWarning("Missing card definition: " + savedCard.cardId);
+                    continue;
+                }
+
+                RuntimeCardState runtimeCard = RuntimeCardState.Create(cardDefinition);
+                runtimeCard.isUpgraded = savedCard.isUpgraded;
+                currentRunDeck.Add(runtimeCard);
+            }
+        }
+
+        private StatusEffectsSaveData BuildStatusSaveData(StatusEffectState statuses)
+        {
+            if (statuses == null)
+            {
+                return new StatusEffectsSaveData();
+            }
+
+            return new StatusEffectsSaveData
+            {
+                weak = statuses.weak,
+                vulnerable = statuses.vulnerable,
+                strength = statuses.strength,
+                bleed = statuses.bleed,
+                poison = statuses.poison,
+                taunt = statuses.taunt,
+                stun = statuses.stun,
+                silence = statuses.silence
+            };
+        }
+
+        private void ApplyStatusSaveData(StatusEffectState target, StatusEffectsSaveData source)
+        {
+            if (target == null || source == null)
+            {
+                return;
+            }
+
+            target.weak = source.weak;
+            target.vulnerable = source.vulnerable;
+            target.strength = source.strength;
+            target.bleed = source.bleed;
+            target.poison = source.poison;
+            target.taunt = source.taunt;
+            target.stun = source.stun;
+            target.silence = source.silence;
         }
     }
 }

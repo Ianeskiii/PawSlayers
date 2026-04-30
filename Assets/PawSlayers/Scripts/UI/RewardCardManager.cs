@@ -38,6 +38,7 @@ namespace PawSlayers
 
             rewardChosen = false;
             ConfigureContinueButton();
+            runManager.EnsurePrototypeData();
 
             foreach (Transform child in rewardContainer)
             {
@@ -46,7 +47,38 @@ namespace PawSlayers
 
             int rewardChoiceCount = runManager.HasRelic(RelicId.LuckyPaw) ? 4 : 3;
             List<CardData> eligibleCards = cardDatabase.GetEligibleCards(runManager.SelectedHeroIds, runManager.ProgressionManager);
+            if (eligibleCards.Count == 0 && runManager.cardDatabase != null)
+            {
+                eligibleCards = runManager.cardDatabase.GetEligibleCards(runManager.SelectedHeroIds, null)
+                    .Where(card => card != null && card.cardType != CardType.Status)
+                    .ToList();
+                Debug.LogWarning("Reward pool fallback used because filtered eligible cards were empty.");
+            }
+
             List<CardData> choices = eligibleCards.OrderBy(_ => Random.value).Take(rewardChoiceCount).ToList();
+
+            if (choices.Count == 0)
+            {
+                if (rewardTitleText != null)
+                {
+                    rewardTitleText.text = "Choose 1 reward card";
+                }
+
+                if (rewardInfoText != null)
+                {
+                    rewardInfoText.text = "No reward cards available.";
+                }
+
+                if (continueButton != null)
+                {
+                    continueButton.gameObject.SetActive(true);
+                    continueButton.interactable = true;
+                }
+
+                rewardPanel.SetActive(true);
+                Debug.LogWarning("Reward screen opened with no reward choices.");
+                return;
+            }
 
             foreach (CardData choice in choices)
             {

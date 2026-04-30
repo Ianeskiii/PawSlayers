@@ -964,6 +964,7 @@ namespace PawSlayers
                 battleEnded = true;
                 CleanupTemporaryBattleCards();
                 runManager.GrantRunLossXp();
+                runManager.MarkRunLost();
                 AddLog("Battle lost.");
                 AddLog("Run lost.");
                 ShowRunLost();
