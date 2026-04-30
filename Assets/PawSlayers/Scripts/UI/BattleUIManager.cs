@@ -893,7 +893,7 @@ namespace PawSlayers
 
             if (relicsText != null)
             {
-                relicsText.text = runManager.GetRelicSummaryText();
+                relicsText.text = runManager.GetResourceSummaryText();
             }
         }
 

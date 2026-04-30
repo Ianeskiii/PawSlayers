@@ -9,6 +9,7 @@ namespace PawSlayers
     {
         [Header("Dependencies")]
         public RunManager runManager;
+        public TreasureManager treasureManager;
         public CardDatabase cardDatabase;
         public CardView cardViewPrefab;
 
@@ -27,6 +28,7 @@ namespace PawSlayers
         public Transform treasureCardContainer;
         public Text treasureTitleText;
         public Text treasureInfoText;
+        public Button treasureContinueButton;
 
         [Header("Campfire UI")]
         public GameObject campfirePanel;
@@ -38,12 +40,14 @@ namespace PawSlayers
         public Transform campfireUpgradeContainer;
 
         private bool treasureChoiceLocked;
+        private bool treasureResolved;
         private bool campfireResolved;
 
         private void Start()
         {
             EnsureRunManager();
             EnsureRuntimeUi();
+            EnsureTreasureManager();
             BindButtons();
             RefreshMapUi();
         }
@@ -67,7 +71,7 @@ namespace PawSlayers
 
             if (relicsText != null)
             {
-                relicsText.text = runManager.GetRelicSummaryText();
+                relicsText.text = runManager.GetResourceSummaryText();
             }
 
             if (treasurePanel != null)
@@ -119,12 +123,28 @@ namespace PawSlayers
             }
         }
 
+        private void EnsureTreasureManager()
+        {
+            if (treasureManager == null)
+            {
+                treasureManager = GetComponent<TreasureManager>();
+            }
+
+            if (treasureManager == null)
+            {
+                treasureManager = gameObject.AddComponent<TreasureManager>();
+            }
+
+            treasureManager.Initialize(runManager, cardDatabase);
+        }
+
         private void BindButtons()
         {
             BindButton(battleNodeButton, OnBattleNodeClicked);
             BindButton(treasureNodeButton, OnTreasureNodeClicked);
             BindButton(campfireNodeButton, OnCampfireNodeClicked);
             BindButton(bossNodeButton, OnBossNodeClicked);
+            BindButton(treasureContinueButton, CloseTreasurePanel);
             BindButton(restButton, OnRestClicked);
             BindButton(upgradeButton, OnUpgradeCardClicked);
             BindButton(campfireContinueButton, CloseCampfirePanel);
@@ -331,38 +351,39 @@ namespace PawSlayers
 
         private void ShowTreasureRewards()
         {
-            if (treasurePanel == null || treasureCardContainer == null)
+            if (treasurePanel == null || treasureCardContainer == null || treasureManager == null)
             {
+                Debug.LogWarning("Treasure UI references are missing.");
                 return;
             }
 
             treasureChoiceLocked = false;
+            treasureResolved = false;
             ClearChildren(treasureCardContainer);
-
-            List<RelicData> choices = runManager.GetAvailableRelicChoices(3);
+            List<TreasureRewardChoice> choices = treasureManager.GenerateRewardChoices(3);
+            Debug.Log("Treasure node opened.");
+            Debug.Log("Generated treasure choices: " + string.Join(", ", choices.Select(choice => choice.rewardType + (choice.rewardType == TreasureRewardType.Gold ? $" {choice.goldAmount}g" : string.Empty))));
 
             if (choices.Count == 0)
             {
-                if (infoText != null)
-                {
-                    infoText.text = "No relics available.";
-                }
+                runManager.MarkTreasureNodeResolved();
+                ShowTreasureResult("No treasure rewards available.");
                 return;
             }
 
-            foreach (RelicData relic in choices)
+            foreach (TreasureRewardChoice choice in choices)
             {
-                CreateRelicChoiceButton(treasureCardContainer, relic, SelectTreasureReward);
+                CreateTreasureChoiceButton(treasureCardContainer, choice, SelectTreasureChoice);
             }
 
             if (treasureTitleText != null)
             {
-                treasureTitleText.text = "Treasure";
+                treasureTitleText.text = "Choose 1 Treasure Reward";
             }
 
             if (treasureInfoText != null)
             {
-                treasureInfoText.text = "Choose 1 relic.";
+                treasureInfoText.text = "Choose 1 treasure reward.";
             }
 
             if (infoText != null)
@@ -370,36 +391,227 @@ namespace PawSlayers
                 infoText.text = "Treasure found.";
             }
 
+            if (treasureContinueButton != null)
+            {
+                treasureContinueButton.gameObject.SetActive(false);
+            }
+
             treasurePanel.SetActive(true);
             Debug.Log("Selected node: Treasure");
         }
 
-        private void SelectTreasureReward(RelicData relic)
+        private void SelectTreasureChoice(TreasureRewardChoice choice)
         {
-            if (treasureChoiceLocked || relic == null || runManager == null)
+            if (treasureChoiceLocked || choice == null || treasureManager == null)
             {
                 return;
             }
 
             treasureChoiceLocked = true;
-            bool gained = runManager.ResolveTreasureRelicNode(relic.relicId);
+            Debug.Log("Selected treasure reward: " + choice.rewardType);
+
+            switch (choice.rewardType)
+            {
+                case TreasureRewardType.Relic:
+                    ShowTreasureRelicChoices(choice);
+                    break;
+                case TreasureRewardType.Gold:
+                    treasureManager.ApplyGoldReward(choice.goldAmount);
+                    Debug.Log("Reward applied: Gold");
+                    LogTreasureState();
+                    ShowTreasureResult($"Gained {choice.goldAmount} gold.");
+                    break;
+                case TreasureRewardType.Card:
+                    ShowTreasureCardChoices();
+                    break;
+                case TreasureRewardType.Upgrade:
+                    ShowTreasureUpgradeChoices();
+                    break;
+                case TreasureRewardType.Heal:
+                    treasureManager.ApplyHealReward();
+                    Debug.Log("Reward applied: Heal");
+                    LogTreasureState();
+                    ShowTreasureResult("Party recovered.");
+                    break;
+            }
+        }
+
+        private void ShowTreasureRelicChoices(TreasureRewardChoice choice)
+        {
+            ClearChildren(treasureCardContainer);
+            List<RelicData> relicChoices = choice.relicChoices ?? new List<RelicData>();
+
+            if (relicChoices.Count == 0)
+            {
+                runManager.MarkTreasureNodeResolved();
+                ShowTreasureResult("No relics available.");
+                return;
+            }
+
+            foreach (RelicData relic in relicChoices)
+            {
+                CreateRelicChoiceButton(treasureCardContainer, relic, SelectTreasureRelicReward);
+            }
+
+            if (treasureTitleText != null)
+            {
+                treasureTitleText.text = "Ancient Relic";
+            }
 
             if (treasureInfoText != null)
             {
-                treasureInfoText.text = gained ? "Gained relic: " + relic.relicName : "Relic already owned skipped.";
+                treasureInfoText.text = "Choose 1 relic.";
+            }
+        }
+
+        private void SelectTreasureRelicReward(RelicData relic)
+        {
+            if (relic == null || treasureManager == null)
+            {
+                return;
             }
 
+            bool gained = treasureManager.ApplyRelicReward(relic.relicId);
+            Debug.Log("Reward applied: Relic");
+            LogTreasureState();
+            ShowTreasureResult(gained ? "Gained relic: " + relic.relicName : "No relic gained.");
+        }
+
+        private void ShowTreasureCardChoices()
+        {
+            ClearChildren(treasureCardContainer);
+            List<CardData> cardChoices = treasureManager.GetCardRewardChoices(3);
+
+            if (cardChoices.Count == 0)
+            {
+                runManager.MarkTreasureNodeResolved();
+                ShowTreasureResult("No cards available.");
+                return;
+            }
+
+            if (treasureTitleText != null)
+            {
+                treasureTitleText.text = "Card Stash";
+            }
+
+            if (treasureInfoText != null)
+            {
+                treasureInfoText.text = "Choose 1 card to add to your deck.";
+            }
+
+            foreach (CardData card in cardChoices)
+            {
+                CardView cardView = cardViewPrefab != null
+                    ? Instantiate(cardViewPrefab, treasureCardContainer)
+                    : CreateRuntimeRewardCardView(treasureCardContainer);
+
+                cardView.Setup(card, SelectTreasureCardReward);
+                cardView.SetDisabled(false, string.Empty);
+            }
+        }
+
+        private void SelectTreasureCardReward(CardData card)
+        {
+            if (card == null || treasureManager == null)
+            {
+                return;
+            }
+
+            treasureManager.ApplyCardReward(card);
+            Debug.Log("Reward applied: Card");
+            LogTreasureState();
+            ShowTreasureResult("Added " + card.cardName + " to deck.");
+        }
+
+        private void ShowTreasureUpgradeChoices()
+        {
+            ClearChildren(treasureCardContainer);
+            List<RuntimeCardState> upgradeChoices = treasureManager.GetUpgradeChoices();
+
+            if (upgradeChoices.Count == 0)
+            {
+                runManager.MarkTreasureNodeResolved();
+                ShowTreasureResult("No cards available to upgrade.");
+                return;
+            }
+
+            if (treasureTitleText != null)
+            {
+                treasureTitleText.text = "Upgrade Scroll";
+            }
+
+            if (treasureInfoText != null)
+            {
+                treasureInfoText.text = "Choose 1 card to upgrade.";
+            }
+
+            foreach (RuntimeCardState card in upgradeChoices)
+            {
+                CardView cardView = cardViewPrefab != null
+                    ? Instantiate(cardViewPrefab, treasureCardContainer)
+                    : CreateRuntimeRewardCardView(treasureCardContainer);
+
+                cardView.Setup(card, SelectTreasureUpgradeReward, card.BuildUpgradePreview());
+                cardView.SetDisabled(false, string.Empty);
+            }
+        }
+
+        private void SelectTreasureUpgradeReward(RuntimeCardState card)
+        {
+            if (card == null || treasureManager == null)
+            {
+                return;
+            }
+
+            bool upgraded = treasureManager.ApplyUpgradeReward(card);
+            Debug.Log("Reward applied: Upgrade");
+            LogTreasureState();
+            ShowTreasureResult(upgraded
+                ? "Upgraded " + card.baseCard.cardName + " to " + card.DisplayName
+                : "No cards available to upgrade.");
+        }
+
+        private void ShowTreasureResult(string message)
+        {
+            treasureResolved = true;
+            ClearChildren(treasureCardContainer);
+
+            if (treasureInfoText != null)
+            {
+                treasureInfoText.text = message;
+            }
+
+            if (infoText != null)
+            {
+                infoText.text = message;
+            }
+
+            if (treasureContinueButton != null)
+            {
+                treasureContinueButton.gameObject.SetActive(true);
+                treasureContinueButton.interactable = true;
+            }
+        }
+
+        private void CloseTreasurePanel()
+        {
             if (treasurePanel != null)
             {
                 treasurePanel.SetActive(false);
             }
 
-            if (infoText != null)
+            if (treasureResolved)
             {
-                infoText.text = gained ? "Gained relic: " + relic.relicName : "No relic gained.";
+                treasureChoiceLocked = false;
+                RefreshMapUi();
             }
+        }
 
-            RefreshMapUi();
+        private void LogTreasureState()
+        {
+            Debug.Log("Current gold: " + runManager.Gold);
+            Debug.Log("Deck count: " + runManager.CurrentRunDeck.Count);
+            Debug.Log("Owned relic count: " + runManager.OwnedRelics.Count);
         }
 
         private string GetProgressText()
@@ -455,7 +667,12 @@ namespace PawSlayers
 
         private void EnsureRuntimeUi()
         {
-            if (titleText != null && battleNodeButton != null && treasurePanel != null && campfirePanel != null && relicsText != null)
+            if (treasurePanel != null && treasureContinueButton == null)
+            {
+                EnsureTreasureContinueButton();
+            }
+
+            if (titleText != null && battleNodeButton != null && treasurePanel != null && treasureContinueButton != null && campfirePanel != null && relicsText != null)
             {
                 return;
             }
@@ -502,6 +719,14 @@ namespace PawSlayers
             treasureTitleText = CreateText("TreasureTitle", treasureBox.transform, new Vector2(20f, -20f), new Vector2(300f, 32f), 28, FontStyle.Bold, TextAnchor.UpperLeft);
             treasureInfoText = CreateText("TreasureInfo", treasureBox.transform, new Vector2(20f, -58f), new Vector2(500f, 24f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
             treasureCardContainer = CreateLayoutContainer("TreasureCards", treasureBox.transform, false, new Vector2(20f, 20f), new Vector2(-20f, -100f));
+            treasureContinueButton = CreateButton("TreasureContinueButton", treasureBox.transform, "Continue");
+            RectTransform treasureContinueRect = treasureContinueButton.GetComponent<RectTransform>();
+            treasureContinueRect.anchorMin = new Vector2(1f, 0f);
+            treasureContinueRect.anchorMax = new Vector2(1f, 0f);
+            treasureContinueRect.pivot = new Vector2(1f, 0f);
+            treasureContinueRect.anchoredPosition = new Vector2(-20f, 20f);
+            treasureContinueRect.sizeDelta = new Vector2(180f, 48f);
+            treasureContinueButton.gameObject.SetActive(false);
 
             campfirePanel = CreateOverlayPanel(root.transform, "CampfirePanel", "CampfireBox", out GameObject campfireBox);
             campfireTitleText = CreateText("CampfireTitle", campfireBox.transform, new Vector2(20f, -20f), new Vector2(300f, 32f), 28, FontStyle.Bold, TextAnchor.UpperLeft);
@@ -518,6 +743,24 @@ namespace PawSlayers
             continueRect.anchoredPosition = new Vector2(-20f, 20f);
             continueRect.sizeDelta = new Vector2(180f, 48f);
             campfireContinueButton.gameObject.SetActive(false);
+        }
+
+        private void EnsureTreasureContinueButton()
+        {
+            if (treasurePanel == null || treasureContinueButton != null || treasurePanel.transform.childCount == 0)
+            {
+                return;
+            }
+
+            Transform treasureBox = treasurePanel.transform.GetChild(0);
+            treasureContinueButton = CreateButton("TreasureContinueButton", treasureBox, "Continue");
+            RectTransform treasureContinueRect = treasureContinueButton.GetComponent<RectTransform>();
+            treasureContinueRect.anchorMin = new Vector2(1f, 0f);
+            treasureContinueRect.anchorMax = new Vector2(1f, 0f);
+            treasureContinueRect.pivot = new Vector2(1f, 0f);
+            treasureContinueRect.anchoredPosition = new Vector2(-20f, 20f);
+            treasureContinueRect.sizeDelta = new Vector2(180f, 48f);
+            treasureContinueButton.gameObject.SetActive(false);
         }
 
         private GameObject CreateOverlayPanel(Transform parent, string panelName, string boxName, out GameObject box)
@@ -587,6 +830,25 @@ namespace PawSlayers
             CreateText("RelicName", root.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft).text = relic.relicName;
             CreateText("RelicRarity", root.transform, new Vector2(12f, -42f), new Vector2(240f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft).text = "Rarity: " + relic.rarity;
             CreateText("RelicDescription", root.transform, new Vector2(12f, -70f), new Vector2(250f, 88f), 15, FontStyle.Normal, TextAnchor.UpperLeft).text = relic.description;
+        }
+
+        private void CreateTreasureChoiceButton(Transform parent, TreasureRewardChoice choice, System.Action<TreasureRewardChoice> onClick)
+        {
+            GameObject root = CreatePanel("TreasureChoice", parent, new Color(0.93f, 0.90f, 0.80f, 1f));
+            RectTransform rect = root.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(280f, 180f);
+            LayoutElement layout = root.AddComponent<LayoutElement>();
+            layout.preferredWidth = 280f;
+            layout.preferredHeight = 180f;
+            layout.minWidth = 280f;
+            layout.minHeight = 180f;
+
+            Button button = root.AddComponent<Button>();
+            button.onClick.AddListener(() => onClick?.Invoke(choice));
+
+            CreateText("ChoiceTitle", root.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft).text = choice.title;
+            CreateText("ChoiceType", root.transform, new Vector2(12f, -42f), new Vector2(240f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft).text = choice.rewardType.ToString();
+            CreateText("ChoiceDescription", root.transform, new Vector2(12f, -70f), new Vector2(250f, 88f), 15, FontStyle.Normal, TextAnchor.UpperLeft).text = choice.description;
         }
 
         private Transform CreateLayoutContainer(string name, Transform parent, bool vertical, Vector2 offsetMin, Vector2 offsetMax)

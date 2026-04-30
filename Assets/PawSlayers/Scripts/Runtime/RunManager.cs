@@ -35,6 +35,7 @@ namespace PawSlayers
         [SerializeField] private bool pendingBetweenBattleRecovery;
         [SerializeField] private List<RelicId> ownedRelics = new List<RelicId>();
         [SerializeField] private List<RelicId> availableRelicsPool = new List<RelicId>();
+        [SerializeField] private int gold;
 
         private DeckManager deckManager;
 
@@ -50,6 +51,7 @@ namespace PawSlayers
         public bool SupportNodeUsedThisStage => supportNodeUsedThisStage;
         public bool PendingBetweenBattleRecovery => pendingBetweenBattleRecovery;
         public List<RelicId> OwnedRelics => ownedRelics;
+        public int Gold => gold;
         public List<RuntimeCardState> RunDeck => deckManager == null ? new List<RuntimeCardState>() : deckManager.RunDeck.ToList();
         public List<RuntimeCardState> DiscardPile => deckManager == null ? new List<RuntimeCardState>() : deckManager.DiscardPile.ToList();
         public List<RuntimeCardState> DrawPile => deckManager == null ? new List<RuntimeCardState>() : deckManager.DrawPile.ToList();
@@ -113,6 +115,7 @@ namespace PawSlayers
             Debug.Log("Current battle index: " + currentBattleIndex);
             Debug.Log("Deck count: " + currentRunDeck.Count);
             Debug.Log("Owned relics: " + string.Join(", ", ownedRelics));
+            Debug.Log("Current gold: " + gold);
             LoadConfiguredScene(mapSceneName);
         }
 
@@ -290,6 +293,42 @@ namespace PawSlayers
             return true;
         }
 
+        public void AddGold(int amount)
+        {
+            gold += Mathf.Max(0, amount);
+            Debug.Log("Current gold: " + gold);
+        }
+
+        public void MarkTreasureNodeResolved()
+        {
+            SelectMapNode(MapNodeType.Treasure);
+            supportNodeUsedThisStage = true;
+        }
+
+        public void ApplyTreasureHealReward()
+        {
+            foreach (RuntimeHeroState hero in activeHeroesRuntime)
+            {
+                if (hero == null || hero.heroData == null)
+                {
+                    continue;
+                }
+
+                hero.block = 0;
+
+                if (hero.IsAlive)
+                {
+                    int healAmount = Mathf.CeilToInt(hero.MaxHp * 0.2f);
+                    hero.Heal(healAmount);
+                }
+                else
+                {
+                    hero.currentHp = Mathf.Max(1, Mathf.CeilToInt(hero.MaxHp * 0.15f));
+                    hero.isDown = false;
+                }
+            }
+        }
+
         public string GetRelicSummaryText()
         {
             List<RelicData> relics = GetOwnedRelicData();
@@ -299,6 +338,11 @@ namespace PawSlayers
             }
 
             return "Relics: " + string.Join(" | ", relics.Select(relic => relic.relicName));
+        }
+
+        public string GetResourceSummaryText()
+        {
+            return $"Gold: {gold}\n{GetRelicSummaryText()}";
         }
 
         public void HealAllHeroes()
@@ -489,8 +533,7 @@ namespace PawSlayers
 
         public bool ResolveTreasureRelicNode(RelicId relicId)
         {
-            SelectMapNode(MapNodeType.Treasure);
-            supportNodeUsedThisStage = true;
+            MarkTreasureNodeResolved();
             return GainRelic(relicId);
         }
 
@@ -610,6 +653,7 @@ namespace PawSlayers
             pendingBetweenBattleRecovery = false;
             ownedRelics = new List<RelicId>();
             availableRelicsPool = new List<RelicId>();
+            gold = 0;
 
             if (deckManager != null)
             {

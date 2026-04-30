@@ -61,6 +61,15 @@ namespace PawSlayers
         KangarooWraps = 8
     }
 
+    public enum TreasureRewardType
+    {
+        Relic = 0,
+        Gold = 1,
+        Card = 2,
+        Upgrade = 3,
+        Heal = 4
+    }
+
     [Serializable]
     public class RuntimeHeroState
     {
