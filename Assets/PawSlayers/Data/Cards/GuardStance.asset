@@ -15,6 +15,7 @@ MonoBehaviour:
   cardId: guard_stance
   cardName: Guard Stance
   description: Gain 8 block.
+  isStarterCard: 1
   ownerHeroId: 1
   cardType: 1
   targetType: 2

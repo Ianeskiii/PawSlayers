@@ -15,6 +15,7 @@ MonoBehaviour:
   cardId: swift_slash
   cardName: Swift Slash
   description: Deal 8 damage.
+  isStarterCard: 1
   ownerHeroId: 1
   cardType: 0
   targetType: 0

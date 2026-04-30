@@ -33,6 +33,7 @@ namespace PawSlayers
         public Button winBattleButton;
         public GameObject runWonPanel;
         public Text runWonText;
+        public Button returnToSelectionButton;
 
         private readonly List<BattleHeroView> heroViews = new List<BattleHeroView>();
         private readonly List<EnemyView> enemyViews = new List<EnemyView>();
@@ -50,6 +51,10 @@ namespace PawSlayers
         private bool slothTeaUsedThisBattle;
         private bool thiefsBellUsedThisTurn;
         private int kangarooWrapsAttackCardsThisTurn;
+        private bool capybaraLevelFiveUsedThisBattle;
+        private bool koalaLevelFiveUsedThisBattle;
+        private bool slothLevelFiveUsedThisBattle;
+        private int kangarooLevelFiveAttackCardsThisTurn;
 
         private void Start()
         {
@@ -126,14 +131,17 @@ namespace PawSlayers
             battleEnded = true;
             CleanupTemporaryBattleCards();
             AddLog("Battle won.");
-            RefreshAllUi();
 
             if (runManager.IsBossBattle)
             {
+                runManager.GrantBossBattleXp();
                 runManager.MarkRunWon();
                 ShowRunWon();
                 return;
             }
+
+            runManager.GrantNormalBattleXp();
+            RefreshAllUi();
 
             if (rewardCardManager != null)
             {
@@ -288,6 +296,7 @@ namespace PawSlayers
             currentEnergy = MaxEnergy;
             thiefsBellUsedThisTurn = false;
             kangarooWrapsAttackCardsThisTurn = 0;
+            kangarooLevelFiveAttackCardsThisTurn = 0;
 
             if (isBattleStart)
             {
@@ -315,6 +324,10 @@ namespace PawSlayers
             slothTeaUsedThisBattle = false;
             thiefsBellUsedThisTurn = false;
             kangarooWrapsAttackCardsThisTurn = 0;
+            capybaraLevelFiveUsedThisBattle = false;
+            koalaLevelFiveUsedThisBattle = false;
+            slothLevelFiveUsedThisBattle = false;
+            kangarooLevelFiveAttackCardsThisTurn = 0;
         }
 
         private void ApplyBattleStartRelics()
@@ -338,6 +351,17 @@ namespace PawSlayers
                     panda.GainBlock(10);
                     AddLog("Panda Emblem: Panda gained 10 block.");
                     Debug.Log("Panda Emblem: Panda gained 10 block.");
+                }
+            }
+
+            if (runManager.ProgressionManager != null &&
+                runManager.ProgressionManager.HasLevelFivePerk(HeroId.Panda))
+            {
+                RuntimeHeroState panda = runManager.GetHeroState(HeroId.Panda);
+                if (panda != null && panda.IsAlive)
+                {
+                    panda.GainBlock(5);
+                    AddLog("Panda passive: Panda gained 5 block.");
                 }
             }
         }
@@ -622,6 +646,15 @@ namespace PawSlayers
             AddLog($"{sourceName} used {card.DisplayName} on {targetName}.");
 
             int damageAmount = GetModifiedDamage(card, card.Damage);
+            if (card.baseCard != null &&
+                card.baseCard.cardId == "momentum_kick" &&
+                kangarooWrapsAttackCardsThisTurn == 1)
+            {
+                int bonusDamage = card.isUpgraded ? 7 : 5;
+                damageAmount += bonusDamage;
+                AddLog($"Momentum Kick bonus: +{bonusDamage} damage.");
+            }
+
             if (damageAmount > 0 && card.TargetType == TargetType.AllEnemies)
             {
                 foreach (EnemyRuntimeState enemy in enemies.Where(enemy => enemy.IsAlive))
@@ -673,6 +706,8 @@ namespace PawSlayers
                 AddLog($"Player drew {drawn} cards.");
             }
 
+            ApplySpecialCardEffects(card, ownerHero);
+
             ApplyCardStatuses(card, ownerHero, chosenHeroTarget, chosenEnemyTarget);
 
             if (card.isUpgraded)
@@ -708,6 +743,26 @@ namespace PawSlayers
             return ownerHero ?? chosenHeroTarget;
         }
 
+        private void ApplySpecialCardEffects(RuntimeCardState card, RuntimeHeroState ownerHero)
+        {
+            if (card == null || card.baseCard == null || ownerHero == null)
+            {
+                return;
+            }
+
+            switch (card.baseCard.cardId)
+            {
+                case "rally_cut":
+                    ownerHero.AddStrength(1);
+                    AddLog($"{ownerHero.heroData.heroName} gained 1 Strength.");
+                    break;
+                case "guardian_roar":
+                    ownerHero.AddTaunt(card.isUpgraded ? 2 : 1);
+                    AddLog($"{ownerHero.heroData.heroName} gained {(card.isUpgraded ? 2 : 1)} Taunt.");
+                    break;
+            }
+        }
+
         private EnemyRuntimeState ResolveEnemyTarget(RuntimeCardState card, EnemyRuntimeState chosenEnemyTarget)
         {
             if (card.TargetType == TargetType.Enemy || card.TargetType == TargetType.AllEnemies)
@@ -737,6 +792,22 @@ namespace PawSlayers
                 }
             }
 
+            if (runManager.ProgressionManager != null &&
+                runManager.ProgressionManager.HasLevelFivePerk(HeroId.Koala) &&
+                card.OwnerHeroId == HeroId.Koala &&
+                card.CardType == CardType.Skill &&
+                !koalaLevelFiveUsedThisBattle &&
+                runManager.GetHeroState(HeroId.Koala)?.IsAlive == true)
+            {
+                modifiedCost = 0;
+
+                if (applyChanges)
+                {
+                    koalaLevelFiveUsedThisBattle = true;
+                    AddLog("Koala passive: first Thief Skill cost reduced to 0.");
+                }
+            }
+
             return modifiedCost;
         }
 
@@ -753,6 +824,18 @@ namespace PawSlayers
                 bambooCharmUsedThisBattle = true;
                 AddLog("Bamboo Charm: +3 damage applied.");
                 Debug.Log("Bamboo Charm: +3 damage applied.");
+            }
+
+            if (modifiedDamage > 0 &&
+                card.CardType == CardType.Attack &&
+                card.OwnerHeroId == HeroId.Capybara &&
+                runManager.ProgressionManager != null &&
+                runManager.ProgressionManager.HasLevelFivePerk(HeroId.Capybara) &&
+                !capybaraLevelFiveUsedThisBattle)
+            {
+                modifiedDamage += 2;
+                capybaraLevelFiveUsedThisBattle = true;
+                AddLog("Capybara passive: +2 damage applied.");
             }
 
             return modifiedDamage;
@@ -772,6 +855,17 @@ namespace PawSlayers
                 Debug.Log("Sloth Tea: +5 heal applied.");
             }
 
+            if (modifiedHeal > 0 &&
+                card.OwnerHeroId == HeroId.Sloth &&
+                runManager.ProgressionManager != null &&
+                runManager.ProgressionManager.HasLevelFivePerk(HeroId.Sloth) &&
+                !slothLevelFiveUsedThisBattle)
+            {
+                modifiedHeal += 3;
+                slothLevelFiveUsedThisBattle = true;
+                AddLog("Sloth passive: +3 heal applied.");
+            }
+
             return modifiedHeal;
         }
 
@@ -783,6 +877,23 @@ namespace PawSlayers
             }
 
             kangarooWrapsAttackCardsThisTurn++;
+
+            if (card.OwnerHeroId == HeroId.Kangaroo &&
+                runManager.ProgressionManager != null &&
+                runManager.ProgressionManager.HasLevelFivePerk(HeroId.Kangaroo))
+            {
+                kangarooLevelFiveAttackCardsThisTurn++;
+                if (kangarooLevelFiveAttackCardsThisTurn >= 2)
+                {
+                    kangarooLevelFiveAttackCardsThisTurn = 0;
+                    RuntimeHeroState kangaroo = runManager.GetHeroState(HeroId.Kangaroo);
+                    if (kangaroo != null && kangaroo.IsAlive)
+                    {
+                        kangaroo.AddStrength(1);
+                        AddLog("Kangaroo passive: gained 1 Strength.");
+                    }
+                }
+            }
 
             if (!runManager.HasRelic(RelicId.KangarooWraps) || kangarooWrapsAttackCardsThisTurn < 2)
             {
@@ -852,6 +963,7 @@ namespace PawSlayers
             {
                 battleEnded = true;
                 CleanupTemporaryBattleCards();
+                runManager.GrantRunLossXp();
                 AddLog("Battle lost.");
                 AddLog("Run lost.");
                 ShowRunLost();
@@ -866,7 +978,7 @@ namespace PawSlayers
         private void ShowRunWon()
         {
             AddLog("Run won!");
-            ShowBattleEndPanel("Run won!");
+            ShowBattleEndPanel(runManager.GetRunSummaryText(true));
         }
 
         private void RefreshTopBar()
@@ -1044,6 +1156,12 @@ namespace PawSlayers
             {
                 winBattleButton.onClick.RemoveAllListeners();
                 winBattleButton.onClick.AddListener(WinBattle);
+            }
+
+            if (returnToSelectionButton != null)
+            {
+                returnToSelectionButton.onClick.RemoveAllListeners();
+                returnToSelectionButton.onClick.AddListener(ReturnToHeroSelection);
             }
         }
 
@@ -2025,7 +2143,7 @@ namespace PawSlayers
 
         private void ShowRunLost()
         {
-            ShowBattleEndPanel("Run lost!");
+            ShowBattleEndPanel(runManager.GetRunSummaryText(false));
         }
 
         private void ShowBattleEndPanel(string message)
@@ -2040,7 +2158,21 @@ namespace PawSlayers
                 runWonText.text = message;
             }
 
+            if (returnToSelectionButton != null)
+            {
+                returnToSelectionButton.gameObject.SetActive(true);
+                returnToSelectionButton.interactable = true;
+            }
+
             RefreshAllUi();
+        }
+
+        private void ReturnToHeroSelection()
+        {
+            if (runManager != null)
+            {
+                runManager.ResetRunAndReturnToSelection();
+            }
         }
 
         private bool CanUseConfiguredEnemyViewPrefab()
@@ -2074,7 +2206,7 @@ namespace PawSlayers
                 new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.EventSystems.StandaloneInputModule));
             }
 
-            if (titleText != null && heroContainer != null && enemyContainer != null && handContainer != null && runProgressText != null && relicsText != null && rewardCardManager != null && rewardCardManager.continueButton != null)
+            if (titleText != null && heroContainer != null && enemyContainer != null && handContainer != null && runProgressText != null && relicsText != null && rewardCardManager != null && rewardCardManager.continueButton != null && returnToSelectionButton != null)
             {
                 rewardCardManager.battleUiManager = this;
                 return;
@@ -2203,9 +2335,17 @@ namespace PawSlayers
             runWonRect.anchorMin = new Vector2(0.5f, 0.5f);
             runWonRect.anchorMax = new Vector2(0.5f, 0.5f);
             runWonRect.pivot = new Vector2(0.5f, 0.5f);
-            runWonRect.sizeDelta = new Vector2(420f, 180f);
+            runWonRect.sizeDelta = new Vector2(760f, 360f);
             runWonRect.anchoredPosition = Vector2.zero;
-            runWonText = CreateText("RunWonText", runWonBox.transform, new Vector2(40f, -50f), new Vector2(340f, 60f), 34, FontStyle.Bold, TextAnchor.MiddleCenter);
+            runWonText = CreateText("RunWonText", runWonBox.transform, new Vector2(40f, -40f), new Vector2(680f, 220f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
+            returnToSelectionButton = CreateButton("ReturnToSelectionButton", runWonBox.transform, "Return to Hero Selection");
+            RectTransform returnRect = returnToSelectionButton.GetComponent<RectTransform>();
+            returnRect.anchorMin = new Vector2(0.5f, 0f);
+            returnRect.anchorMax = new Vector2(0.5f, 0f);
+            returnRect.pivot = new Vector2(0.5f, 0f);
+            returnRect.anchoredPosition = new Vector2(0f, 20f);
+            returnRect.sizeDelta = new Vector2(260f, 52f);
+            returnToSelectionButton.gameObject.SetActive(false);
         }
 
         private void EnsureHeroViewInteractive(BattleHeroView view)

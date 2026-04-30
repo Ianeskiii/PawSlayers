@@ -15,6 +15,7 @@ MonoBehaviour:
   cardId: pommel_tap
   cardName: Pommel Tap
   description: Deal 5 damage. Apply 1 Stun.
+  isStarterCard: 1
   ownerHeroId: 1
   cardType: 0
   targetType: 0

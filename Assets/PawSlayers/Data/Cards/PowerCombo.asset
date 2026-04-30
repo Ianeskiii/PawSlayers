@@ -15,6 +15,7 @@ MonoBehaviour:
   cardId: power_combo
   cardName: Power Combo
   description: Deal 12 damage.
+  isStarterCard: 1
   ownerHeroId: 5
   cardType: 0
   targetType: 0

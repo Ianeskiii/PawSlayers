@@ -10,6 +10,7 @@ namespace PawSlayers
         public string cardName;
         [TextArea(2, 5)]
         public string description;
+        public bool isStarterCard = true;
         public HeroId ownerHeroId;
         public CardType cardType;
         public TargetType targetType;
@@ -191,7 +192,14 @@ namespace PawSlayers
                 return description;
             }
 
-            return string.Join(" ", parts);
+            string generatedDescription = string.Join(" ", parts);
+
+            if (cardId == "rally_cut" || cardId == "guardian_roar" || cardId == "momentum_kick")
+            {
+                return description;
+            }
+
+            return generatedDescription;
         }
     }
 }

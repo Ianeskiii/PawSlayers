@@ -15,6 +15,7 @@ MonoBehaviour:
   cardId: smoke_step
   cardName: Smoke Step
   description: Gain 6 block. Draw 1 card.
+  isStarterCard: 1
   ownerHeroId: 2
   cardType: 1
   targetType: 2

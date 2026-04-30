@@ -15,6 +15,7 @@ MonoBehaviour:
   cardId: shadow_strike
   cardName: Shadow Strike
   description: Deal 7 damage. Apply 1 Weak.
+  isStarterCard: 1
   ownerHeroId: 2
   cardType: 0
   targetType: 0

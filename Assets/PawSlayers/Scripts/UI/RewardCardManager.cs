@@ -45,7 +45,7 @@ namespace PawSlayers
             }
 
             int rewardChoiceCount = runManager.HasRelic(RelicId.LuckyPaw) ? 4 : 3;
-            List<CardData> eligibleCards = cardDatabase.GetEligibleCards(runManager.SelectedHeroIds);
+            List<CardData> eligibleCards = cardDatabase.GetEligibleCards(runManager.SelectedHeroIds, runManager.ProgressionManager);
             List<CardData> choices = eligibleCards.OrderBy(_ => Random.value).Take(rewardChoiceCount).ToList();
 
             foreach (CardData choice in choices)

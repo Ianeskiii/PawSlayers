@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 #if UNITY_EDITOR
@@ -16,6 +17,7 @@ namespace PawSlayers
         public HeroDatabase heroDatabase;
         public CardDatabase cardDatabase;
         public List<RelicData> relicDatabase = new List<RelicData>();
+        public HeroProgressionManager progressionManager;
 
         [Header("Scenes")]
         public string heroSelectionSceneName = "HeroSelection";
@@ -38,6 +40,7 @@ namespace PawSlayers
         [SerializeField] private int gold;
 
         private DeckManager deckManager;
+        private readonly Dictionary<HeroId, RunHeroProgressSummary> runProgressSummaries = new Dictionary<HeroId, RunHeroProgressSummary>();
 
         public List<HeroId> SelectedHeroIds => selectedHeroIds;
         public List<RuntimeHeroState> ActiveHeroesRuntime => activeHeroesRuntime;
@@ -52,6 +55,7 @@ namespace PawSlayers
         public bool PendingBetweenBattleRecovery => pendingBetweenBattleRecovery;
         public List<RelicId> OwnedRelics => ownedRelics;
         public int Gold => gold;
+        public HeroProgressionManager ProgressionManager => progressionManager;
         public List<RuntimeCardState> RunDeck => deckManager == null ? new List<RuntimeCardState>() : deckManager.RunDeck.ToList();
         public List<RuntimeCardState> DiscardPile => deckManager == null ? new List<RuntimeCardState>() : deckManager.DiscardPile.ToList();
         public List<RuntimeCardState> DrawPile => deckManager == null ? new List<RuntimeCardState>() : deckManager.DrawPile.ToList();
@@ -72,6 +76,12 @@ namespace PawSlayers
             if (deckManager == null)
             {
                 deckManager = gameObject.AddComponent<DeckManager>();
+            }
+
+            progressionManager = GetComponent<HeroProgressionManager>();
+            if (progressionManager == null)
+            {
+                progressionManager = gameObject.AddComponent<HeroProgressionManager>();
             }
 
             EnsurePrototypeData();
@@ -425,6 +435,88 @@ namespace PawSlayers
             }
         }
 
+        public void GrantNormalBattleXp()
+        {
+            GrantXpToSelectedHeroes(10);
+        }
+
+        public void GrantBossBattleXp()
+        {
+            GrantXpToSelectedHeroes(40);
+        }
+
+        public void GrantRunLossXp()
+        {
+            GrantXpToSelectedHeroes(5);
+        }
+
+        public string GetRunSummaryText(bool wasRunWon)
+        {
+            StringBuilder summary = new StringBuilder();
+            summary.AppendLine(wasRunWon ? "Run Won!" : "Run Lost!");
+
+            foreach (HeroId heroId in selectedHeroIds)
+            {
+                if (!runProgressSummaries.TryGetValue(heroId, out RunHeroProgressSummary heroSummary))
+                {
+                    HeroProgressionState progress = progressionManager != null ? progressionManager.GetProgress(heroId) : null;
+                    string heroName = progress != null ? progress.heroName : heroId.ToString();
+                    summary.AppendLine($"{heroName} gained 0 XP.");
+                    continue;
+                }
+
+                string line = $"{heroSummary.heroName} gained {heroSummary.totalXpGained} XP.";
+                if (heroSummary.endLevel > heroSummary.startLevel)
+                {
+                    line += $" Level {heroSummary.endLevel} reached!";
+                }
+
+                summary.AppendLine(line);
+
+                foreach (string unlockedMessage in heroSummary.unlockedMessages)
+                {
+                    summary.AppendLine(unlockedMessage);
+                }
+            }
+
+            return summary.ToString().TrimEnd();
+        }
+
+        public void ResetHeroProgressionForTesting()
+        {
+            progressionManager?.ResetProgressionForTesting();
+        }
+
+        public void AddXpToSelectedHeroesDebug(int amount)
+        {
+            GrantXpToSelectedHeroes(amount);
+        }
+
+        public void AddXpToAllHeroesDebug(int amount)
+        {
+            if (progressionManager == null || heroDatabase == null)
+            {
+                return;
+            }
+
+            List<HeroId> allHeroes = heroDatabase.heroes
+                .Where(hero => hero != null && hero.heroId != HeroId.Neutral)
+                .Select(hero => hero.heroId)
+                .ToList();
+
+            RecordProgressionResults(progressionManager.AddXpToHeroes(allHeroes, amount));
+        }
+
+        public void PrintHeroProgressionDebug()
+        {
+            progressionManager?.PrintProgression();
+        }
+
+        public void UnlockAllHeroesDebug()
+        {
+            progressionManager?.UnlockAllHeroes();
+        }
+
         public void EnsureDirectBattleTestState()
         {
             EnsurePrototypeData();
@@ -496,7 +588,8 @@ namespace PawSlayers
                 });
             }
 
-            currentRunDeck = DeckBuilder.BuildStartingDeck(cardDatabase.cards, selectedHeroIds);
+            currentRunDeck = DeckBuilder.BuildStartingDeck(cardDatabase.cards, selectedHeroIds, progressionManager);
+            ApplyStartingDeckProgressionBonuses();
             Debug.Log("Initialized run deck. Count: " + currentRunDeck.Count);
         }
 
@@ -692,7 +785,7 @@ namespace PawSlayers
                 cardDatabase.cards = new List<CardData>();
             }
 
-            if (cardDatabase.cards.Count == 0 || cardDatabase.cards.Count < 15)
+            if (cardDatabase.cards.Count == 0 || cardDatabase.cards.Count < 20)
             {
                 cardDatabase.cards = CreatePrototypeCards();
             }
@@ -705,6 +798,11 @@ namespace PawSlayers
             if (relicDatabase.Count == 0)
             {
                 relicDatabase = CreatePrototypeRelics();
+            }
+
+            if (progressionManager != null)
+            {
+                progressionManager.Initialize(heroDatabase, cardDatabase);
             }
         }
 
@@ -722,6 +820,7 @@ namespace PawSlayers
             ownedRelics = new List<RelicId>();
             availableRelicsPool = new List<RelicId>();
             gold = 100;
+            runProgressSummaries.Clear();
 
             if (deckManager != null)
             {
@@ -780,6 +879,8 @@ namespace PawSlayers
                     heroData = heroData
                 };
                 runtimeHero.ResetForBattle();
+                runtimeHero.bonusMaxHp = progressionManager != null ? progressionManager.GetPermanentMaxHpBonus(heroId) : 0;
+                runtimeHero.currentHp = runtimeHero.MaxHp;
                 heroes.Add(runtimeHero);
             }
 
@@ -805,16 +906,21 @@ namespace PawSlayers
                 CreateCard("swift_slash", "Swift Slash", "Deal 8 damage.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 8, upgradedDamage: 11),
                 CreateCard("guard_stance", "Guard Stance", "Gain 8 block.", HeroId.Capybara, CardType.Skill, TargetType.Self, 1, block: 8, upgradedBlock: 12),
                 CreateCard("pommel_tap", "Pommel Tap", "Deal 5 damage. Apply 1 Stun.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 5, stunAmount: 1, upgradedDamage: 7, upgradedStunAmount: 1),
+                CreateCard("rally_cut", "Rally Cut", "Deal 10 damage. Gain 1 Strength.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 2, damage: 10, upgradedDamage: 14, isStarterCard: false),
                 CreateCard("shadow_strike", "Shadow Strike", "Deal 7 damage. Apply 1 Weak.", HeroId.Koala, CardType.Attack, TargetType.Enemy, 1, damage: 7, weakAmount: 1, upgradedDamage: 10, upgradedWeakAmount: 2),
                 CreateCard("smoke_step", "Smoke Step", "Gain 6 block and draw 1 card.", HeroId.Koala, CardType.Skill, TargetType.Self, 1, block: 6, drawAmount: 1, upgradedBlock: 9, upgradedDrawAmount: 1),
                 CreateCard("muzzle_trick", "Muzzle Trick", "Apply 1 Silence. Draw 1 card.", HeroId.Koala, CardType.Skill, TargetType.Enemy, 1, drawAmount: 1, silenceAmount: 1, upgradedDrawAmount: 1, upgradedSilenceAmount: 2),
+                CreateCard("silent_pounce", "Silent Pounce", "Deal 6 damage. Apply 1 Silence.", HeroId.Koala, CardType.Attack, TargetType.Enemy, 1, damage: 6, silenceAmount: 1, upgradedDamage: 8, upgradedSilenceAmount: 2, isStarterCard: false),
                 CreateCard("staff_tap", "Staff Tap", "Deal 5 damage.", HeroId.Sloth, CardType.Attack, TargetType.Enemy, 1, damage: 5, upgradedDamage: 8),
                 CreateCard("soothing_light", "Soothing Light", "Heal 8 HP.", HeroId.Sloth, CardType.Skill, TargetType.Ally, 1, heal: 8, upgradedHeal: 12),
                 CreateCard("quiet_blessing", "Quiet Blessing", "Heal 6 HP.", HeroId.Sloth, CardType.Skill, TargetType.Ally, 1, heal: 6, upgradedHeal: 9),
+                CreateCard("deep_rest", "Deep Rest", "Heal all allies for 6 HP.", HeroId.Sloth, CardType.Skill, TargetType.AllAllies, 2, heal: 6, upgradedHeal: 9, isStarterCard: false),
                 CreateCard("shield_bash", "Shield Bash", "Deal 6 damage and gain 4 block.", HeroId.Panda, CardType.Attack, TargetType.Enemy, 1, damage: 6, block: 4, upgradedDamage: 9, upgradedBlock: 7),
                 CreateCard("barkskin_guard", "Barkskin Guard", "Gain 16 block. Gain 1 Taunt.", HeroId.Panda, CardType.Skill, TargetType.Self, 2, block: 16, tauntAmount: 1, upgradedBlock: 22, upgradedTauntAmount: 2),
+                CreateCard("guardian_roar", "Guardian Roar", "All allies gain 8 block. Panda gains 1 Taunt.", HeroId.Panda, CardType.Skill, TargetType.AllAllies, 2, block: 8, upgradedBlock: 12, isStarterCard: false),
                 CreateCard("power_combo", "Power Combo", "Deal 12 damage.", HeroId.Kangaroo, CardType.Attack, TargetType.Enemy, 2, damage: 12, upgradedDamage: 16),
                 CreateCard("battle_focus", "Battle Focus", "Gain 2 Strength.", HeroId.Kangaroo, CardType.Skill, TargetType.Self, 1, strengthAmount: 2, upgradedStrengthAmount: 3),
+                CreateCard("momentum_kick", "Momentum Kick", "Deal 5 damage. If this is the second Attack this turn, deal 5 extra damage.", HeroId.Kangaroo, CardType.Attack, TargetType.Enemy, 1, damage: 5, upgradedDamage: 7, isStarterCard: false),
                 CreateCard("snack_time", "Snack Time", "Draw 1 card.", HeroId.Neutral, CardType.Skill, TargetType.None, 1, drawAmount: 1, upgradedDrawAmount: 2),
                 CreateCard("quick_guard", "Quick Guard", "Gain 5 block.", HeroId.Neutral, CardType.Skill, TargetType.Self, 1, block: 5, upgradedBlock: 8)
             };
@@ -887,12 +993,14 @@ namespace PawSlayers
             int upgradedPoisonAmount = 0,
             int upgradedTauntAmount = 0,
             int upgradedStunAmount = 0,
-            int upgradedSilenceAmount = 0)
+            int upgradedSilenceAmount = 0,
+            bool isStarterCard = true)
         {
             CardData card = ScriptableObject.CreateInstance<CardData>();
             card.cardId = cardId;
             card.cardName = cardName;
             card.description = description;
+            card.isStarterCard = isStarterCard;
             card.ownerHeroId = ownerHeroId;
             card.cardType = cardType;
             card.targetType = targetType;
@@ -935,6 +1043,85 @@ namespace PawSlayers
             }
 #endif
             SceneManager.LoadScene(sceneName);
+        }
+
+        private void ApplyStartingDeckProgressionBonuses()
+        {
+            if (progressionManager == null || currentRunDeck == null)
+            {
+                return;
+            }
+
+            foreach (HeroId heroId in selectedHeroIds)
+            {
+                if (!progressionManager.HasLevelFourStarterUpgrade(heroId))
+                {
+                    continue;
+                }
+
+                RuntimeCardState cardToUpgrade = currentRunDeck
+                    .Where(card => card != null && card.OwnerHeroId == heroId && card.baseCard != null && card.baseCard.isStarterCard && !card.isUpgraded && card.CanUpgrade)
+                    .OrderBy(_ => Random.value)
+                    .FirstOrDefault();
+
+                if (cardToUpgrade == null)
+                {
+                    continue;
+                }
+
+                cardToUpgrade.Upgrade();
+                Debug.Log($"{heroId} Level 4 bonus: {cardToUpgrade.DisplayName} starts upgraded.");
+            }
+        }
+
+        private void GrantXpToSelectedHeroes(int amount)
+        {
+            if (progressionManager == null || amount <= 0 || selectedHeroIds.Count == 0)
+            {
+                return;
+            }
+
+            RecordProgressionResults(progressionManager.AddXpToHeroes(selectedHeroIds, amount));
+        }
+
+        private void RecordProgressionResults(List<HeroXpGainResult> results)
+        {
+            foreach (HeroXpGainResult result in results)
+            {
+                if (!runProgressSummaries.TryGetValue(result.heroId, out RunHeroProgressSummary summary))
+                {
+                    summary = new RunHeroProgressSummary
+                    {
+                        heroId = result.heroId,
+                        heroName = result.heroName,
+                        startLevel = result.oldLevel,
+                        endLevel = result.newLevel
+                    };
+                    runProgressSummaries[result.heroId] = summary;
+                }
+
+                summary.totalXpGained += result.xpGained;
+                summary.endLevel = Mathf.Max(summary.endLevel, result.newLevel);
+
+                foreach (string unlockedCardId in result.unlockedCardIds)
+                {
+                    string unlockedCardName = progressionManager.GetCardName(unlockedCardId);
+                    string message = $"{summary.heroName} unlocked {unlockedCardName}!";
+                    if (!summary.unlockedMessages.Contains(message))
+                    {
+                        summary.unlockedMessages.Add(message);
+                    }
+                }
+
+                foreach (string unlockedPerkId in result.unlockedPerkIds)
+                {
+                    string message = $"{summary.heroName} unlocked a perk!";
+                    if (!summary.unlockedMessages.Contains(message))
+                    {
+                        summary.unlockedMessages.Add(message);
+                    }
+                }
+            }
         }
     }
 }

@@ -15,6 +15,7 @@ namespace PawSlayers
         public Text selectedCountText;
         public Text infoMessageText;
         public Button startRunButton;
+        public Button resetProgressionButton;
 
         private readonly List<HeroId> selectedHeroIds = new List<HeroId>();
         private readonly Dictionary<HeroId, HeroSelectionCardView> cardViews = new Dictionary<HeroId, HeroSelectionCardView>();
@@ -51,11 +52,19 @@ namespace PawSlayers
             }
 
             BuildRosterUi();
+            BindDebugButtons();
             RefreshUi();
         }
 
         public void ToggleHeroSelection(HeroId heroId)
         {
+            if (runManager != null && runManager.ProgressionManager != null && !runManager.ProgressionManager.IsHeroUnlocked(heroId))
+            {
+                SetInfoMessage("Locked");
+                RefreshUi();
+                return;
+            }
+
             if (selectedHeroIds.Contains(heroId))
             {
                 selectedHeroIds.Remove(heroId);
@@ -115,12 +124,23 @@ namespace PawSlayers
                     continue;
                 }
 
-                cardView.Setup(hero, this, false);
+                cardView.Setup(hero, this, runManager.ProgressionManager, false);
                 cardViews[hero.heroId] = cardView;
             }
 
             startRunButton.onClick.RemoveAllListeners();
             startRunButton.onClick.AddListener(StartRun);
+        }
+
+        private void BindDebugButtons()
+        {
+            if (resetProgressionButton == null)
+            {
+                return;
+            }
+
+            resetProgressionButton.onClick.RemoveAllListeners();
+            resetProgressionButton.onClick.AddListener(ResetProgressionForTesting);
         }
 
         private void RefreshUi()
@@ -131,7 +151,11 @@ namespace PawSlayers
 
             foreach (KeyValuePair<HeroId, HeroSelectionCardView> pair in cardViews)
             {
-                pair.Value.SetSelected(selectedHeroIds.Contains(pair.Key));
+                HeroProgressionManager progressionManager = runManager != null ? runManager.ProgressionManager : null;
+                bool isUnlocked = progressionManager == null || progressionManager.IsHeroUnlocked(pair.Key);
+                pair.Value.RefreshProgression(progressionManager);
+                pair.Value.SetSelected(isUnlocked && selectedHeroIds.Contains(pair.Key));
+                pair.Value.SetLocked(!isUnlocked);
             }
         }
 
@@ -141,6 +165,20 @@ namespace PawSlayers
             {
                 infoMessageText.text = message;
             }
+        }
+
+        private void ResetProgressionForTesting()
+        {
+            if (runManager == null)
+            {
+                return;
+            }
+
+            runManager.ResetHeroProgressionForTesting();
+            BuildRosterUi();
+            selectedHeroIds.Clear();
+            SetInfoMessage("Hero progression reset.");
+            RefreshUi();
         }
     }
 }

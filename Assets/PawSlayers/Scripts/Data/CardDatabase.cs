@@ -9,11 +9,18 @@ namespace PawSlayers
     {
         public List<CardData> cards = new List<CardData>();
 
-        public List<CardData> GetEligibleCards(List<HeroId> selectedHeroes)
+        public List<CardData> GetEligibleCards(List<HeroId> selectedHeroes, HeroProgressionManager progressionManager = null)
         {
-            return cards.Where(card =>
+            IEnumerable<CardData> eligibleCards = cards.Where(card =>
                 card != null &&
-                (card.ownerHeroId == HeroId.Neutral || selectedHeroes.Contains(card.ownerHeroId))).ToList();
+                (card.ownerHeroId == HeroId.Neutral || selectedHeroes.Contains(card.ownerHeroId)));
+
+            if (progressionManager != null)
+            {
+                eligibleCards = eligibleCards.Where(progressionManager.IsCardUnlocked);
+            }
+
+            return eligibleCards.ToList();
         }
     }
 }

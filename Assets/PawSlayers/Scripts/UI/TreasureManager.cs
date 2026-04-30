@@ -51,7 +51,7 @@ namespace PawSlayers
             }
 
             return cardDatabase
-                .GetEligibleCards(runManager.SelectedHeroIds)
+                .GetEligibleCards(runManager.SelectedHeroIds, runManager.ProgressionManager)
                 .Where(card => card != null && card.cardType != CardType.Status)
                 .OrderBy(_ => Random.value)
                 .Take(count)
