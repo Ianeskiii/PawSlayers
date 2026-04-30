@@ -55,6 +55,7 @@ namespace PawSlayers
             EnsurePrototypeData();
             SetSelectedHeroes(selectedHeroes);
             BuildAndShuffleRunDeck();
+            Debug.Log("Loading BattleScene with selected heroes: " + string.Join(", ", selectedHeroIds));
             SceneManager.LoadScene(battleSceneName);
         }
 
@@ -132,6 +133,7 @@ namespace PawSlayers
 
             if (selectedHeroIds.Count == 3 && activeHeroesRuntime.Count == 3)
             {
+                Debug.Log("BattleScene received selected heroes: " + string.Join(", ", selectedHeroIds));
                 return;
             }
 
@@ -141,6 +143,7 @@ namespace PawSlayers
                 HeroId.Sloth,
                 HeroId.Panda
             });
+            Debug.Log("BattleScene direct open fallback party: Capybara, Sloth, Panda");
         }
 
         public void SetSelectedHeroes(List<HeroId> selectedHeroes)
@@ -148,6 +151,7 @@ namespace PawSlayers
             EnsurePrototypeData();
             selectedHeroIds = new List<HeroId>(selectedHeroes);
             activeHeroesRuntime = BuildRuntimeHeroes(selectedHeroIds);
+            Debug.Log("Selected heroes stored: " + string.Join(", ", selectedHeroIds));
         }
 
         public void BuildAndShuffleRunDeck()
@@ -155,6 +159,7 @@ namespace PawSlayers
             EnsurePrototypeData();
             List<CardData> startingDeck = DeckBuilder.BuildStartingDeck(cardDatabase.cards, selectedHeroIds);
             deckManager.SetStartingDeck(startingDeck);
+            Debug.Log("Run deck cards after filtering: " + string.Join(", ", startingDeck.Select(card => card.cardName)));
         }
 
         public void EnsurePrototypeData()
@@ -216,11 +221,11 @@ namespace PawSlayers
         {
             return new List<HeroData>
             {
-                CreateHero(HeroId.Capybara, "Capybara", HeroClass.Swordsman, 42, "Front-line swordsman with steady offense and defense."),
-                CreateHero(HeroId.Koala, "Koala", HeroClass.Thief, 34, "Fast thief who chips enemies and sets up tricky turns."),
-                CreateHero(HeroId.Sloth, "Sloth", HeroClass.Healer, 36, "Slow but reliable support healer."),
-                CreateHero(HeroId.Panda, "Panda", HeroClass.Tank, 50, "Heavy tank who stacks block and protects the team."),
-                CreateHero(HeroId.Kangaroo, "Kangaroo", HeroClass.Fighter, 40, "Aggressive fighter with strong combo hits.")
+                CreateHero(HeroId.Capybara, "Capybara", HeroClass.Swordsman, 42, "Balanced attacker with guard skills."),
+                CreateHero(HeroId.Koala, "Koala", HeroClass.Thief, 34, "Fast strikes, weak effects, card draw."),
+                CreateHero(HeroId.Sloth, "Sloth", HeroClass.Healer, 36, "Healing and support."),
+                CreateHero(HeroId.Panda, "Panda", HeroClass.Tank, 50, "Block, taunt, protection."),
+                CreateHero(HeroId.Kangaroo, "Kangaroo", HeroClass.Fighter, 40, "Combo damage and strength.")
             };
         }
 

@@ -16,5 +16,5 @@ MonoBehaviour:
   heroName: Sloth
   heroClass: 3
   maxHp: 36
-  description: Slow but reliable support healer.
+  description: Healing and support.
   portrait: {fileID: 0}

@@ -16,5 +16,5 @@ MonoBehaviour:
   heroName: Kangaroo
   heroClass: 5
   maxHp: 40
-  description: Aggressive fighter with strong combo hits.
+  description: Combo damage and strength.
   portrait: {fileID: 0}

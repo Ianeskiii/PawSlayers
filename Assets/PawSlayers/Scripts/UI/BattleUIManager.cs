@@ -122,6 +122,7 @@ namespace PawSlayers
         private void InitializeBattle()
         {
             runManager.EnsureDirectBattleTestState();
+            Debug.Log("BattleScene received selected heroes: " + string.Join(", ", runManager.SelectedHeroIds));
 
             Debug.Log($"Selected heroes: {runManager.SelectedHeroIds.Count}");
 

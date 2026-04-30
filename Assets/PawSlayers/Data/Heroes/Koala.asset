@@ -16,5 +16,5 @@ MonoBehaviour:
   heroName: Koala
   heroClass: 2
   maxHp: 34
-  description: Fast thief who chips enemies and sets up tricky turns.
+  description: Fast strikes, weak effects, card draw.
   portrait: {fileID: 0}

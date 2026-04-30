@@ -27,12 +27,12 @@ namespace PawSlayers.EditorTools
             HeroDatabase heroDatabase = CreateHeroDatabase();
             CardDatabase cardDatabase = CreateCardDatabase();
 
-            HeroSelectionButtonView heroButtonPrefab = CreateHeroSelectionButtonPrefab();
+            HeroSelectionCardView heroCardPrefab = CreateHeroSelectionCardPrefab();
             BattleHeroView heroViewPrefab = CreateBattleHeroViewPrefab();
             EnemyView enemyViewPrefab = CreateEnemyViewPrefab();
             CardView cardViewPrefab = CreateCardViewPrefab();
 
-            CreateHeroSelectionScene(heroDatabase, cardDatabase, heroButtonPrefab);
+            CreateHeroSelectionScene(heroDatabase, cardDatabase, heroCardPrefab);
             CreateBattleScene(cardViewPrefab, heroViewPrefab, enemyViewPrefab);
             AddScenesToBuildSettings();
 
@@ -65,11 +65,11 @@ namespace PawSlayers.EditorTools
         {
             List<HeroData> heroAssets = new List<HeroData>
             {
-                CreateOrUpdateHero("Capybara", HeroId.Capybara, HeroClass.Swordsman, 42, "Front-line swordsman with steady offense and defense."),
-                CreateOrUpdateHero("Koala", HeroId.Koala, HeroClass.Thief, 34, "Fast thief who chips enemies and sets up tricky turns."),
-                CreateOrUpdateHero("Sloth", HeroId.Sloth, HeroClass.Healer, 36, "Slow but reliable support healer."),
-                CreateOrUpdateHero("Panda", HeroId.Panda, HeroClass.Tank, 50, "Heavy tank who stacks block and protects the team."),
-                CreateOrUpdateHero("Kangaroo", HeroId.Kangaroo, HeroClass.Fighter, 40, "Aggressive fighter with strong combo hits.")
+                CreateOrUpdateHero("Capybara", HeroId.Capybara, HeroClass.Swordsman, 42, "Balanced attacker with guard skills."),
+                CreateOrUpdateHero("Koala", HeroId.Koala, HeroClass.Thief, 34, "Fast strikes, weak effects, card draw."),
+                CreateOrUpdateHero("Sloth", HeroId.Sloth, HeroClass.Healer, 36, "Healing and support."),
+                CreateOrUpdateHero("Panda", HeroId.Panda, HeroClass.Tank, 50, "Block, taunt, protection."),
+                CreateOrUpdateHero("Kangaroo", HeroId.Kangaroo, HeroClass.Fighter, 40, "Combo damage and strength.")
             };
 
             HeroDatabase database = LoadOrCreateAsset<HeroDatabase>(DataFolder + "/HeroDatabase.asset");
@@ -164,12 +164,12 @@ namespace PawSlayers.EditorTools
             return asset;
         }
 
-        private static HeroSelectionButtonView CreateHeroSelectionButtonPrefab()
+        private static HeroSelectionCardView CreateHeroSelectionCardPrefab()
         {
-            string path = PrefabFolder + "/HeroSelectionButton.prefab";
+            string path = PrefabFolder + "/HeroSelectionCard.prefab";
             DeleteAssetIfExists(path);
 
-            GameObject root = CreateUiObject("HeroSelectionButton", null, new Vector2(420f, 120f));
+            GameObject root = CreateUiObject("HeroSelectionCard", null, new Vector2(460f, 120f));
             Image rootImage = root.AddComponent<Image>();
             rootImage.color = new Color(0.93f, 0.88f, 0.76f, 1f);
             Button button = root.AddComponent<Button>();
@@ -188,15 +188,16 @@ namespace PawSlayers.EditorTools
             Text heroClass = CreateText("HeroClass", root.transform, new Vector2(110f, -42f), new Vector2(250f, 24f), 18, FontStyle.Italic, TextAnchor.UpperLeft);
             Text description = CreateText("Description", root.transform, new Vector2(110f, -68f), new Vector2(290f, 44f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
 
-            HeroSelectionButtonView view = root.AddComponent<HeroSelectionButtonView>();
+            HeroSelectionCardView view = root.AddComponent<HeroSelectionCardView>();
             view.heroNameText = heroName;
             view.heroClassText = heroClass;
             view.descriptionText = description;
             view.portraitImage = portraitImage;
             view.selectionOutline = outlineImage;
+            view.backgroundImage = rootImage;
             view.button = button;
 
-            HeroSelectionButtonView prefab = SavePrefab<HeroSelectionButtonView>(root, path);
+            HeroSelectionCardView prefab = SavePrefab<HeroSelectionCardView>(root, path);
             Object.DestroyImmediate(root);
             return prefab;
         }
@@ -305,7 +306,7 @@ namespace PawSlayers.EditorTools
             return prefab;
         }
 
-        private static void CreateHeroSelectionScene(HeroDatabase heroDatabase, CardDatabase cardDatabase, HeroSelectionButtonView heroButtonPrefab)
+        private static void CreateHeroSelectionScene(HeroDatabase heroDatabase, CardDatabase cardDatabase, HeroSelectionCardView heroCardPrefab)
         {
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "HeroSelection";
@@ -329,7 +330,7 @@ namespace PawSlayers.EditorTools
             Text infoMessage = CreateText("InfoMessage", rootPanel.transform, new Vector2(260f, -68f), new Vector2(520f, 28f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
             infoMessage.color = new Color(0.65f, 0.15f, 0.15f, 1f);
 
-            GameObject rosterContainer = CreateUiObject("RosterContainer", rootPanel.transform, new Vector2(0f, 0f));
+            GameObject rosterContainer = CreateUiObject("HeroCardContainer", rootPanel.transform, new Vector2(0f, 0f));
             RectTransform rosterRect = rosterContainer.GetComponent<RectTransform>();
             rosterRect.anchorMin = new Vector2(0f, 0f);
             rosterRect.anchorMax = new Vector2(1f, 1f);
@@ -347,8 +348,8 @@ namespace PawSlayers.EditorTools
 
             HeroSelectionManager selectionManager = rootPanel.AddComponent<HeroSelectionManager>();
             selectionManager.runManager = runManager;
-            selectionManager.heroButtonContainer = rosterContainer.transform;
-            selectionManager.heroButtonPrefab = heroButtonPrefab;
+            selectionManager.heroCardContainer = rosterContainer.transform;
+            selectionManager.heroCardPrefab = heroCardPrefab;
             selectionManager.selectedCountText = selectedCount;
             selectionManager.infoMessageText = infoMessage;
             selectionManager.startRunButton = startButton;

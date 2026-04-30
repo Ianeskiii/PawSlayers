@@ -16,5 +16,5 @@ MonoBehaviour:
   heroName: Capybara
   heroClass: 1
   maxHp: 42
-  description: Front-line swordsman with steady offense and defense.
+  description: Balanced attacker with guard skills.
   portrait: {fileID: 0}

@@ -8,8 +8,8 @@ namespace PawSlayers
     {
         [Header("Dependencies")]
         public RunManager runManager;
-        public Transform heroButtonContainer;
-        public HeroSelectionButtonView heroButtonPrefab;
+        public Transform heroCardContainer;
+        public HeroSelectionCardView heroCardPrefab;
 
         [Header("UI")]
         public Text selectedCountText;
@@ -17,7 +17,7 @@ namespace PawSlayers
         public Button startRunButton;
 
         private readonly List<HeroId> selectedHeroIds = new List<HeroId>();
-        private readonly Dictionary<HeroId, HeroSelectionButtonView> buttonViews = new Dictionary<HeroId, HeroSelectionButtonView>();
+        private readonly Dictionary<HeroId, HeroSelectionCardView> cardViews = new Dictionary<HeroId, HeroSelectionCardView>();
 
         private void Start()
         {
@@ -26,7 +26,16 @@ namespace PawSlayers
                 runManager = RunManager.Instance;
             }
 
-            if (runManager == null || runManager.heroDatabase == null)
+            if (runManager == null)
+            {
+                GameObject runManagerObject = new GameObject("RunManager");
+                runManager = runManagerObject.AddComponent<RunManager>();
+                runManagerObject.AddComponent<DeckManager>();
+            }
+
+            runManager.EnsurePrototypeData();
+
+            if (runManager.heroDatabase == null)
             {
                 if (infoMessageText != null)
                 {
@@ -56,7 +65,7 @@ namespace PawSlayers
             {
                 if (selectedHeroIds.Count >= 3)
                 {
-                    SetInfoMessage("You already selected 3 heroes. Deselect one first.");
+                    SetInfoMessage("Max 3 heroes per run.");
                     RefreshUi();
                     return;
                 }
@@ -75,14 +84,17 @@ namespace PawSlayers
                 return;
             }
 
+            Debug.Log("Selected hero count: " + selectedHeroIds.Count);
+            Debug.Log("Selected hero IDs: " + string.Join(", ", selectedHeroIds));
+            Debug.Log("Loading BattleScene");
             runManager.StartRunWithSelection(new List<HeroId>(selectedHeroIds));
         }
 
         private void BuildRosterUi()
         {
-            buttonViews.Clear();
+            cardViews.Clear();
 
-            foreach (Transform child in heroButtonContainer)
+            foreach (Transform child in heroCardContainer)
             {
                 Destroy(child.gameObject);
             }
@@ -94,9 +106,17 @@ namespace PawSlayers
                     continue;
                 }
 
-                HeroSelectionButtonView buttonView = Instantiate(heroButtonPrefab, heroButtonContainer);
-                buttonView.Setup(hero, this, false);
-                buttonViews[hero.heroId] = buttonView;
+                HeroSelectionCardView cardView = heroCardPrefab != null
+                    ? Instantiate(heroCardPrefab, heroCardContainer)
+                    : null;
+
+                if (cardView == null)
+                {
+                    continue;
+                }
+
+                cardView.Setup(hero, this, false);
+                cardViews[hero.heroId] = cardView;
             }
 
             startRunButton.onClick.RemoveAllListeners();
@@ -107,8 +127,9 @@ namespace PawSlayers
         {
             selectedCountText.text = $"Selected: {selectedHeroIds.Count}/3";
             startRunButton.interactable = selectedHeroIds.Count == 3;
+            Debug.Log("Selected hero count: " + selectedHeroIds.Count);
 
-            foreach (KeyValuePair<HeroId, HeroSelectionButtonView> pair in buttonViews)
+            foreach (KeyValuePair<HeroId, HeroSelectionCardView> pair in cardViews)
             {
                 pair.Value.SetSelected(selectedHeroIds.Contains(pair.Key));
             }

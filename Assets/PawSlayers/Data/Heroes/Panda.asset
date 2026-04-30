@@ -16,5 +16,5 @@ MonoBehaviour:
   heroName: Panda
   heroClass: 4
   maxHp: 50
-  description: Heavy tank who stacks block and protects the team.
+  description: Block, taunt, protection.
   portrait: {fileID: 0}
