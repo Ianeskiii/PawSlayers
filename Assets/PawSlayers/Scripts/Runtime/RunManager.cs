@@ -232,6 +232,28 @@ namespace PawSlayers
             return currentRunDeck.Where(card => card != null && card.CanUpgrade).ToList();
         }
 
+        public bool RemoveCardFromRunDeck(RuntimeCardState card)
+        {
+            if (card == null || currentRunDeck == null || currentRunDeck.Count <= 5)
+            {
+                return false;
+            }
+
+            bool removed = currentRunDeck.Remove(card);
+            if (!removed)
+            {
+                return false;
+            }
+
+            if (deckManager != null)
+            {
+                deckManager.RemoveCardsWhere(runCard => runCard != null && runCard.runtimeId == card.runtimeId);
+            }
+
+            Debug.Log("Current deck count: " + currentRunDeck.Count);
+            return true;
+        }
+
         public bool HasRelic(RelicId relicId)
         {
             return ownedRelics.Contains(relicId);
@@ -299,9 +321,30 @@ namespace PawSlayers
             Debug.Log("Current gold: " + gold);
         }
 
+        public bool TrySpendGold(int amount)
+        {
+            int spendAmount = Mathf.Max(0, amount);
+            if (gold < spendAmount)
+            {
+                Debug.Log("Not enough gold.");
+                Debug.Log("Current gold: " + gold);
+                return false;
+            }
+
+            gold -= spendAmount;
+            Debug.Log("Current gold: " + gold);
+            return true;
+        }
+
         public void MarkTreasureNodeResolved()
         {
             SelectMapNode(MapNodeType.Treasure);
+            supportNodeUsedThisStage = true;
+        }
+
+        public void MarkShopNodeResolved()
+        {
+            SelectMapNode(MapNodeType.Shop);
             supportNodeUsedThisStage = true;
         }
 
@@ -324,6 +367,30 @@ namespace PawSlayers
                 else
                 {
                     hero.currentHp = Mathf.Max(1, Mathf.CeilToInt(hero.MaxHp * 0.15f));
+                    hero.isDown = false;
+                }
+            }
+        }
+
+        public void ApplyShopHealReward()
+        {
+            foreach (RuntimeHeroState hero in activeHeroesRuntime)
+            {
+                if (hero == null || hero.heroData == null)
+                {
+                    continue;
+                }
+
+                hero.block = 0;
+
+                if (hero.IsAlive)
+                {
+                    int healAmount = Mathf.CeilToInt(hero.MaxHp * 0.25f);
+                    hero.Heal(healAmount);
+                }
+                else
+                {
+                    hero.currentHp = Mathf.Max(1, Mathf.CeilToInt(hero.MaxHp * 0.2f));
                     hero.isDown = false;
                 }
             }
@@ -478,6 +545,7 @@ namespace PawSlayers
             {
                 nodes.Add(MapNodeType.Treasure);
                 nodes.Add(MapNodeType.Campfire);
+                nodes.Add(MapNodeType.Shop);
             }
 
             return nodes;
@@ -653,7 +721,7 @@ namespace PawSlayers
             pendingBetweenBattleRecovery = false;
             ownedRelics = new List<RelicId>();
             availableRelicsPool = new List<RelicId>();
-            gold = 0;
+            gold = 100;
 
             if (deckManager != null)
             {

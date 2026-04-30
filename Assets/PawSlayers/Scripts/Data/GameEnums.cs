@@ -45,7 +45,8 @@ namespace PawSlayers
         Battle = 1,
         Treasure = 2,
         Campfire = 3,
-        Boss = 4
+        Boss = 4,
+        Shop = 5
     }
 
     public enum RelicId
@@ -68,6 +69,15 @@ namespace PawSlayers
         Card = 2,
         Upgrade = 3,
         Heal = 4
+    }
+
+    public enum ShopOfferType
+    {
+        Card = 0,
+        Relic = 1,
+        RemoveCard = 2,
+        Heal = 3,
+        UpgradeCard = 4
     }
 
     [Serializable]

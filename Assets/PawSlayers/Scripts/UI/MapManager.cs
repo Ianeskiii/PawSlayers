@@ -10,6 +10,7 @@ namespace PawSlayers
         [Header("Dependencies")]
         public RunManager runManager;
         public TreasureManager treasureManager;
+        public ShopManager shopManager;
         public CardDatabase cardDatabase;
         public CardView cardViewPrefab;
 
@@ -21,6 +22,7 @@ namespace PawSlayers
         public Button battleNodeButton;
         public Button treasureNodeButton;
         public Button campfireNodeButton;
+        public Button shopNodeButton;
         public Button bossNodeButton;
 
         [Header("Treasure UI")]
@@ -29,6 +31,15 @@ namespace PawSlayers
         public Text treasureTitleText;
         public Text treasureInfoText;
         public Button treasureContinueButton;
+
+        [Header("Shop UI")]
+        public GameObject shopPanel;
+        public Text shopTitleText;
+        public Text shopGoldText;
+        public Text shopInfoText;
+        public Transform shopOfferContainer;
+        public Transform shopSelectionContainer;
+        public Button shopLeaveButton;
 
         [Header("Campfire UI")]
         public GameObject campfirePanel;
@@ -41,6 +52,9 @@ namespace PawSlayers
 
         private bool treasureChoiceLocked;
         private bool treasureResolved;
+        private bool shopVisited;
+        private ShopOffer activeShopOffer;
+        private List<ShopOffer> currentShopOffers = new List<ShopOffer>();
         private bool campfireResolved;
 
         private void Start()
@@ -48,6 +62,7 @@ namespace PawSlayers
             EnsureRunManager();
             EnsureRuntimeUi();
             EnsureTreasureManager();
+            EnsureShopManager();
             BindButtons();
             RefreshMapUi();
         }
@@ -84,6 +99,11 @@ namespace PawSlayers
                 campfirePanel.SetActive(false);
             }
 
+            if (shopPanel != null)
+            {
+                shopPanel.SetActive(false);
+            }
+
             List<MapNodeType> availableNodes = runManager.GetAvailableMapNodes();
             Debug.Log("Entered map.");
             Debug.Log("Available nodes: " + string.Join(", ", availableNodes));
@@ -93,6 +113,7 @@ namespace PawSlayers
             SetButtonState(battleNodeButton, availableNodes.Contains(MapNodeType.Battle));
             SetButtonState(treasureNodeButton, availableNodes.Contains(MapNodeType.Treasure));
             SetButtonState(campfireNodeButton, availableNodes.Contains(MapNodeType.Campfire));
+            SetButtonState(shopNodeButton, availableNodes.Contains(MapNodeType.Shop));
             SetButtonState(bossNodeButton, availableNodes.Contains(MapNodeType.Boss));
 
             if (infoText != null && string.IsNullOrWhiteSpace(infoText.text))
@@ -138,13 +159,30 @@ namespace PawSlayers
             treasureManager.Initialize(runManager, cardDatabase);
         }
 
+        private void EnsureShopManager()
+        {
+            if (shopManager == null)
+            {
+                shopManager = GetComponent<ShopManager>();
+            }
+
+            if (shopManager == null)
+            {
+                shopManager = gameObject.AddComponent<ShopManager>();
+            }
+
+            shopManager.Initialize(runManager, cardDatabase);
+        }
+
         private void BindButtons()
         {
             BindButton(battleNodeButton, OnBattleNodeClicked);
             BindButton(treasureNodeButton, OnTreasureNodeClicked);
             BindButton(campfireNodeButton, OnCampfireNodeClicked);
+            BindButton(shopNodeButton, OnShopNodeClicked);
             BindButton(bossNodeButton, OnBossNodeClicked);
             BindButton(treasureContinueButton, CloseTreasurePanel);
+            BindButton(shopLeaveButton, CloseShopPanel);
             BindButton(restButton, OnRestClicked);
             BindButton(upgradeButton, OnUpgradeCardClicked);
             BindButton(campfireContinueButton, CloseCampfirePanel);
@@ -190,6 +228,17 @@ namespace PawSlayers
             campfireResolved = false;
             ShowCampfirePanel();
             Debug.Log("Selected node: Campfire");
+        }
+
+        private void OnShopNodeClicked()
+        {
+            if (runManager == null || !runManager.GetAvailableMapNodes().Contains(MapNodeType.Shop))
+            {
+                return;
+            }
+
+            ShowShopPanel();
+            Debug.Log("Selected node: Shop");
         }
 
         private void OnRestClicked()
@@ -614,6 +663,266 @@ namespace PawSlayers
             Debug.Log("Owned relic count: " + runManager.OwnedRelics.Count);
         }
 
+        private void ShowShopPanel()
+        {
+            if (shopPanel == null || shopOfferContainer == null || shopManager == null)
+            {
+                Debug.LogWarning("Shop UI references are missing.");
+                return;
+            }
+
+            shopVisited = true;
+            activeShopOffer = null;
+            currentShopOffers = shopManager.GenerateOffers();
+            ClearChildren(shopOfferContainer);
+            ClearChildren(shopSelectionContainer);
+
+            if (shopTitleText != null)
+            {
+                shopTitleText.text = "Shop";
+            }
+
+            UpdateShopGoldText();
+
+            if (shopInfoText != null)
+            {
+                shopInfoText.text = "Choose an offer or leave shop.";
+            }
+
+            if (infoText != null)
+            {
+                infoText.text = "Shop opened.";
+            }
+
+            foreach (ShopOffer offer in currentShopOffers)
+            {
+                CreateShopOfferButton(shopOfferContainer, offer);
+            }
+
+            shopPanel.SetActive(true);
+            Debug.Log("Shop opened");
+            Debug.Log("Offers generated: " + string.Join(", ", currentShopOffers.Select(offer => offer.title)));
+        }
+
+        private void CreateShopOfferButton(Transform parent, ShopOffer offer)
+        {
+            GameObject root = CreatePanel("ShopOffer", parent, new Color(0.93f, 0.89f, 0.80f, 1f));
+            RectTransform rect = root.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(280f, 200f);
+            LayoutElement layout = root.AddComponent<LayoutElement>();
+            layout.preferredWidth = 280f;
+            layout.preferredHeight = 200f;
+            layout.minWidth = 280f;
+            layout.minHeight = 200f;
+
+            CreateText("OfferTitle", root.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft).text = offer.title;
+            CreateText("OfferDescription", root.transform, new Vector2(12f, -46f), new Vector2(248f, 76f), 15, FontStyle.Normal, TextAnchor.UpperLeft).text = offer.description;
+            CreateText("OfferCost", root.transform, new Vector2(12f, -128f), new Vector2(120f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft).text = "Cost: " + offer.cost;
+
+            Button buyButton = CreateButton("BuyButton", root.transform, "Buy");
+            RectTransform buyRect = buyButton.GetComponent<RectTransform>();
+            buyRect.anchorMin = new Vector2(1f, 0f);
+            buyRect.anchorMax = new Vector2(1f, 0f);
+            buyRect.pivot = new Vector2(1f, 0f);
+            buyRect.anchoredPosition = new Vector2(-12f, 12f);
+            buyRect.sizeDelta = new Vector2(110f, 42f);
+
+            Text soldText = CreateText("SoldText", root.transform, new Vector2(12f, -160f), new Vector2(120f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            soldText.text = offer.isPurchased ? "Sold" : string.Empty;
+
+            buyButton.interactable = !offer.isPurchased && runManager.Gold >= offer.cost;
+            buyButton.onClick.RemoveAllListeners();
+            buyButton.onClick.AddListener(() => TryBuyShopOffer(offer));
+        }
+
+        private void TryBuyShopOffer(ShopOffer offer)
+        {
+            if (offer == null || offer.isPurchased || shopManager == null)
+            {
+                return;
+            }
+
+            if (runManager.Gold < offer.cost)
+            {
+                ShowShopMessage("Not enough gold.");
+                Debug.Log("Not enough gold");
+                return;
+            }
+
+            string message;
+            bool success = false;
+
+            switch (offer.offerType)
+            {
+                case ShopOfferType.Card:
+                    success = shopManager.TryBuyCard(offer, out message);
+                    break;
+                case ShopOfferType.Relic:
+                    success = shopManager.TryBuyRelic(offer, out message);
+                    break;
+                case ShopOfferType.Heal:
+                    success = shopManager.TryBuyHeal(offer, out message);
+                    break;
+                case ShopOfferType.RemoveCard:
+                    ShowShopRemoveSelection(offer);
+                    return;
+                case ShopOfferType.UpgradeCard:
+                    ShowShopUpgradeSelection(offer);
+                    return;
+                default:
+                    message = "Offer unavailable.";
+                    break;
+            }
+
+            ShowShopPurchaseResult(success, message, offer);
+        }
+
+        private void ShowShopRemoveSelection(ShopOffer offer)
+        {
+            activeShopOffer = offer;
+            ClearChildren(shopSelectionContainer);
+
+            if (runManager.CurrentRunDeck.Count <= 5)
+            {
+                ShowShopMessage("Deck is too small to remove more cards.");
+                return;
+            }
+
+            if (shopInfoText != null)
+            {
+                shopInfoText.text = "Remove 1 card from your deck.";
+            }
+
+            foreach (RuntimeCardState card in runManager.CurrentRunDeck.ToList())
+            {
+                CardView cardView = cardViewPrefab != null
+                    ? Instantiate(cardViewPrefab, shopSelectionContainer)
+                    : CreateRuntimeRewardCardView(shopSelectionContainer);
+
+                cardView.Setup(card, SelectShopRemoveCard);
+                cardView.SetDisabled(false, string.Empty);
+            }
+        }
+
+        private void SelectShopRemoveCard(RuntimeCardState card)
+        {
+            if (activeShopOffer == null || shopManager == null || card == null)
+            {
+                return;
+            }
+
+            bool success = shopManager.TryBuyRemoveCard(activeShopOffer, card, out string message);
+            ClearChildren(shopSelectionContainer);
+            ShowShopPurchaseResult(success, message, activeShopOffer);
+            activeShopOffer = null;
+        }
+
+        private void ShowShopUpgradeSelection(ShopOffer offer)
+        {
+            activeShopOffer = offer;
+            ClearChildren(shopSelectionContainer);
+            List<RuntimeCardState> upgradeChoices = runManager.GetUpgradeableCards();
+
+            if (upgradeChoices.Count == 0)
+            {
+                ShowShopMessage("No cards available to upgrade.");
+                return;
+            }
+
+            if (shopInfoText != null)
+            {
+                shopInfoText.text = "Upgrade 1 card in your deck.";
+            }
+
+            foreach (RuntimeCardState card in upgradeChoices)
+            {
+                CardView cardView = cardViewPrefab != null
+                    ? Instantiate(cardViewPrefab, shopSelectionContainer)
+                    : CreateRuntimeRewardCardView(shopSelectionContainer);
+
+                cardView.Setup(card, SelectShopUpgradeCard, card.BuildUpgradePreview());
+                cardView.SetDisabled(false, string.Empty);
+            }
+        }
+
+        private void SelectShopUpgradeCard(RuntimeCardState card)
+        {
+            if (activeShopOffer == null || shopManager == null || card == null)
+            {
+                return;
+            }
+
+            bool success = shopManager.TryBuyUpgrade(activeShopOffer, card, out string message);
+            ClearChildren(shopSelectionContainer);
+            ShowShopPurchaseResult(success, message, activeShopOffer);
+            activeShopOffer = null;
+        }
+
+        private void ShowShopPurchaseResult(bool success, string message, ShopOffer offer)
+        {
+            if (success && offer != null)
+            {
+                offer.isPurchased = true;
+                RebuildShopOffers();
+            }
+
+            ShowShopMessage(message);
+        }
+
+        private void ShowShopMessage(string message)
+        {
+            if (shopInfoText != null)
+            {
+                shopInfoText.text = message;
+            }
+
+            if (infoText != null)
+            {
+                infoText.text = message;
+            }
+
+            UpdateShopGoldText();
+        }
+
+        private void UpdateShopGoldText()
+        {
+            if (shopGoldText != null)
+            {
+                shopGoldText.text = "Gold: " + runManager.Gold;
+            }
+        }
+
+        private void RebuildShopOffers()
+        {
+            ClearChildren(shopOfferContainer);
+            foreach (ShopOffer offer in currentShopOffers)
+            {
+                CreateShopOfferButton(shopOfferContainer, offer);
+            }
+
+            UpdateShopGoldText();
+            Debug.Log("Current gold after purchase: " + runManager.Gold);
+            Debug.Log("Current deck count: " + runManager.CurrentRunDeck.Count);
+        }
+
+        private void CloseShopPanel()
+        {
+            if (shopPanel != null)
+            {
+                shopPanel.SetActive(false);
+            }
+
+            ClearChildren(shopSelectionContainer);
+            activeShopOffer = null;
+
+            if (shopVisited && runManager != null)
+            {
+                runManager.MarkShopNodeResolved();
+                shopVisited = false;
+                RefreshMapUi();
+            }
+        }
+
         private string GetProgressText()
         {
             if (runManager.RunWon)
@@ -672,7 +981,12 @@ namespace PawSlayers
                 EnsureTreasureContinueButton();
             }
 
-            if (titleText != null && battleNodeButton != null && treasurePanel != null && treasureContinueButton != null && campfirePanel != null && relicsText != null)
+            if (shopPanel != null && shopLeaveButton == null)
+            {
+                EnsureShopLeaveButton();
+            }
+
+            if (titleText != null && battleNodeButton != null && shopNodeButton != null && treasurePanel != null && treasureContinueButton != null && shopPanel != null && shopLeaveButton != null && campfirePanel != null && relicsText != null)
             {
                 return;
             }
@@ -713,6 +1027,7 @@ namespace PawSlayers
             battleNodeButton = CreateButton("BattleButton", buttonRow, "Battle");
             treasureNodeButton = CreateButton("TreasureButton", buttonRow, "Treasure");
             campfireNodeButton = CreateButton("CampfireButton", buttonRow, "Campfire");
+            shopNodeButton = CreateButton("ShopButton", buttonRow, "Shop");
             bossNodeButton = CreateButton("BossButton", buttonRow, "Boss");
 
             treasurePanel = CreateOverlayPanel(root.transform, "TreasurePanel", "TreasureBox", out GameObject treasureBox);
@@ -727,6 +1042,20 @@ namespace PawSlayers
             treasureContinueRect.anchoredPosition = new Vector2(-20f, 20f);
             treasureContinueRect.sizeDelta = new Vector2(180f, 48f);
             treasureContinueButton.gameObject.SetActive(false);
+
+            shopPanel = CreateOverlayPanel(root.transform, "ShopPanel", "ShopBox", out GameObject shopBox);
+            shopTitleText = CreateText("ShopTitle", shopBox.transform, new Vector2(20f, -20f), new Vector2(300f, 32f), 28, FontStyle.Bold, TextAnchor.UpperLeft);
+            shopGoldText = CreateText("ShopGold", shopBox.transform, new Vector2(20f, -58f), new Vector2(240f, 24f), 20, FontStyle.Bold, TextAnchor.UpperLeft);
+            shopInfoText = CreateText("ShopInfo", shopBox.transform, new Vector2(280f, -58f), new Vector2(520f, 42f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            shopOfferContainer = CreateLayoutContainer("ShopOffers", shopBox.transform, false, new Vector2(20f, 240f), new Vector2(-20f, -120f));
+            shopSelectionContainer = CreateLayoutContainer("ShopSelection", shopBox.transform, false, new Vector2(20f, 20f), new Vector2(-20f, -340f));
+            shopLeaveButton = CreateButton("ShopLeaveButton", shopBox.transform, "Leave Shop");
+            RectTransform shopLeaveRect = shopLeaveButton.GetComponent<RectTransform>();
+            shopLeaveRect.anchorMin = new Vector2(1f, 0f);
+            shopLeaveRect.anchorMax = new Vector2(1f, 0f);
+            shopLeaveRect.pivot = new Vector2(1f, 0f);
+            shopLeaveRect.anchoredPosition = new Vector2(-20f, 20f);
+            shopLeaveRect.sizeDelta = new Vector2(180f, 48f);
 
             campfirePanel = CreateOverlayPanel(root.transform, "CampfirePanel", "CampfireBox", out GameObject campfireBox);
             campfireTitleText = CreateText("CampfireTitle", campfireBox.transform, new Vector2(20f, -20f), new Vector2(300f, 32f), 28, FontStyle.Bold, TextAnchor.UpperLeft);
@@ -761,6 +1090,23 @@ namespace PawSlayers
             treasureContinueRect.anchoredPosition = new Vector2(-20f, 20f);
             treasureContinueRect.sizeDelta = new Vector2(180f, 48f);
             treasureContinueButton.gameObject.SetActive(false);
+        }
+
+        private void EnsureShopLeaveButton()
+        {
+            if (shopPanel == null || shopLeaveButton != null || shopPanel.transform.childCount == 0)
+            {
+                return;
+            }
+
+            Transform shopBox = shopPanel.transform.GetChild(0);
+            shopLeaveButton = CreateButton("ShopLeaveButton", shopBox, "Leave Shop");
+            RectTransform shopLeaveRect = shopLeaveButton.GetComponent<RectTransform>();
+            shopLeaveRect.anchorMin = new Vector2(1f, 0f);
+            shopLeaveRect.anchorMax = new Vector2(1f, 0f);
+            shopLeaveRect.pivot = new Vector2(1f, 0f);
+            shopLeaveRect.anchoredPosition = new Vector2(-20f, 20f);
+            shopLeaveRect.sizeDelta = new Vector2(180f, 48f);
         }
 
         private GameObject CreateOverlayPanel(Transform parent, string panelName, string boxName, out GameObject box)
