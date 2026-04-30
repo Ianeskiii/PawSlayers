@@ -21,6 +21,7 @@ namespace PawSlayers
         public Text titleText;
         public Text turnText;
         public Text energyText;
+        public Text runProgressText;
         public Text battleLogText;
         public Button drawButton;
         public Button endTurnButton;
@@ -29,6 +30,8 @@ namespace PawSlayers
         public Button killHero3Button;
         public Button healAllButton;
         public Button winBattleButton;
+        public GameObject runWonPanel;
+        public Text runWonText;
 
         private readonly List<BattleHeroView> heroViews = new List<BattleHeroView>();
         private readonly List<EnemyView> enemyViews = new List<EnemyView>();
@@ -46,8 +49,7 @@ namespace PawSlayers
             EnsureRunManager();
             EnsureRuntimeUi();
             BindButtons();
-            InitializeBattle();
-            RefreshAllUi();
+            InitializeEncounterFlow();
         }
 
         public void RefreshAllUi()
@@ -107,6 +109,14 @@ namespace PawSlayers
 
             battleEnded = true;
             AddLog("Battle won.");
+            RefreshAllUi();
+
+            if (runManager.IsBossBattle)
+            {
+                runManager.MarkRunWon();
+                ShowRunWon();
+                return;
+            }
 
             if (rewardCardManager != null)
             {
@@ -119,25 +129,59 @@ namespace PawSlayers
             }
         }
 
-        private void InitializeBattle()
+        public void ContinueToNextBattle()
+        {
+            if (runManager == null || runManager.RunWon)
+            {
+                return;
+            }
+
+            runManager.RecoverHeroesForNextBattle();
+            runManager.AdvanceToNextEncounter();
+            StartEncounter();
+        }
+
+        private void InitializeEncounterFlow()
         {
             runManager.EnsureDirectBattleTestState();
             Debug.Log("BattleScene received selected heroes: " + string.Join(", ", runManager.SelectedHeroIds));
+            StartEncounter();
+        }
 
+        private void StartEncounter()
+        {
+            battleEnded = false;
+            ClearCardSelection();
+
+            CreateEncounterForCurrentRun();
             Debug.Log($"Selected heroes: {runManager.SelectedHeroIds.Count}");
-
-            CreateDefaultEnemies();
             Debug.Log($"Enemies spawned: {enemies.Count}");
 
-            runManager.BuildAndShuffleRunDeck();
-            Debug.Log($"Run deck cards: {runManager.RunDeck.Count}");
+            runManager.PrepareEncounterDeck();
+            Debug.Log($"Run deck cards: {runManager.CurrentRunDeck.Count}");
             Debug.Log($"Draw pile count: {runManager.DrawPile.Count}");
 
             BuildHeroViews();
             BuildEnemyViews();
-            AddLog("Battle started.");
+
+            if (runWonPanel != null)
+            {
+                runWonPanel.SetActive(false);
+            }
+
+            AddLog(GetEncounterStartLog());
             StartPlayerTurn();
             Debug.Log($"Starting hand: {runManager.Hand.Count}");
+        }
+
+        private string GetEncounterStartLog()
+        {
+            if (runManager.IsBossBattle)
+            {
+                return "Boss battle started.";
+            }
+
+            return $"Battle {runManager.CurrentBattleIndex} started.";
         }
 
         private void StartPlayerTurn()
@@ -158,12 +202,34 @@ namespace PawSlayers
             }
         }
 
-        private void CreateDefaultEnemies()
+        private void CreateEncounterForCurrentRun()
         {
             enemies.Clear();
-            enemies.Add(CreateEnemy("sporeling", "Sporeling", 50, 6));
-            enemies.Add(CreateEnemy("fungus_brute", "Fungus Brute", 78, 12));
-            enemies.Add(CreateEnemy("batty", "Batty", 40, 8));
+
+            if (runManager.IsBossBattle)
+            {
+                enemies.Add(CreateEnemy("briar_king", "Briar King", 180, 18));
+                return;
+            }
+
+            switch (Mathf.Max(1, runManager.CurrentBattleIndex))
+            {
+                case 1:
+                    enemies.Add(CreateEnemy("sporeling", "Sporeling", 50, 6));
+                    enemies.Add(CreateEnemy("fungus_brute", "Fungus Brute", 78, 12));
+                    enemies.Add(CreateEnemy("batty", "Batty", 40, 8));
+                    break;
+                case 2:
+                    enemies.Add(CreateEnemy("cave_rat", "Cave Rat", 45, 7));
+                    enemies.Add(CreateEnemy("thorn_sprite", "Thorn Sprite", 55, 9));
+                    enemies.Add(CreateEnemy("moss_troll", "Moss Troll", 90, 14));
+                    break;
+                default:
+                    enemies.Add(CreateEnemy("crystal_slime", "Crystal Slime", 65, 10));
+                    enemies.Add(CreateEnemy("bandit_crow", "Bandit Crow", 60, 11));
+                    enemies.Add(CreateEnemy("old_treant", "Old Treant", 110, 15));
+                    break;
+            }
         }
 
         private EnemyRuntimeState CreateEnemy(string enemyId, string enemyName, int maxHp, int attackDamage)
@@ -508,6 +574,22 @@ namespace PawSlayers
             }
         }
 
+        private void ShowRunWon()
+        {
+            if (runWonPanel != null)
+            {
+                runWonPanel.SetActive(true);
+            }
+
+            if (runWonText != null)
+            {
+                runWonText.text = "Run won!";
+            }
+
+            AddLog("Run won!");
+            RefreshAllUi();
+        }
+
         private void RefreshTopBar()
         {
             if (titleText != null)
@@ -523,6 +605,11 @@ namespace PawSlayers
             if (energyText != null)
             {
                 energyText.text = $"Energy: {currentEnergy}/{MaxEnergy}";
+            }
+
+            if (runProgressText != null)
+            {
+                runProgressText.text = runManager.GetRunProgressLabel();
             }
         }
 
@@ -716,8 +803,9 @@ namespace PawSlayers
                 new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.EventSystems.StandaloneInputModule));
             }
 
-            if (titleText != null && heroContainer != null && enemyContainer != null && handContainer != null)
+            if (titleText != null && heroContainer != null && enemyContainer != null && handContainer != null && runProgressText != null && rewardCardManager != null && rewardCardManager.continueButton != null)
             {
+                rewardCardManager.battleUiManager = this;
                 return;
             }
 
@@ -732,6 +820,7 @@ namespace PawSlayers
             titleText = CreateText("Title", root.transform, new Vector2(20f, -20f), new Vector2(600f, 40f), 32, FontStyle.Bold, TextAnchor.UpperLeft);
             turnText = CreateText("TurnText", root.transform, new Vector2(20f, -68f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
             energyText = CreateText("EnergyText", root.transform, new Vector2(260f, -68f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            runProgressText = CreateText("RunProgressText", root.transform, new Vector2(500f, -68f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
 
             GameObject fieldArea = CreateUiObject("FieldArea", root.transform, Vector2.zero);
             RectTransform fieldRect = fieldArea.GetComponent<RectTransform>();
@@ -804,6 +893,8 @@ namespace PawSlayers
                 }
             }
 
+            rewardCardManager.battleUiManager = this;
+
             GameObject rewardPanel = CreatePanel("RewardPanel", root.transform, new Color(0f, 0f, 0f, 0.7f));
             StretchFull(rewardPanel.GetComponent<RectTransform>(), 0f);
             rewardPanel.SetActive(false);
@@ -813,13 +904,36 @@ namespace PawSlayers
             rewardBoxRect.anchorMin = new Vector2(0.5f, 0.5f);
             rewardBoxRect.anchorMax = new Vector2(0.5f, 0.5f);
             rewardBoxRect.pivot = new Vector2(0.5f, 0.5f);
-            rewardBoxRect.sizeDelta = new Vector2(760f, 420f);
+            rewardBoxRect.sizeDelta = new Vector2(900f, 520f);
             rewardBoxRect.anchoredPosition = Vector2.zero;
 
-            rewardCardManager.rewardTitleText = CreateText("RewardTitle", rewardBox.transform, new Vector2(20f, -20f), new Vector2(300f, 32f), 28, FontStyle.Bold, TextAnchor.UpperLeft);
-            rewardCardManager.rewardContainer = CreateLayoutContainer("RewardContainer", rewardBox.transform, false, new Vector2(20f, 20f), new Vector2(-20f, -70f));
+            rewardCardManager.rewardTitleText = CreateText("RewardTitle", rewardBox.transform, new Vector2(20f, -20f), new Vector2(400f, 32f), 28, FontStyle.Bold, TextAnchor.UpperLeft);
+            rewardCardManager.rewardInfoText = CreateText("RewardInfo", rewardBox.transform, new Vector2(20f, -58f), new Vector2(500f, 24f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            rewardCardManager.rewardContainer = CreateLayoutContainer("RewardContainer", rewardBox.transform, false, new Vector2(20f, 90f), new Vector2(-20f, -100f));
             rewardCardManager.rewardPanel = rewardPanel;
             rewardCardManager.rewardCardPrefab = cardViewPrefab;
+
+            rewardCardManager.continueButton = CreateButton("ContinueButton", rewardBox.transform, "Continue");
+            RectTransform continueRect = rewardCardManager.continueButton.GetComponent<RectTransform>();
+            continueRect.anchorMin = new Vector2(1f, 0f);
+            continueRect.anchorMax = new Vector2(1f, 0f);
+            continueRect.pivot = new Vector2(1f, 0f);
+            continueRect.anchoredPosition = new Vector2(-20f, 20f);
+            continueRect.sizeDelta = new Vector2(180f, 48f);
+            rewardCardManager.continueButton.gameObject.SetActive(false);
+
+            runWonPanel = CreatePanel("RunWonPanel", root.transform, new Color(0f, 0f, 0f, 0.7f));
+            StretchFull(runWonPanel.GetComponent<RectTransform>(), 0f);
+            runWonPanel.SetActive(false);
+
+            GameObject runWonBox = CreatePanel("RunWonBox", runWonPanel.transform, new Color(0.97f, 0.95f, 0.88f, 1f));
+            RectTransform runWonRect = runWonBox.GetComponent<RectTransform>();
+            runWonRect.anchorMin = new Vector2(0.5f, 0.5f);
+            runWonRect.anchorMax = new Vector2(0.5f, 0.5f);
+            runWonRect.pivot = new Vector2(0.5f, 0.5f);
+            runWonRect.sizeDelta = new Vector2(420f, 180f);
+            runWonRect.anchoredPosition = Vector2.zero;
+            runWonText = CreateText("RunWonText", runWonBox.transform, new Vector2(40f, -50f), new Vector2(340f, 60f), 34, FontStyle.Bold, TextAnchor.MiddleCenter);
         }
 
         private void EnsureHeroViewInteractive(BattleHeroView view)
@@ -1032,11 +1146,14 @@ namespace PawSlayers
         private Button CreateButton(string name, Transform parent, string label)
         {
             GameObject buttonObject = CreatePanel(name, parent, new Color(0.36f, 0.55f, 0.31f, 1f));
+            RectTransform rect = buttonObject.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(180f, 48f);
             LayoutElement layout = buttonObject.AddComponent<LayoutElement>();
-            layout.preferredHeight = 42f;
+            layout.preferredWidth = 180f;
+            layout.preferredHeight = 48f;
 
             Button button = buttonObject.AddComponent<Button>();
-            CreateText("Label", buttonObject.transform, new Vector2(0f, 0f), new Vector2(180f, 42f), 18, FontStyle.Bold, TextAnchor.MiddleCenter).text = label;
+            CreateText("Label", buttonObject.transform, new Vector2(20f, -10f), new Vector2(140f, 24f), 18, FontStyle.Bold, TextAnchor.MiddleCenter).text = label;
             return button;
         }
 

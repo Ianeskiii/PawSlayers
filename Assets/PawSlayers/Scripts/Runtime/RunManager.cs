@@ -20,11 +20,22 @@ namespace PawSlayers
         [Header("Run State")]
         [SerializeField] private List<HeroId> selectedHeroIds = new List<HeroId>();
         [SerializeField] private List<RuntimeHeroState> activeHeroesRuntime = new List<RuntimeHeroState>();
+        [SerializeField] private List<CardData> currentRunDeck = new List<CardData>();
+        [SerializeField] private int currentBattleIndex;
+        [SerializeField] private int totalNormalBattlesBeforeBoss = 3;
+        [SerializeField] private bool bossBattleStarted;
+        [SerializeField] private bool runWon;
 
         private DeckManager deckManager;
 
         public List<HeroId> SelectedHeroIds => selectedHeroIds;
         public List<RuntimeHeroState> ActiveHeroesRuntime => activeHeroesRuntime;
+        public List<CardData> CurrentRunDeck => currentRunDeck;
+        public int CurrentBattleIndex => currentBattleIndex;
+        public int TotalNormalBattlesBeforeBoss => totalNormalBattlesBeforeBoss;
+        public bool BossBattleStarted => bossBattleStarted;
+        public bool RunWon => runWon;
+        public bool IsBossBattle => bossBattleStarted;
         public List<CardData> RunDeck => deckManager == null ? new List<CardData>() : deckManager.RunDeck.ToList();
         public List<CardData> DiscardPile => deckManager == null ? new List<CardData>() : deckManager.DiscardPile.ToList();
         public List<CardData> DrawPile => deckManager == null ? new List<CardData>() : deckManager.DrawPile.ToList();
@@ -53,17 +64,21 @@ namespace PawSlayers
         public void StartRunWithSelection(List<HeroId> selectedHeroes)
         {
             EnsurePrototypeData();
+            ResetRunState();
             SetSelectedHeroes(selectedHeroes);
-            BuildAndShuffleRunDeck();
+            InitializeCurrentRunDeckIfNeeded();
+            currentBattleIndex = 1;
+            bossBattleStarted = false;
+            runWon = false;
+            PrepareEncounterDeck();
+
             Debug.Log("Loading BattleScene with selected heroes: " + string.Join(", ", selectedHeroIds));
             SceneManager.LoadScene(battleSceneName);
         }
 
         public void ResetRunAndReturnToSelection()
         {
-            selectedHeroIds.Clear();
-            activeHeroesRuntime.Clear();
-            deckManager.SetStartingDeck(new List<CardData>());
+            ResetRunState();
             SceneManager.LoadScene(heroSelectionSceneName);
         }
 
@@ -107,12 +122,21 @@ namespace PawSlayers
 
         public void AddRewardCard(CardData card)
         {
-            if (card == null || deckManager == null)
+            if (card == null)
             {
                 return;
             }
 
-            deckManager.AddCardToDeck(card);
+            InitializeCurrentRunDeckIfNeeded();
+            currentRunDeck.Add(card);
+
+            if (deckManager != null)
+            {
+                deckManager.AddCardToDeck(card);
+            }
+
+            Debug.Log("Reward selected: " + card.cardName);
+            Debug.Log("Updated run deck count: " + currentRunDeck.Count);
         }
 
         public void HealAllHeroes()
@@ -133,16 +157,28 @@ namespace PawSlayers
 
             if (selectedHeroIds.Count == 3 && activeHeroesRuntime.Count == 3)
             {
+                if (currentBattleIndex <= 0)
+                {
+                    currentBattleIndex = 1;
+                }
+
+                InitializeCurrentRunDeckIfNeeded();
                 Debug.Log("BattleScene received selected heroes: " + string.Join(", ", selectedHeroIds));
                 return;
             }
 
+            ResetRunState();
             SetSelectedHeroes(new List<HeroId>
             {
                 HeroId.Capybara,
                 HeroId.Sloth,
                 HeroId.Panda
             });
+            InitializeCurrentRunDeckIfNeeded();
+            currentBattleIndex = 1;
+            bossBattleStarted = false;
+            runWon = false;
+
             Debug.Log("BattleScene direct open fallback party: Capybara, Sloth, Panda");
         }
 
@@ -154,12 +190,99 @@ namespace PawSlayers
             Debug.Log("Selected heroes stored: " + string.Join(", ", selectedHeroIds));
         }
 
-        public void BuildAndShuffleRunDeck()
+        public void PrepareEncounterDeck()
         {
             EnsurePrototypeData();
-            List<CardData> startingDeck = DeckBuilder.BuildStartingDeck(cardDatabase.cards, selectedHeroIds);
-            deckManager.SetStartingDeck(startingDeck);
-            Debug.Log("Run deck cards after filtering: " + string.Join(", ", startingDeck.Select(card => card.cardName)));
+            InitializeCurrentRunDeckIfNeeded();
+            deckManager.SetStartingDeck(new List<CardData>(currentRunDeck));
+            Debug.Log("Run deck cards after filtering: " + string.Join(", ", currentRunDeck.Select(card => card.cardName)));
+        }
+
+        public void InitializeCurrentRunDeckIfNeeded()
+        {
+            EnsurePrototypeData();
+
+            if (currentRunDeck != null && currentRunDeck.Count > 0)
+            {
+                return;
+            }
+
+            if (selectedHeroIds.Count == 0)
+            {
+                SetSelectedHeroes(new List<HeroId>
+                {
+                    HeroId.Capybara,
+                    HeroId.Sloth,
+                    HeroId.Panda
+                });
+            }
+
+            currentRunDeck = DeckBuilder.BuildStartingDeck(cardDatabase.cards, selectedHeroIds);
+            Debug.Log("Initialized run deck. Count: " + currentRunDeck.Count);
+        }
+
+        public void AdvanceToNextEncounter()
+        {
+            if (runWon)
+            {
+                return;
+            }
+
+            if (!bossBattleStarted)
+            {
+                if (currentBattleIndex < totalNormalBattlesBeforeBoss)
+                {
+                    currentBattleIndex++;
+                }
+                else
+                {
+                    bossBattleStarted = true;
+                }
+            }
+        }
+
+        public void RecoverHeroesForNextBattle()
+        {
+            foreach (RuntimeHeroState hero in activeHeroesRuntime)
+            {
+                if (hero == null || hero.heroData == null)
+                {
+                    continue;
+                }
+
+                hero.block = 0;
+
+                if (hero.IsAlive)
+                {
+                    int healAmount = Mathf.CeilToInt(hero.heroData.maxHp * 0.3f);
+                    hero.Heal(healAmount);
+                }
+                else
+                {
+                    hero.currentHp = Mathf.Max(1, Mathf.CeilToInt(hero.heroData.maxHp * 0.25f));
+                    hero.isDown = false;
+                }
+            }
+        }
+
+        public void MarkRunWon()
+        {
+            runWon = true;
+        }
+
+        public string GetRunProgressLabel()
+        {
+            if (runWon)
+            {
+                return "Run won!";
+            }
+
+            if (bossBattleStarted)
+            {
+                return "Boss Battle";
+            }
+
+            return $"Battle {Mathf.Max(1, currentBattleIndex)}/{totalNormalBattlesBeforeBoss}";
         }
 
         public void EnsurePrototypeData()
@@ -192,6 +315,21 @@ namespace PawSlayers
             if (cardDatabase.cards.Count == 0)
             {
                 cardDatabase.cards = CreatePrototypeCards();
+            }
+        }
+
+        private void ResetRunState()
+        {
+            selectedHeroIds = new List<HeroId>();
+            activeHeroesRuntime = new List<RuntimeHeroState>();
+            currentRunDeck = new List<CardData>();
+            currentBattleIndex = 0;
+            bossBattleStarted = false;
+            runWon = false;
+
+            if (deckManager != null)
+            {
+                deckManager.SetStartingDeck(new List<CardData>());
             }
         }
 

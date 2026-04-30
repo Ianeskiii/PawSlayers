@@ -8,11 +8,16 @@ namespace PawSlayers
     public class RewardCardManager : MonoBehaviour
     {
         public RunManager runManager;
+        public BattleUIManager battleUiManager;
         public CardDatabase cardDatabase;
         public GameObject rewardPanel;
         public Transform rewardContainer;
         public CardView rewardCardPrefab;
         public Text rewardTitleText;
+        public Text rewardInfoText;
+        public Button continueButton;
+
+        private bool rewardChosen;
 
         public void ShowRewards()
         {
@@ -30,6 +35,9 @@ namespace PawSlayers
             {
                 return;
             }
+
+            rewardChosen = false;
+            ConfigureContinueButton();
 
             foreach (Transform child in rewardContainer)
             {
@@ -50,18 +58,62 @@ namespace PawSlayers
             }
 
             rewardTitleText.text = "Choose 1 reward card";
+
+            if (rewardInfoText != null)
+            {
+                rewardInfoText.text = "Choose one card to add to your run deck.";
+            }
+
+            if (continueButton != null)
+            {
+                continueButton.gameObject.SetActive(false);
+                continueButton.interactable = false;
+            }
+
             rewardPanel.SetActive(true);
         }
 
         public void SelectReward(CardData selectedCard)
         {
-            if (runManager != null && selectedCard != null)
+            if (rewardChosen || runManager == null || selectedCard == null)
             {
-                runManager.AddRewardCard(selectedCard);
-                Debug.Log("Reward selected: " + selectedCard.cardName);
+                return;
             }
 
+            rewardChosen = true;
+            runManager.AddRewardCard(selectedCard);
+
+            if (rewardInfoText != null)
+            {
+                rewardInfoText.text = $"Selected: {selectedCard.cardName}";
+            }
+
+            if (continueButton != null)
+            {
+                continueButton.gameObject.SetActive(true);
+                continueButton.interactable = true;
+            }
+        }
+
+        public void ContinueToNextBattle()
+        {
             rewardPanel.SetActive(false);
+
+            if (battleUiManager != null)
+            {
+                battleUiManager.ContinueToNextBattle();
+            }
+        }
+
+        private void ConfigureContinueButton()
+        {
+            if (continueButton == null)
+            {
+                return;
+            }
+
+            continueButton.onClick.RemoveAllListeners();
+            continueButton.onClick.AddListener(ContinueToNextBattle);
         }
 
         private CardView CreateRuntimeRewardCardView(Transform parent)
