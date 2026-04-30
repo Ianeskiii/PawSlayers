@@ -44,8 +44,9 @@ namespace PawSlayers
                 Destroy(child.gameObject);
             }
 
+            int rewardChoiceCount = runManager.HasRelic(RelicId.LuckyPaw) ? 4 : 3;
             List<CardData> eligibleCards = cardDatabase.GetEligibleCards(runManager.SelectedHeroIds);
-            List<CardData> choices = eligibleCards.OrderBy(_ => Random.value).Take(3).ToList();
+            List<CardData> choices = eligibleCards.OrderBy(_ => Random.value).Take(rewardChoiceCount).ToList();
 
             foreach (CardData choice in choices)
             {
@@ -95,13 +96,16 @@ namespace PawSlayers
             }
         }
 
-        public void ContinueToNextBattle()
+        public void ContinueAfterReward()
         {
-            rewardPanel.SetActive(false);
-
-            if (battleUiManager != null)
+            if (rewardPanel != null)
             {
-                battleUiManager.ContinueToNextBattle();
+                rewardPanel.SetActive(false);
+            }
+
+            if (runManager != null && !runManager.RunWon)
+            {
+                runManager.EnterMapAfterBattleReward();
             }
         }
 
@@ -113,7 +117,7 @@ namespace PawSlayers
             }
 
             continueButton.onClick.RemoveAllListeners();
-            continueButton.onClick.AddListener(ContinueToNextBattle);
+            continueButton.onClick.AddListener(ContinueAfterReward);
         }
 
         private CardView CreateRuntimeRewardCardView(Transform parent)

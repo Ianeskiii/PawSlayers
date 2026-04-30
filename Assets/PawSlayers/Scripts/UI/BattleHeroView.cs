@@ -11,6 +11,7 @@ namespace PawSlayers
         public Text hpText;
         public Text blockText;
         public Text stateText;
+        public Text statusText;
         public Image portraitImage;
         public Image backgroundImage;
         public Button button;
@@ -43,9 +44,16 @@ namespace PawSlayers
 
             heroNameText.text = heroState.heroData.heroName;
             heroClassText.text = heroState.heroData.heroClass.ToString();
-            hpText.text = $"HP: {heroState.currentHp}/{heroState.heroData.maxHp}";
+            hpText.text = $"HP: {heroState.currentHp}/{heroState.MaxHp}";
             blockText.text = $"Block: {heroState.block}";
             stateText.text = $"Status: {(heroState.IsAlive ? "Alive" : "Down")}";
+
+            if (statusText != null)
+            {
+                statusText.text = heroState.statuses.HasAnyActiveStatus()
+                    ? heroState.GetStatusSummaryText()
+                    : string.Empty;
+            }
 
             portraitImage.sprite = heroState.heroData.portrait;
             portraitImage.enabled = true;

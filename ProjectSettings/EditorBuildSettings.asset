@@ -11,5 +11,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/PawSlayers/Scenes/Battle.unity
     guid: e11b54ee752245e46a9c4c0353909c6c
+  - enabled: 1
+    path: Assets/PawSlayers/Scenes/Map.unity
+    guid: 12b49c8220fcf3c49ba768f74aba8c25
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

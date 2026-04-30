@@ -22,6 +22,7 @@ namespace PawSlayers
         public Text turnText;
         public Text energyText;
         public Text runProgressText;
+        public Text relicsText;
         public Text battleLogText;
         public Button drawButton;
         public Button endTurnButton;
@@ -39,10 +40,16 @@ namespace PawSlayers
         private readonly List<EnemyRuntimeState> enemies = new List<EnemyRuntimeState>();
 
         private const int MaxEnergy = 3;
+        private const string WoundCardId = "status_wound";
+        private const int BriarKingPhaseTwoThresholdHp = 110;
 
         private int currentEnergy;
         private bool battleEnded;
-        private CardData selectedCard;
+        private RuntimeCardState selectedCard;
+        private bool bambooCharmUsedThisBattle;
+        private bool slothTeaUsedThisBattle;
+        private bool thiefsBellUsedThisTurn;
+        private int kangarooWrapsAttackCardsThisTurn;
 
         private void Start()
         {
@@ -87,6 +94,15 @@ namespace PawSlayers
 
             ClearCardSelection();
             runManager.DiscardHand();
+            TickHeroEndOfTurnStatuses();
+            CheckBattleState();
+
+            if (battleEnded)
+            {
+                RefreshAllUi();
+                return;
+            }
+
             RunEnemyTurn();
             CheckBattleState();
 
@@ -108,6 +124,7 @@ namespace PawSlayers
             }
 
             battleEnded = true;
+            CleanupTemporaryBattleCards();
             AddLog("Battle won.");
             RefreshAllUi();
 
@@ -141,6 +158,75 @@ namespace PawSlayers
             StartEncounter();
         }
 
+        public void ForceBossBattleDebug()
+        {
+            if (runManager == null)
+            {
+                return;
+            }
+
+            AddLog("Debug: loading boss battle.");
+            runManager.StartBossBattleFromMap();
+        }
+
+        public void DamageBossHalfDebug()
+        {
+            EnemyRuntimeState boss = GetBossEnemy();
+            if (boss == null || !boss.IsAlive)
+            {
+                AddLog("Debug: no living boss.");
+                return;
+            }
+
+            int targetHp = Mathf.Max(1, BriarKingPhaseTwoThresholdHp);
+            boss.currentHp = Mathf.Min(boss.currentHp, targetHp);
+            UpdateBossPhaseIfNeeded(boss);
+            AddLog("Debug: boss reduced to phase threshold.");
+            RefreshAllUi();
+        }
+
+        public void KillBossDebug()
+        {
+            EnemyRuntimeState boss = GetBossEnemy();
+            if (boss == null || !boss.IsAlive)
+            {
+                AddLog("Debug: no living boss.");
+                return;
+            }
+
+            boss.currentHp = 0;
+            boss.block = 0;
+            AddLog("Debug: boss defeated.");
+            RefreshAllUi();
+            CheckBattleState();
+        }
+
+        public void AddWeakToEnemy1Debug() => ApplyStatusToEnemyDebug(0, enemy => enemy.AddWeak(1), "Enemy 1 gained 1 Weak.");
+        public void AddVulnerableToEnemy1Debug() => ApplyStatusToEnemyDebug(0, enemy => enemy.AddVulnerable(1), "Enemy 1 gained 1 Vulnerable.");
+        public void AddPoisonToEnemy1Debug() => ApplyStatusToEnemyDebug(0, enemy => enemy.AddPoison(3), "Enemy 1 gained 3 Poison.");
+        public void StunEnemy1Debug() => ApplyStatusToEnemyDebug(0, enemy => enemy.AddStun(1), "Enemy 1 gained 1 Stun.");
+        public void SilenceEnemy1Debug() => ApplyStatusToEnemyDebug(0, enemy => enemy.AddSilence(1), "Enemy 1 gained 1 Silence.");
+        public void AddStrengthToHero1Debug() => ApplyStatusToHeroDebug(0, hero => hero.AddStrength(2), "Hero 1 gained 2 Strength.");
+        public void AddBleedToHero1Debug() => ApplyStatusToHeroDebug(0, hero => hero.AddBleed(2), "Hero 1 gained 2 Bleed.");
+        public void StunHero1Debug() => ApplyStatusToHeroDebug(0, hero => hero.AddStun(1), "Hero 1 gained 1 Stun.");
+        public void SilenceHero1Debug() => ApplyStatusToHeroDebug(0, hero => hero.AddSilence(1), "Hero 1 gained 1 Silence.");
+
+        public void ClearAllStatusesDebug()
+        {
+            foreach (RuntimeHeroState hero in runManager.ActiveHeroesRuntime)
+            {
+                hero?.statuses.ClearAll();
+            }
+
+            foreach (EnemyRuntimeState enemy in enemies)
+            {
+                enemy?.statuses.ClearAll();
+            }
+
+            AddLog("All statuses cleared.");
+            RefreshAllUi();
+        }
+
         private void InitializeEncounterFlow()
         {
             runManager.EnsureDirectBattleTestState();
@@ -152,6 +238,7 @@ namespace PawSlayers
         {
             battleEnded = false;
             ClearCardSelection();
+            ResetRelicStateForBattle();
 
             CreateEncounterForCurrentRun();
             Debug.Log($"Selected heroes: {runManager.SelectedHeroIds.Count}");
@@ -170,7 +257,7 @@ namespace PawSlayers
             }
 
             AddLog(GetEncounterStartLog());
-            StartPlayerTurn();
+            StartPlayerTurn(true);
             Debug.Log($"Starting hand: {runManager.Hand.Count}");
         }
 
@@ -178,17 +265,37 @@ namespace PawSlayers
         {
             if (runManager.IsBossBattle)
             {
-                return "Boss battle started.";
+                return "Boss Battle: Briar King";
             }
 
             return $"Battle {runManager.CurrentBattleIndex} started.";
         }
 
-        private void StartPlayerTurn()
+        private void StartPlayerTurn(bool isBattleStart = false)
         {
+            if (!isBattleStart)
+            {
+                TickHeroStartOfTurnStatuses();
+                CheckBattleState();
+                if (battleEnded)
+                {
+                    RefreshAllUi();
+                    return;
+                }
+            }
+
             ResetHeroBlock();
             currentEnergy = MaxEnergy;
+            thiefsBellUsedThisTurn = false;
+            kangarooWrapsAttackCardsThisTurn = 0;
+
+            if (isBattleStart)
+            {
+                ApplyBattleStartRelics();
+            }
+
             ClearCardSelection();
+            RefreshEnemyIntents();
             int drawn = runManager.DrawCards(5).Count;
             AddLog($"Player turn started. Drew {drawn} cards.");
             RefreshAllUi();
@@ -202,13 +309,46 @@ namespace PawSlayers
             }
         }
 
+        private void ResetRelicStateForBattle()
+        {
+            bambooCharmUsedThisBattle = false;
+            slothTeaUsedThisBattle = false;
+            thiefsBellUsedThisTurn = false;
+            kangarooWrapsAttackCardsThisTurn = 0;
+        }
+
+        private void ApplyBattleStartRelics()
+        {
+            if (runManager.HasRelic(RelicId.CozyLeaf))
+            {
+                foreach (RuntimeHeroState hero in runManager.ActiveHeroesRuntime.Where(hero => hero != null && hero.IsAlive))
+                {
+                    hero.GainBlock(5);
+                }
+
+                AddLog("Cozy Leaf: all heroes gained 5 block.");
+                Debug.Log("Cozy Leaf: all heroes gained 5 block.");
+            }
+
+            if (runManager.HasRelic(RelicId.PandaEmblem))
+            {
+                RuntimeHeroState panda = runManager.GetHeroState(HeroId.Panda);
+                if (panda != null && panda.IsAlive)
+                {
+                    panda.GainBlock(10);
+                    AddLog("Panda Emblem: Panda gained 10 block.");
+                    Debug.Log("Panda Emblem: Panda gained 10 block.");
+                }
+            }
+        }
+
         private void CreateEncounterForCurrentRun()
         {
             enemies.Clear();
 
             if (runManager.IsBossBattle)
             {
-                enemies.Add(CreateEnemy("briar_king", "Briar King", 180, 18));
+                enemies.Add(CreateBossEnemy());
                 return;
             }
 
@@ -234,14 +374,38 @@ namespace PawSlayers
 
         private EnemyRuntimeState CreateEnemy(string enemyId, string enemyName, int maxHp, int attackDamage)
         {
-            return new EnemyRuntimeState
+            EnemyRuntimeState enemy = new EnemyRuntimeState
             {
                 enemyId = enemyId,
                 enemyName = enemyName,
                 maxHp = maxHp,
                 currentHp = maxHp,
-                attackDamage = attackDamage
+                attackDamage = attackDamage,
+                intentName = "Attack",
+                intentDescription = $"Deal {attackDamage} damage to one hero."
             };
+
+            UpdateEnemyIntent(enemy);
+            return enemy;
+        }
+
+        private EnemyRuntimeState CreateBossEnemy()
+        {
+            EnemyRuntimeState boss = new EnemyRuntimeState
+            {
+                enemyId = "briar_king",
+                enemyName = "Briar King",
+                maxHp = 220,
+                currentHp = 220,
+                attackDamage = 16,
+                isBoss = true,
+                currentPhase = 1,
+                phaseTwoTriggered = false,
+                patternStep = 0
+            };
+
+            UpdateBossIntent(boss);
+            return boss;
         }
 
         private void BuildHeroViews()
@@ -264,6 +428,7 @@ namespace PawSlayers
                     ? Instantiate(heroViewPrefab, heroContainer)
                     : CreateRuntimeHeroView(heroContainer);
 
+                EnsureHeroViewDisplayFields(heroView);
                 EnsureHeroViewInteractive(heroView);
                 heroView.Setup(HandleHeroClicked);
                 heroView.Refresh(hero);
@@ -287,10 +452,11 @@ namespace PawSlayers
 
             foreach (EnemyRuntimeState enemy in enemies)
             {
-                EnemyView enemyView = enemyViewPrefab != null
+                EnemyView enemyView = CanUseConfiguredEnemyViewPrefab()
                     ? Instantiate(enemyViewPrefab, enemyContainer)
                     : CreateRuntimeEnemyView(enemyContainer);
 
+                EnsureEnemyViewDisplayFields(enemyView);
                 EnsureEnemyViewInteractive(enemyView);
                 enemyView.Setup(HandleEnemyClicked);
                 enemyView.Refresh(enemy);
@@ -333,7 +499,7 @@ namespace PawSlayers
 
             handViews.Clear();
 
-            foreach (CardData card in runManager.Hand)
+            foreach (RuntimeCardState card in runManager.Hand)
             {
                 CardView cardView = cardViewPrefab != null
                     ? Instantiate(cardViewPrefab, handContainer)
@@ -349,7 +515,7 @@ namespace PawSlayers
             }
         }
 
-        private void OnCardClicked(CardData card)
+        private void OnCardClicked(RuntimeCardState card)
         {
             if (battleEnded || card == null)
             {
@@ -370,7 +536,8 @@ namespace PawSlayers
                 return;
             }
 
-            if (card.cost > currentEnergy)
+            int modifiedCost = GetModifiedCardCost(card, false);
+            if (modifiedCost > currentEnergy)
             {
                 AddLog("Not enough energy.");
                 return;
@@ -378,7 +545,7 @@ namespace PawSlayers
 
             selectedCard = card;
 
-            if (card.targetType == TargetType.None)
+            if (card.TargetType == TargetType.None)
             {
                 ResolveCardPlay(card, null, null);
                 return;
@@ -419,7 +586,7 @@ namespace PawSlayers
             ResolveCardPlay(selectedCard, null, enemy);
         }
 
-        private void ResolveCardPlay(CardData card, RuntimeHeroState chosenHeroTarget, EnemyRuntimeState chosenEnemyTarget)
+        private void ResolveCardPlay(RuntimeCardState card, RuntimeHeroState chosenHeroTarget, EnemyRuntimeState chosenEnemyTarget)
         {
             if (card == null)
             {
@@ -432,7 +599,8 @@ namespace PawSlayers
                 return;
             }
 
-            if (card.cost > currentEnergy)
+            int modifiedCost = GetModifiedCardCost(card, true);
+            if (modifiedCost > currentEnergy)
             {
                 AddLog("Not enough energy.");
                 return;
@@ -442,7 +610,7 @@ namespace PawSlayers
             RuntimeHeroState heroTarget = ResolveHeroTarget(card, ownerHero, chosenHeroTarget);
             EnemyRuntimeState enemyTarget = ResolveEnemyTarget(card, chosenEnemyTarget);
 
-            currentEnergy -= card.cost;
+            currentEnergy -= modifiedCost;
 
             string sourceName = ownerHero != null ? ownerHero.heroData.heroName : "Neutral";
             string targetName = enemyTarget != null
@@ -451,47 +619,68 @@ namespace PawSlayers
                     ? heroTarget.heroData.heroName
                     : "no target";
 
-            AddLog($"{sourceName} used {card.cardName} on {targetName}.");
+            AddLog($"{sourceName} used {card.DisplayName} on {targetName}.");
 
-            if (card.damage > 0 && enemyTarget != null)
+            int damageAmount = GetModifiedDamage(card, card.Damage);
+            if (damageAmount > 0 && card.TargetType == TargetType.AllEnemies)
             {
-                enemyTarget.TakeDamage(card.damage);
+                foreach (EnemyRuntimeState enemy in enemies.Where(enemy => enemy.IsAlive))
+                {
+                    ApplyAttackDamageToEnemy(ownerHero, enemy, damageAmount);
+                }
+            }
+            else if (damageAmount > 0 && enemyTarget != null)
+            {
+                ApplyAttackDamageToEnemy(ownerHero, enemyTarget, damageAmount);
             }
 
-            if (card.block > 0 && heroTarget != null)
+            if (card.Block > 0 && card.TargetType == TargetType.AllAllies)
             {
-                heroTarget.GainBlock(card.block);
-                AddLog($"{heroTarget.heroData.heroName} gained {card.block} block.");
+                foreach (RuntimeHeroState ally in runManager.ActiveHeroesRuntime.Where(hero => hero.IsAlive))
+                {
+                    ally.GainBlock(card.Block);
+                    AddLog($"{ally.heroData.heroName} gained {card.Block} block.");
+                }
+            }
+            else if (card.Block > 0 && heroTarget != null)
+            {
+                heroTarget.GainBlock(card.Block);
+                AddLog($"{heroTarget.heroData.heroName} gained {card.Block} block.");
             }
 
-            if (card.heal > 0 && heroTarget != null)
+            int healAmount = GetModifiedHeal(card, card.Heal);
+            if (healAmount > 0 && card.TargetType == TargetType.AllAllies)
+            {
+                foreach (RuntimeHeroState ally in runManager.ActiveHeroesRuntime.Where(hero => hero.IsAlive))
+                {
+                    int beforeHp = ally.currentHp;
+                    ally.Heal(healAmount);
+                    int healedAmount = ally.currentHp - beforeHp;
+                    AddLog($"{ally.heroData.heroName} healed {healedAmount} HP.");
+                }
+            }
+            else if (healAmount > 0 && heroTarget != null)
             {
                 int beforeHp = heroTarget.currentHp;
-                heroTarget.Heal(card.heal);
+                heroTarget.Heal(healAmount);
                 int healedAmount = heroTarget.currentHp - beforeHp;
                 AddLog($"{heroTarget.heroData.heroName} healed {healedAmount} HP.");
             }
 
-            if (card.drawAmount > 0)
+            if (card.DrawAmount > 0)
             {
-                int drawn = runManager.DrawCards(card.drawAmount).Count;
+                int drawn = runManager.DrawCards(card.DrawAmount).Count;
                 AddLog($"Player drew {drawn} cards.");
             }
 
-            if (card.strengthAmount > 0)
+            ApplyCardStatuses(card, ownerHero, chosenHeroTarget, chosenEnemyTarget);
+
+            if (card.isUpgraded)
             {
-                AddLog($"{sourceName} gained {card.strengthAmount} Strength.");
+                AddLog("Played upgraded card values: " + card.Description);
             }
 
-            if (card.weakAmount > 0 && enemyTarget != null)
-            {
-                AddLog($"{enemyTarget.enemyName} received {card.weakAmount} Weak.");
-            }
-
-            if (card.taunt && heroTarget != null)
-            {
-                AddLog($"{heroTarget.heroData.heroName} gained Taunt.");
-            }
+            HandleRelicsAfterCardPlayed(card);
 
             runManager.DiscardCard(card);
             ClearCardSelection();
@@ -499,19 +688,19 @@ namespace PawSlayers
             CheckBattleState();
         }
 
-        private RuntimeHeroState ResolveHeroTarget(CardData card, RuntimeHeroState ownerHero, RuntimeHeroState chosenHeroTarget)
+        private RuntimeHeroState ResolveHeroTarget(RuntimeCardState card, RuntimeHeroState ownerHero, RuntimeHeroState chosenHeroTarget)
         {
-            if (card.targetType == TargetType.Self)
+            if (card.TargetType == TargetType.Self)
             {
                 return ownerHero;
             }
 
-            if (card.targetType == TargetType.Ally)
+            if (card.TargetType == TargetType.Ally)
             {
                 return chosenHeroTarget ?? runManager.ActiveHeroesRuntime.FirstOrDefault(hero => hero.IsAlive);
             }
 
-            if (card.targetType == TargetType.AllAllies)
+            if (card.TargetType == TargetType.AllAllies)
             {
                 return ownerHero ?? runManager.ActiveHeroesRuntime.FirstOrDefault(hero => hero.IsAlive);
             }
@@ -519,9 +708,9 @@ namespace PawSlayers
             return ownerHero ?? chosenHeroTarget;
         }
 
-        private EnemyRuntimeState ResolveEnemyTarget(CardData card, EnemyRuntimeState chosenEnemyTarget)
+        private EnemyRuntimeState ResolveEnemyTarget(RuntimeCardState card, EnemyRuntimeState chosenEnemyTarget)
         {
-            if (card.targetType == TargetType.Enemy || card.targetType == TargetType.AllEnemies)
+            if (card.TargetType == TargetType.Enemy || card.TargetType == TargetType.AllEnemies)
             {
                 return chosenEnemyTarget ?? enemies.FirstOrDefault(enemy => enemy.IsAlive);
             }
@@ -529,29 +718,126 @@ namespace PawSlayers
             return null;
         }
 
-        private void RunEnemyTurn()
+        private int GetModifiedCardCost(RuntimeCardState card, bool applyChanges)
         {
-            RuntimeHeroState targetHero = runManager.ActiveHeroesRuntime.FirstOrDefault(hero => hero.IsAlive);
-            if (targetHero == null)
+            int modifiedCost = card.Cost;
+
+            if (runManager.HasRelic(RelicId.ThiefsBell) &&
+                card.OwnerHeroId == HeroId.Koala &&
+                !thiefsBellUsedThisTurn &&
+                runManager.GetHeroState(HeroId.Koala)?.IsAlive == true)
+            {
+                modifiedCost = 0;
+
+                if (applyChanges)
+                {
+                    thiefsBellUsedThisTurn = true;
+                    AddLog("Thief's Bell: Koala card cost reduced to 0.");
+                    Debug.Log("Thief's Bell: Koala card cost reduced to 0.");
+                }
+            }
+
+            return modifiedCost;
+        }
+
+        private int GetModifiedDamage(RuntimeCardState card, int baseDamage)
+        {
+            int modifiedDamage = baseDamage;
+
+            if (modifiedDamage > 0 &&
+                card.CardType == CardType.Attack &&
+                runManager.HasRelic(RelicId.BambooCharm) &&
+                !bambooCharmUsedThisBattle)
+            {
+                modifiedDamage += 3;
+                bambooCharmUsedThisBattle = true;
+                AddLog("Bamboo Charm: +3 damage applied.");
+                Debug.Log("Bamboo Charm: +3 damage applied.");
+            }
+
+            return modifiedDamage;
+        }
+
+        private int GetModifiedHeal(RuntimeCardState card, int baseHeal)
+        {
+            int modifiedHeal = baseHeal;
+
+            if (modifiedHeal > 0 &&
+                runManager.HasRelic(RelicId.SlothTea) &&
+                !slothTeaUsedThisBattle)
+            {
+                modifiedHeal += 5;
+                slothTeaUsedThisBattle = true;
+                AddLog("Sloth Tea: +5 heal applied.");
+                Debug.Log("Sloth Tea: +5 heal applied.");
+            }
+
+            return modifiedHeal;
+        }
+
+        private void HandleRelicsAfterCardPlayed(RuntimeCardState card)
+        {
+            if (card.CardType != CardType.Attack)
             {
                 return;
             }
 
-            foreach (EnemyRuntimeState enemy in enemies.Where(enemy => enemy.IsAlive))
-            {
-                targetHero.TakeDamage(enemy.attackDamage);
-                AddLog($"{enemy.enemyName} attacked {targetHero.heroData.heroName} for {enemy.attackDamage}.");
+            kangarooWrapsAttackCardsThisTurn++;
 
-                if (!targetHero.IsAlive)
+            if (!runManager.HasRelic(RelicId.KangarooWraps) || kangarooWrapsAttackCardsThisTurn < 2)
+            {
+                return;
+            }
+
+            kangarooWrapsAttackCardsThisTurn = 0;
+
+            List<EnemyRuntimeState> livingEnemies = enemies.Where(enemy => enemy.IsAlive).ToList();
+            if (livingEnemies.Count == 0)
+            {
+                return;
+            }
+
+            EnemyRuntimeState target = livingEnemies[Random.Range(0, livingEnemies.Count)];
+            ApplyDamageToEnemy(target, 4);
+            AddLog($"Kangaroo Wraps: bonus damage triggered on {target.enemyName}.");
+            Debug.Log("Kangaroo Wraps: bonus damage triggered.");
+        }
+
+        private void RunEnemyTurn()
+        {
+            foreach (EnemyRuntimeState enemy in enemies.Where(enemy => enemy.IsAlive).ToList())
+            {
+                enemy.TickStartOfTurnStatuses(AddLog);
+                UpdateBossPhaseIfNeeded(enemy);
+                if (!enemy.IsAlive)
                 {
-                    AddLog($"{targetHero.heroData.heroName} is down.");
-                    targetHero = runManager.ActiveHeroesRuntime.FirstOrDefault(hero => hero.IsAlive);
-                    if (targetHero == null)
-                    {
-                        break;
-                    }
+                    continue;
+                }
+
+                if (enemy.statuses.stun > 0)
+                {
+                    AddLog($"{enemy.enemyName} is stunned and skips its turn.");
+                    enemy.TickEndOfTurnStatuses(AddLog);
+                    UpdateEnemyIntent(enemy);
+                    continue;
+                }
+
+                if (enemy.isBoss)
+                {
+                    RunBossTurn(enemy);
+                }
+                else
+                {
+                    RunNormalEnemyTurn(enemy);
+                }
+
+                if (runManager.ActiveHeroesRuntime.All(hero => !hero.IsAlive))
+                {
+                    break;
                 }
             }
+
+            RefreshEnemyIntents();
         }
 
         private void CheckBattleState()
@@ -565,7 +851,10 @@ namespace PawSlayers
             if (!battleEnded && runManager.ActiveHeroesRuntime.Count > 0 && runManager.ActiveHeroesRuntime.All(hero => !hero.IsAlive))
             {
                 battleEnded = true;
+                CleanupTemporaryBattleCards();
                 AddLog("Battle lost.");
+                AddLog("Run lost.");
+                ShowRunLost();
             }
 
             if (battleEnded && endTurnButton != null)
@@ -576,25 +865,15 @@ namespace PawSlayers
 
         private void ShowRunWon()
         {
-            if (runWonPanel != null)
-            {
-                runWonPanel.SetActive(true);
-            }
-
-            if (runWonText != null)
-            {
-                runWonText.text = "Run won!";
-            }
-
             AddLog("Run won!");
-            RefreshAllUi();
+            ShowBattleEndPanel("Run won!");
         }
 
         private void RefreshTopBar()
         {
             if (titleText != null)
             {
-                titleText.text = "Paw Slayers - Battle Prototype";
+                titleText.text = runManager.IsBossBattle ? "Boss Battle: Briar King" : "Paw Slayers - Battle Prototype";
             }
 
             if (turnText != null)
@@ -611,9 +890,14 @@ namespace PawSlayers
             {
                 runProgressText.text = runManager.GetRunProgressLabel();
             }
+
+            if (relicsText != null)
+            {
+                relicsText.text = runManager.GetRelicSummaryText();
+            }
         }
 
-        private bool IsCardDisabled(CardData card, out string reason)
+        private bool IsCardDisabled(RuntimeCardState card, out string reason)
         {
             if (!runManager.CanPlayCard(card, out reason))
             {
@@ -624,7 +908,7 @@ namespace PawSlayers
             return false;
         }
 
-        private bool IsValidHeroTarget(CardData card, RuntimeHeroState hero)
+        private bool IsValidHeroTarget(RuntimeCardState card, RuntimeHeroState hero)
         {
             if (card == null || hero == null || !hero.IsAlive)
             {
@@ -632,7 +916,7 @@ namespace PawSlayers
             }
 
             RuntimeHeroState ownerHero = GetOwnerHero(card);
-            switch (card.targetType)
+            switch (card.TargetType)
             {
                 case TargetType.Self:
                     return ownerHero == hero;
@@ -644,14 +928,14 @@ namespace PawSlayers
             }
         }
 
-        private bool IsValidEnemyTarget(CardData card, EnemyRuntimeState enemy)
+        private bool IsValidEnemyTarget(RuntimeCardState card, EnemyRuntimeState enemy)
         {
             if (card == null || enemy == null || !enemy.IsAlive)
             {
                 return false;
             }
 
-            return card.targetType == TargetType.Enemy || card.targetType == TargetType.AllEnemies;
+            return card.TargetType == TargetType.Enemy || card.TargetType == TargetType.AllEnemies;
         }
 
         private void RefreshTargetHighlights()
@@ -669,14 +953,14 @@ namespace PawSlayers
             }
         }
 
-        private RuntimeHeroState GetOwnerHero(CardData card)
+        private RuntimeHeroState GetOwnerHero(RuntimeCardState card)
         {
-            if (card == null || card.ownerHeroId == HeroId.Neutral)
+            if (card == null || card.OwnerHeroId == HeroId.Neutral)
             {
                 return null;
             }
 
-            return runManager.GetHeroState(card.ownerHeroId);
+            return runManager.GetHeroState(card.OwnerHeroId);
         }
 
         private void ClearCardSelection()
@@ -783,6 +1067,993 @@ namespace PawSlayers
             RefreshAllUi();
         }
 
+        private void TickHeroStartOfTurnStatuses()
+        {
+            foreach (RuntimeHeroState hero in runManager.ActiveHeroesRuntime)
+            {
+                if (hero == null || hero.heroData == null)
+                {
+                    continue;
+                }
+
+                hero.TickTaunt(AddLog);
+                hero.TickStartOfTurnStatuses(AddLog);
+                if (!hero.IsAlive)
+                {
+                    AddLog($"{hero.heroData.heroName} is down.");
+                }
+            }
+        }
+
+        private void TickHeroEndOfTurnStatuses()
+        {
+            foreach (RuntimeHeroState hero in runManager.ActiveHeroesRuntime)
+            {
+                if (hero == null || hero.heroData == null)
+                {
+                    continue;
+                }
+
+                hero.TickEndOfTurnStatuses(AddLog);
+                if (!hero.IsAlive)
+                {
+                    AddLog($"{hero.heroData.heroName} is down.");
+                }
+            }
+        }
+
+        private void RefreshEnemyIntents()
+        {
+            foreach (EnemyRuntimeState enemy in enemies)
+            {
+                UpdateEnemyIntent(enemy);
+            }
+        }
+
+        private int ApplyAttackerModifiers(int baseDamage, int strengthAmount, int weakAmount)
+        {
+            int modifiedDamage = Mathf.Max(0, baseDamage + strengthAmount);
+
+            if (weakAmount > 0)
+            {
+                modifiedDamage = Mathf.FloorToInt(modifiedDamage * 0.75f);
+                AddLog("Weak reduced damage.");
+            }
+
+            return modifiedDamage;
+        }
+
+        private int ApplyTargetVulnerable(int damage, int vulnerableAmount)
+        {
+            int modifiedDamage = Mathf.Max(0, damage);
+
+            if (vulnerableAmount > 0)
+            {
+                modifiedDamage = Mathf.CeilToInt(modifiedDamage * 1.5f);
+                AddLog("Vulnerable increased damage.");
+            }
+
+            return modifiedDamage;
+        }
+
+        private int ApplyAttackDamageToEnemy(RuntimeHeroState attacker, EnemyRuntimeState target, int baseDamage)
+        {
+            if (target == null || !target.IsAlive)
+            {
+                return 0;
+            }
+
+            int finalDamage = ApplyAttackerModifiers(baseDamage, attacker != null ? attacker.statuses.strength : 0, attacker != null ? attacker.statuses.weak : 0);
+            finalDamage = ApplyTargetVulnerable(finalDamage, target.statuses.vulnerable);
+            ApplyDamageToEnemy(target, finalDamage);
+            return finalDamage;
+        }
+
+        private int ApplyAttackDamageToHero(EnemyRuntimeState attacker, RuntimeHeroState target, int baseDamage)
+        {
+            if (target == null || !target.IsAlive)
+            {
+                return 0;
+            }
+
+            int finalDamage = ApplyAttackerModifiers(baseDamage, attacker != null ? attacker.statuses.strength : 0, attacker != null ? attacker.statuses.weak : 0);
+            finalDamage = ApplyTargetVulnerable(finalDamage, target.statuses.vulnerable);
+            target.TakeDamage(finalDamage);
+            return finalDamage;
+        }
+
+        private List<RuntimeHeroState> GetHeroTargetsForCard(RuntimeCardState card, RuntimeHeroState ownerHero, RuntimeHeroState chosenHeroTarget)
+        {
+            if (card == null)
+            {
+                return new List<RuntimeHeroState>();
+            }
+
+            if (card.TargetType == TargetType.AllAllies)
+            {
+                return runManager.ActiveHeroesRuntime.Where(hero => hero != null && hero.IsAlive).ToList();
+            }
+
+            RuntimeHeroState target = ResolveHeroTarget(card, ownerHero, chosenHeroTarget);
+            return target != null ? new List<RuntimeHeroState> { target } : new List<RuntimeHeroState>();
+        }
+
+        private List<EnemyRuntimeState> GetEnemyTargetsForCard(RuntimeCardState card, EnemyRuntimeState chosenEnemyTarget)
+        {
+            if (card == null)
+            {
+                return new List<EnemyRuntimeState>();
+            }
+
+            if (card.TargetType == TargetType.AllEnemies)
+            {
+                return enemies.Where(enemy => enemy.IsAlive).ToList();
+            }
+
+            EnemyRuntimeState target = ResolveEnemyTarget(card, chosenEnemyTarget);
+            return target != null ? new List<EnemyRuntimeState> { target } : new List<EnemyRuntimeState>();
+        }
+
+        private void ApplyCardStatuses(RuntimeCardState card, RuntimeHeroState ownerHero, RuntimeHeroState chosenHeroTarget, EnemyRuntimeState chosenEnemyTarget)
+        {
+            foreach (RuntimeHeroState heroTarget in GetHeroTargetsForCard(card, ownerHero, chosenHeroTarget))
+            {
+                ApplyStatusesToHero(heroTarget, card);
+            }
+
+            foreach (EnemyRuntimeState enemyTarget in GetEnemyTargetsForCard(card, chosenEnemyTarget))
+            {
+                ApplyStatusesToEnemy(enemyTarget, card);
+            }
+        }
+
+        private void ApplyStatusesToHero(RuntimeHeroState target, RuntimeCardState card)
+        {
+            if (target == null || card == null)
+            {
+                return;
+            }
+
+            ApplyStatusAmounts(
+                target.heroData.heroName,
+                card.WeakAmount,
+                card.VulnerableAmount,
+                card.StrengthAmount,
+                card.BleedAmount,
+                card.PoisonAmount,
+                card.TauntAmount,
+                card.StunAmount,
+                card.SilenceAmount,
+                target.AddWeak,
+                target.AddVulnerable,
+                target.AddStrength,
+                target.AddBleed,
+                target.AddPoison,
+                target.AddTaunt,
+                target.AddStun,
+                target.AddSilence);
+        }
+
+        private void ApplyStatusesToEnemy(EnemyRuntimeState target, RuntimeCardState card)
+        {
+            if (target == null || card == null)
+            {
+                return;
+            }
+
+            ApplyStatusAmounts(
+                target.enemyName,
+                card.WeakAmount,
+                card.VulnerableAmount,
+                card.StrengthAmount,
+                card.BleedAmount,
+                card.PoisonAmount,
+                card.TauntAmount,
+                card.StunAmount,
+                card.SilenceAmount,
+                target.AddWeak,
+                target.AddVulnerable,
+                target.AddStrength,
+                target.AddBleed,
+                target.AddPoison,
+                target.AddTaunt,
+                target.AddStun,
+                target.AddSilence);
+        }
+
+        private void ApplyStatusAmounts(
+            string targetName,
+            int weakAmount,
+            int vulnerableAmount,
+            int strengthAmount,
+            int bleedAmount,
+            int poisonAmount,
+            int tauntAmount,
+            int stunAmount,
+            int silenceAmount,
+            System.Action<int> addWeak,
+            System.Action<int> addVulnerable,
+            System.Action<int> addStrength,
+            System.Action<int> addBleed,
+            System.Action<int> addPoison,
+            System.Action<int> addTaunt,
+            System.Action<int> addStun,
+            System.Action<int> addSilence)
+        {
+            if (weakAmount > 0)
+            {
+                addWeak(weakAmount);
+                AddLog($"{targetName} gained {weakAmount} Weak.");
+            }
+
+            if (vulnerableAmount > 0)
+            {
+                addVulnerable(vulnerableAmount);
+                AddLog($"{targetName} gained {vulnerableAmount} Vulnerable.");
+            }
+
+            if (strengthAmount > 0)
+            {
+                addStrength(strengthAmount);
+                AddLog($"{targetName} gained {strengthAmount} Strength.");
+            }
+
+            if (bleedAmount > 0)
+            {
+                addBleed(bleedAmount);
+                AddLog($"{targetName} gained {bleedAmount} Bleed.");
+            }
+
+            if (poisonAmount > 0)
+            {
+                addPoison(poisonAmount);
+                AddLog($"{targetName} gained {poisonAmount} Poison.");
+            }
+
+            if (tauntAmount > 0)
+            {
+                addTaunt(tauntAmount);
+                AddLog($"{targetName} gained {tauntAmount} Taunt.");
+            }
+
+            if (stunAmount > 0)
+            {
+                addStun(stunAmount);
+                AddLog($"{targetName} gained {stunAmount} Stun.");
+            }
+
+            if (silenceAmount > 0)
+            {
+                addSilence(silenceAmount);
+                AddLog($"{targetName} gained {silenceAmount} Silence.");
+            }
+        }
+
+        private void ApplyDamageToEnemy(EnemyRuntimeState enemy, int damage)
+        {
+            if (enemy == null || !enemy.IsAlive || damage <= 0)
+            {
+                return;
+            }
+
+            enemy.TakeDamage(damage);
+            UpdateBossPhaseIfNeeded(enemy);
+        }
+
+        private void RunNormalEnemyTurn(EnemyRuntimeState enemy)
+        {
+            if (enemy == null || !enemy.IsAlive)
+            {
+                return;
+            }
+
+            bool useBasicAttack = enemy.statuses.silence > 0 && !enemy.intentIsAttack;
+            if (useBasicAttack)
+            {
+                AddLog($"{enemy.enemyName} is silenced and uses a basic attack.");
+                RunEnemyBasicAttack(enemy);
+                enemy.TickEndOfTurnStatuses(AddLog);
+                AdvanceEnemyPattern(enemy);
+                return;
+            }
+
+            ExecuteNormalEnemyPattern(enemy);
+            enemy.TickEndOfTurnStatuses(AddLog);
+            AdvanceEnemyPattern(enemy);
+        }
+
+        private void RunEnemyBasicAttack(EnemyRuntimeState enemy)
+        {
+            RuntimeHeroState targetHero = GetPreferredHeroTarget();
+            if (targetHero == null)
+            {
+                return;
+            }
+
+            int finalDamage = ApplyAttackDamageToHero(enemy, targetHero, enemy.attackDamage);
+            AddLog($"{enemy.enemyName} attacked {targetHero.heroData.heroName} for {finalDamage}.");
+
+            if (!targetHero.IsAlive)
+            {
+                AddLog($"{targetHero.heroData.heroName} is down.");
+            }
+        }
+
+        private void RunBossTurn(EnemyRuntimeState boss)
+        {
+            if (boss == null || !boss.IsAlive)
+            {
+                return;
+            }
+
+            UpdateBossPhaseIfNeeded(boss);
+
+            if (!boss.IsAlive)
+            {
+                return;
+            }
+
+            bool useBasicAttack = boss.statuses.silence > 0 && !boss.intentIsAttack;
+            if (useBasicAttack)
+            {
+                AddLog($"{boss.enemyName} is silenced and uses a basic attack.");
+                RunEnemyBasicAttack(boss);
+                boss.TickEndOfTurnStatuses(AddLog);
+                boss.patternStep = (boss.patternStep + 1) % 3;
+                UpdateBossIntent(boss);
+                return;
+            }
+
+            if (boss.currentPhase == 1)
+            {
+                RunBossPhaseOneStep(boss);
+            }
+            else
+            {
+                RunBossPhaseTwoStep(boss);
+            }
+
+            boss.TickEndOfTurnStatuses(AddLog);
+            boss.patternStep = (boss.patternStep + 1) % 3;
+            UpdateBossIntent(boss);
+        }
+
+        private void RunBossPhaseOneStep(EnemyRuntimeState boss)
+        {
+            switch (boss.patternStep)
+            {
+                case 0:
+                    AddLog("Briar King used Thorn Lash.");
+                    DamageRandomHero(14, "Briar King");
+                    break;
+                case 1:
+                    AddLog("Briar King used Briar Guard.");
+                    boss.GainBlock(18);
+                    break;
+                default:
+                    AddLog("Briar King used Root Snare.");
+                    DamageAllLivingHeroes(8, "Briar King");
+                    foreach (RuntimeHeroState hero in runManager.ActiveHeroesRuntime.Where(hero => hero.IsAlive))
+                    {
+                        hero.AddWeak(1);
+                        AddLog($"{hero.heroData.heroName} gained 1 Weak.");
+                    }
+                    AddTemporaryWoundToDiscard();
+                    AddLog("A Wound was added to your discard pile.");
+                    break;
+            }
+        }
+
+        private void RunBossPhaseTwoStep(EnemyRuntimeState boss)
+        {
+            switch (boss.patternStep)
+            {
+                case 0:
+                    AddLog("Briar King used Thornstorm.");
+                    DamageAllLivingHeroes(10, "Briar King");
+                    foreach (RuntimeHeroState hero in runManager.ActiveHeroesRuntime.Where(hero => hero.IsAlive))
+                    {
+                        hero.AddBleed(1);
+                        AddLog($"{hero.heroData.heroName} gained 1 Bleed.");
+                    }
+                    break;
+                case 1:
+                    AddLog("Briar King used Crushing Vines.");
+                    RuntimeHeroState target = DamageRandomHero(22, "Briar King");
+                    if (target != null && target.IsAlive)
+                    {
+                        target.AddStun(1);
+                        AddLog($"{target.heroData.heroName} gained 1 Stun.");
+                    }
+                    break;
+                default:
+                    AddLog("Briar King used Regrowth.");
+                    boss.Heal(18);
+                    boss.GainBlock(10);
+                    break;
+            }
+        }
+
+        private void UpdateBossPhaseIfNeeded(EnemyRuntimeState enemy)
+        {
+            if (enemy == null || !enemy.isBoss || !enemy.IsAlive || enemy.phaseTwoTriggered || enemy.currentHp > BriarKingPhaseTwoThresholdHp)
+            {
+                return;
+            }
+
+            enemy.phaseTwoTriggered = true;
+            enemy.currentPhase = 2;
+            enemy.patternStep = 0;
+            enemy.ClearBlock();
+            enemy.GainBlock(20);
+            AddLog("Briar King enrages!");
+            UpdateBossIntent(enemy);
+        }
+
+        private void UpdateBossIntent(EnemyRuntimeState boss)
+        {
+            if (boss == null)
+            {
+                return;
+            }
+
+            boss.intentIsAttack = false;
+
+            if (boss.currentPhase == 1)
+            {
+                switch (boss.patternStep)
+                {
+                    case 0:
+                        boss.intentName = "Thorn Lash";
+                        boss.intentDescription = "Deal 14 damage to one random active hero.";
+                        boss.intentIsAttack = true;
+                        break;
+                    case 1:
+                        boss.intentName = "Briar Guard";
+                        boss.intentDescription = "Gain 18 block.";
+                        break;
+                    default:
+                        boss.intentName = "Root Snare";
+                        boss.intentDescription = "Deal 8 damage to all active heroes, apply 1 Weak, and add 1 Wound to discard.";
+                        boss.intentIsAttack = true;
+                        break;
+                }
+
+                return;
+            }
+
+            switch (boss.patternStep)
+            {
+                case 0:
+                    boss.intentName = "Thornstorm";
+                    boss.intentDescription = "Deal 10 damage to all active heroes and apply 1 Bleed.";
+                    boss.intentIsAttack = true;
+                    break;
+                case 1:
+                    boss.intentName = "Crushing Vines";
+                    boss.intentDescription = "Deal 22 damage to one random active hero and apply 1 Stun.";
+                    boss.intentIsAttack = true;
+                    break;
+                default:
+                    boss.intentName = "Regrowth";
+                    boss.intentDescription = "Heal 18 HP and gain 10 block.";
+                        break;
+            }
+        }
+
+        private void ExecuteNormalEnemyPattern(EnemyRuntimeState enemy)
+        {
+            switch (enemy.enemyId)
+            {
+                case "sporeling":
+                    if (enemy.patternStep == 0)
+                    {
+                        RuntimeHeroState sporeTarget = GetPreferredHeroTarget();
+                        if (sporeTarget != null)
+                        {
+                            sporeTarget.AddWeak(1);
+                            AddLog("Sporeling used Spore Puff.");
+                            AddLog($"{sporeTarget.heroData.heroName} gained 1 Weak.");
+                        }
+                    }
+                    else
+                    {
+                        AddLog("Sporeling used Nip.");
+                        RunEnemyBasicAttack(enemy);
+                    }
+                    break;
+                case "fungus_brute":
+                    if (enemy.patternStep == 0)
+                    {
+                        AddLog("Fungus Brute used Heavy Slam.");
+                        RunEnemyBasicAttack(enemy);
+                    }
+                    else
+                    {
+                        AddLog("Fungus Brute used Harden.");
+                        enemy.GainBlock(10);
+                    }
+                    break;
+                case "batty":
+                    if (enemy.patternStep == 0)
+                    {
+                        AddLog("Batty used Swoop.");
+                        RunEnemyBasicAttack(enemy);
+                    }
+                    else
+                    {
+                        RuntimeHeroState battyTarget = GetPreferredHeroTarget();
+                        if (battyTarget != null)
+                        {
+                            AddLog("Batty used Shriek.");
+                            battyTarget.AddVulnerable(1);
+                            battyTarget.AddSilence(1);
+                            AddLog($"{battyTarget.heroData.heroName} gained 1 Vulnerable.");
+                            AddLog($"{battyTarget.heroData.heroName} gained 1 Silence.");
+                        }
+                    }
+                    break;
+                case "cave_rat":
+                    if (enemy.patternStep == 0)
+                    {
+                        AddLog("Cave Rat used Bite.");
+                        RunEnemyBasicAttack(enemy);
+                    }
+                    else
+                    {
+                        RuntimeHeroState ratTarget = GetPreferredHeroTarget();
+                        if (ratTarget != null)
+                        {
+                            AddLog("Cave Rat used Dirty Scratch.");
+                            int finalDamage = ApplyAttackDamageToHero(enemy, ratTarget, 4);
+                            AddLog($"{enemy.enemyName} attacked {ratTarget.heroData.heroName} for {finalDamage}.");
+                            ratTarget.AddBleed(2);
+                            AddLog($"{ratTarget.heroData.heroName} gained 2 Bleed.");
+                            if (!ratTarget.IsAlive)
+                            {
+                                AddLog($"{ratTarget.heroData.heroName} is down.");
+                            }
+                        }
+                    }
+                    break;
+                case "thorn_sprite":
+                    if (enemy.patternStep == 0)
+                    {
+                        RuntimeHeroState spriteTarget = GetPreferredHeroTarget();
+                        if (spriteTarget != null)
+                        {
+                            AddLog("Thorn Sprite used Thorn Shot.");
+                            int finalDamage = ApplyAttackDamageToHero(enemy, spriteTarget, 8);
+                            AddLog($"{enemy.enemyName} attacked {spriteTarget.heroData.heroName} for {finalDamage}.");
+                            spriteTarget.AddVulnerable(1);
+                            AddLog($"{spriteTarget.heroData.heroName} gained 1 Vulnerable.");
+                            if (!spriteTarget.IsAlive)
+                            {
+                                AddLog($"{spriteTarget.heroData.heroName} is down.");
+                            }
+                        }
+                    }
+                    else if (enemy.patternStep == 1)
+                    {
+                        RuntimeHeroState poisonTarget = GetPreferredHeroTarget();
+                        if (poisonTarget != null)
+                        {
+                            AddLog("Thorn Sprite used Poison Dust.");
+                            poisonTarget.AddPoison(3);
+                            AddLog($"{poisonTarget.heroData.heroName} gained 3 Poison.");
+                        }
+                    }
+                    else
+                    {
+                        RuntimeHeroState dazeTarget = GetPreferredHeroTarget();
+                        if (dazeTarget != null)
+                        {
+                            AddLog("Thorn Sprite used Dazing Dust.");
+                            dazeTarget.AddStun(1);
+                            AddLog($"{dazeTarget.heroData.heroName} gained 1 Stun.");
+                        }
+                    }
+                    break;
+                case "moss_troll":
+                    if (enemy.patternStep == 0)
+                    {
+                        AddLog("Moss Troll used Smash.");
+                        RunEnemyBasicAttack(enemy);
+                    }
+                    else
+                    {
+                        AddLog("Moss Troll used Regenerate.");
+                        enemy.Heal(10);
+                    }
+                    break;
+                case "crystal_slime":
+                    if (enemy.patternStep == 0)
+                    {
+                        AddLog("Crystal Slime used Slam.");
+                        RunEnemyBasicAttack(enemy);
+                    }
+                    else
+                    {
+                        AddLog("Crystal Slime used Shimmer.");
+                        enemy.GainBlock(8);
+                    }
+                    break;
+                case "bandit_crow":
+                    if (enemy.patternStep == 0)
+                    {
+                        AddLog("Bandit Crow used Peck.");
+                        RunEnemyBasicAttack(enemy);
+                    }
+                    else
+                    {
+                        AddLog("Bandit Crow used Steal Focus.");
+                        foreach (RuntimeHeroState hero in runManager.ActiveHeroesRuntime.Where(hero => hero.IsAlive))
+                        {
+                            hero.AddWeak(1);
+                            AddLog($"{hero.heroData.heroName} gained 1 Weak.");
+                        }
+                    }
+                    break;
+                case "old_treant":
+                    if (enemy.patternStep == 0)
+                    {
+                        AddLog("Old Treant used Branch Slam.");
+                        RunEnemyBasicAttack(enemy);
+                    }
+                    else if (enemy.patternStep == 1)
+                    {
+                        RuntimeHeroState treantTarget = GetPreferredHeroTarget();
+                        if (treantTarget != null)
+                        {
+                            AddLog("Old Treant used Root Bind.");
+                            treantTarget.AddWeak(1);
+                            treantTarget.AddVulnerable(1);
+                            AddLog($"{treantTarget.heroData.heroName} gained 1 Weak.");
+                            AddLog($"{treantTarget.heroData.heroName} gained 1 Vulnerable.");
+                        }
+                    }
+                    else
+                    {
+                        AddLog("Old Treant used Bark Up.");
+                        enemy.GainBlock(15);
+                    }
+                    break;
+                default:
+                    RunEnemyBasicAttack(enemy);
+                    break;
+            }
+        }
+
+        private void AdvanceEnemyPattern(EnemyRuntimeState enemy)
+        {
+            if (enemy == null || enemy.isBoss)
+            {
+                return;
+            }
+
+            int patternLength = 2;
+            if (enemy.enemyId == "thorn_sprite" || enemy.enemyId == "old_treant")
+            {
+                patternLength = 3;
+            }
+
+            enemy.patternStep = (enemy.patternStep + 1) % patternLength;
+            UpdateEnemyIntent(enemy);
+        }
+
+        private void UpdateEnemyIntent(EnemyRuntimeState enemy)
+        {
+            if (enemy == null)
+            {
+                return;
+            }
+
+            if (enemy.isBoss)
+            {
+                UpdateBossIntent(enemy);
+                return;
+            }
+
+            enemy.intentIsAttack = false;
+
+            switch (enemy.enemyId)
+            {
+                case "sporeling":
+                    if (enemy.patternStep == 0)
+                    {
+                        enemy.intentName = "Spore Puff";
+                        enemy.intentDescription = "Apply 1 Weak to a random hero.";
+                    }
+                    else
+                    {
+                        enemy.intentName = "Nip";
+                        enemy.intentDescription = "Attack 6.";
+                        enemy.intentIsAttack = true;
+                    }
+                    break;
+                case "fungus_brute":
+                    if (enemy.patternStep == 0)
+                    {
+                        enemy.intentName = "Heavy Slam";
+                        enemy.intentDescription = "Attack 12.";
+                        enemy.intentIsAttack = true;
+                    }
+                    else
+                    {
+                        enemy.intentName = "Harden";
+                        enemy.intentDescription = "Gain 10 block.";
+                    }
+                    break;
+                case "batty":
+                    if (enemy.patternStep == 0)
+                    {
+                        enemy.intentName = "Swoop";
+                        enemy.intentDescription = "Attack 8.";
+                        enemy.intentIsAttack = true;
+                    }
+                    else
+                    {
+                        enemy.intentName = "Shriek";
+                        enemy.intentDescription = "Apply 1 Vulnerable and 1 Silence.";
+                    }
+                    break;
+                case "cave_rat":
+                    if (enemy.patternStep == 0)
+                    {
+                        enemy.intentName = "Bite";
+                        enemy.intentDescription = "Attack 7.";
+                        enemy.intentIsAttack = true;
+                    }
+                    else
+                    {
+                        enemy.intentName = "Dirty Scratch";
+                        enemy.intentDescription = "Attack 4 and apply 2 Bleed.";
+                        enemy.intentIsAttack = true;
+                    }
+                    break;
+                case "thorn_sprite":
+                    if (enemy.patternStep == 0)
+                    {
+                        enemy.intentName = "Thorn Shot";
+                        enemy.intentDescription = "Attack 8 and apply 1 Vulnerable.";
+                        enemy.intentIsAttack = true;
+                    }
+                    else if (enemy.patternStep == 1)
+                    {
+                        enemy.intentName = "Poison Dust";
+                        enemy.intentDescription = "Apply 3 Poison.";
+                    }
+                    else
+                    {
+                        enemy.intentName = "Dazing Dust";
+                        enemy.intentDescription = "Apply 1 Stun.";
+                    }
+                    break;
+                case "moss_troll":
+                    if (enemy.patternStep == 0)
+                    {
+                        enemy.intentName = "Smash";
+                        enemy.intentDescription = "Attack 14.";
+                        enemy.intentIsAttack = true;
+                    }
+                    else
+                    {
+                        enemy.intentName = "Regenerate";
+                        enemy.intentDescription = "Heal 10 HP.";
+                    }
+                    break;
+                case "crystal_slime":
+                    if (enemy.patternStep == 0)
+                    {
+                        enemy.intentName = "Slam";
+                        enemy.intentDescription = "Attack 10.";
+                        enemy.intentIsAttack = true;
+                    }
+                    else
+                    {
+                        enemy.intentName = "Shimmer";
+                        enemy.intentDescription = "Gain 8 block.";
+                    }
+                    break;
+                case "bandit_crow":
+                    if (enemy.patternStep == 0)
+                    {
+                        enemy.intentName = "Peck";
+                        enemy.intentDescription = "Attack 9.";
+                        enemy.intentIsAttack = true;
+                    }
+                    else
+                    {
+                        enemy.intentName = "Steal Focus";
+                        enemy.intentDescription = "Apply 1 Weak to all heroes.";
+                    }
+                    break;
+                case "old_treant":
+                    if (enemy.patternStep == 0)
+                    {
+                        enemy.intentName = "Branch Slam";
+                        enemy.intentDescription = "Attack 15.";
+                        enemy.intentIsAttack = true;
+                    }
+                    else if (enemy.patternStep == 1)
+                    {
+                        enemy.intentName = "Root Bind";
+                        enemy.intentDescription = "Apply 1 Weak and 1 Vulnerable.";
+                    }
+                    else
+                    {
+                        enemy.intentName = "Bark Up";
+                        enemy.intentDescription = "Gain 15 block.";
+                    }
+                    break;
+                default:
+                    enemy.intentName = "Attack";
+                    enemy.intentDescription = $"Attack {enemy.attackDamage}.";
+                    enemy.intentIsAttack = true;
+                    break;
+            }
+        }
+
+        private RuntimeHeroState DamageRandomHero(int damage, string attackerName)
+        {
+            RuntimeHeroState hero = GetPreferredHeroTarget();
+            if (hero == null)
+            {
+                return null;
+            }
+
+            EnemyRuntimeState enemyAttacker = enemies.FirstOrDefault(enemy => enemy.IsAlive && enemy.enemyName == attackerName);
+            if (enemyAttacker != null)
+            {
+                damage = ApplyAttackDamageToHero(enemyAttacker, hero, damage);
+            }
+            else
+            {
+                hero.TakeDamage(damage);
+            }
+            AddLog($"{attackerName} attacked {hero.heroData.heroName} for {damage}.");
+
+            if (!hero.IsAlive)
+            {
+                AddLog($"{hero.heroData.heroName} is down.");
+            }
+
+            return hero;
+        }
+
+        private void DamageAllLivingHeroes(int damage, string attackerName)
+        {
+            foreach (RuntimeHeroState hero in runManager.ActiveHeroesRuntime.Where(hero => hero.IsAlive).ToList())
+            {
+                int finalDamage = damage;
+                EnemyRuntimeState enemyAttacker = enemies.FirstOrDefault(enemy => enemy.IsAlive && enemy.enemyName == attackerName);
+                if (enemyAttacker != null)
+                {
+                    finalDamage = ApplyAttackDamageToHero(enemyAttacker, hero, damage);
+                }
+                else
+                {
+                    hero.TakeDamage(finalDamage);
+                }
+                AddLog($"{attackerName} attacked {hero.heroData.heroName} for {finalDamage}.");
+
+                if (!hero.IsAlive)
+                {
+                    AddLog($"{hero.heroData.heroName} is down.");
+                }
+            }
+        }
+
+        private RuntimeHeroState GetRandomLivingHero()
+        {
+            List<RuntimeHeroState> livingHeroes = runManager.ActiveHeroesRuntime.Where(hero => hero.IsAlive).ToList();
+            if (livingHeroes.Count == 0)
+            {
+                return null;
+            }
+
+            return livingHeroes[Random.Range(0, livingHeroes.Count)];
+        }
+
+        private RuntimeHeroState GetPreferredHeroTarget()
+        {
+            List<RuntimeHeroState> tauntingHeroes = runManager.ActiveHeroesRuntime
+                .Where(hero => hero.IsAlive && hero.statuses.taunt > 0)
+                .ToList();
+
+            if (tauntingHeroes.Count > 0)
+            {
+                return tauntingHeroes[Random.Range(0, tauntingHeroes.Count)];
+            }
+
+            return GetRandomLivingHero();
+        }
+
+        private EnemyRuntimeState GetBossEnemy()
+        {
+            return enemies.FirstOrDefault(enemy => enemy != null && enemy.isBoss);
+        }
+
+        private void ApplyStatusToEnemyDebug(int index, System.Action<EnemyRuntimeState> applyAction, string logMessage)
+        {
+            if (index < 0 || index >= enemies.Count || enemies[index] == null)
+            {
+                return;
+            }
+
+            applyAction?.Invoke(enemies[index]);
+            AddLog(logMessage);
+            RefreshAllUi();
+        }
+
+        private void ApplyStatusToHeroDebug(int index, System.Action<RuntimeHeroState> applyAction, string logMessage)
+        {
+            if (index < 0 || index >= runManager.ActiveHeroesRuntime.Count || runManager.ActiveHeroesRuntime[index] == null)
+            {
+                return;
+            }
+
+            applyAction?.Invoke(runManager.ActiveHeroesRuntime[index]);
+            AddLog(logMessage);
+            RefreshAllUi();
+        }
+
+        private void AddTemporaryWoundToDiscard()
+        {
+            RuntimeCardState wound = CreateWoundCard();
+            runManager.AddTemporaryCardToDiscard(wound);
+        }
+
+        private RuntimeCardState CreateWoundCard()
+        {
+            CardData woundData = ScriptableObject.CreateInstance<CardData>();
+            woundData.hideFlags = HideFlags.HideAndDontSave;
+            woundData.cardId = WoundCardId;
+            woundData.cardName = "Wound";
+            woundData.description = "Unplayable. Clutters your deck.";
+            woundData.ownerHeroId = HeroId.Neutral;
+            woundData.cardType = CardType.Status;
+            woundData.targetType = TargetType.None;
+            woundData.cost = 0;
+            return RuntimeCardState.Create(woundData);
+        }
+
+        private void CleanupTemporaryBattleCards()
+        {
+            runManager.RemoveTemporaryCards(WoundCardId);
+        }
+
+        private void ShowRunLost()
+        {
+            ShowBattleEndPanel("Run lost!");
+        }
+
+        private void ShowBattleEndPanel(string message)
+        {
+            if (runWonPanel != null)
+            {
+                runWonPanel.SetActive(true);
+            }
+
+            if (runWonText != null)
+            {
+                runWonText.text = message;
+            }
+
+            RefreshAllUi();
+        }
+
+        private bool CanUseConfiguredEnemyViewPrefab()
+        {
+            return enemyViewPrefab != null &&
+                enemyViewPrefab.enemyNameText != null &&
+                enemyViewPrefab.hpText != null &&
+                enemyViewPrefab.blockText != null &&
+                enemyViewPrefab.phaseText != null &&
+                enemyViewPrefab.intentText != null &&
+                enemyViewPrefab.intentDescriptionText != null;
+        }
+
         private void EnsureRuntimeUi()
         {
             Canvas canvas = FindObjectOfType<Canvas>();
@@ -803,7 +2074,7 @@ namespace PawSlayers
                 new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.EventSystems.StandaloneInputModule));
             }
 
-            if (titleText != null && heroContainer != null && enemyContainer != null && handContainer != null && runProgressText != null && rewardCardManager != null && rewardCardManager.continueButton != null)
+            if (titleText != null && heroContainer != null && enemyContainer != null && handContainer != null && runProgressText != null && relicsText != null && rewardCardManager != null && rewardCardManager.continueButton != null)
             {
                 rewardCardManager.battleUiManager = this;
                 return;
@@ -821,6 +2092,7 @@ namespace PawSlayers
             turnText = CreateText("TurnText", root.transform, new Vector2(20f, -68f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
             energyText = CreateText("EnergyText", root.transform, new Vector2(260f, -68f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
             runProgressText = CreateText("RunProgressText", root.transform, new Vector2(500f, -68f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            relicsText = CreateText("RelicsText", root.transform, new Vector2(980f, -20f), new Vector2(700f, 90f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
 
             GameObject fieldArea = CreateUiObject("FieldArea", root.transform, Vector2.zero);
             RectTransform fieldRect = fieldArea.GetComponent<RectTransform>();
@@ -961,6 +2233,31 @@ namespace PawSlayers
             }
         }
 
+        private void EnsureHeroViewDisplayFields(BattleHeroView view)
+        {
+            if (view == null)
+            {
+                return;
+            }
+
+            LayoutElement layout = view.GetComponent<LayoutElement>();
+            if (layout != null)
+            {
+                layout.preferredHeight = Mathf.Max(layout.preferredHeight, 178f);
+            }
+
+            RectTransform rect = view.GetComponent<RectTransform>();
+            if (rect != null && rect.sizeDelta.y < 178f)
+            {
+                rect.sizeDelta = new Vector2(rect.sizeDelta.x, 178f);
+            }
+
+            if (view.statusText == null)
+            {
+                view.statusText = CreateText("StatusText", view.transform, new Vector2(12f, -144f), new Vector2(230f, 34f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
+            }
+        }
+
         private void EnsureEnemyViewInteractive(EnemyView view)
         {
             if (view.button == null)
@@ -983,6 +2280,46 @@ namespace PawSlayers
                 view.highlightOutline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
                 view.highlightOutline.effectDistance = new Vector2(4f, -4f);
                 view.highlightOutline.enabled = false;
+            }
+        }
+
+        private void EnsureEnemyViewDisplayFields(EnemyView view)
+        {
+            if (view == null)
+            {
+                return;
+            }
+
+            LayoutElement layout = view.GetComponent<LayoutElement>();
+            if (layout != null)
+            {
+                layout.preferredHeight = Mathf.Max(layout.preferredHeight, 206f);
+            }
+
+            RectTransform rect = view.GetComponent<RectTransform>();
+            if (rect != null && rect.sizeDelta.y < 206f)
+            {
+                rect.sizeDelta = new Vector2(rect.sizeDelta.x, 206f);
+            }
+
+            if (view.blockText == null)
+            {
+                view.blockText = CreateText("BlockText", view.transform, new Vector2(12f, -66f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            }
+
+            if (view.phaseText == null)
+            {
+                view.phaseText = CreateText("PhaseText", view.transform, new Vector2(12f, -90f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            }
+
+            if (view.intentDescriptionText == null)
+            {
+                view.intentDescriptionText = CreateText("IntentDescriptionText", view.transform, new Vector2(12f, -138f), new Vector2(220f, 32f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            }
+
+            if (view.statusText == null)
+            {
+                view.statusText = CreateText("StatusText", view.transform, new Vector2(12f, -172f), new Vector2(220f, 32f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
             }
         }
 
@@ -1024,7 +2361,7 @@ namespace PawSlayers
         {
             GameObject root = CreatePanel("BattleHeroView", parent, new Color(0.86f, 0.93f, 0.86f, 1f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
-            layout.preferredHeight = 140f;
+            layout.preferredHeight = 178f;
             Button button = root.AddComponent<Button>();
             Outline outline = root.AddComponent<Outline>();
             outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
@@ -1040,6 +2377,7 @@ namespace PawSlayers
             view.hpText = CreateText("HpText", root.transform, new Vector2(12f, -72f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
             view.blockText = CreateText("BlockText", root.transform, new Vector2(12f, -98f), new Vector2(120f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
             view.stateText = CreateText("StateText", root.transform, new Vector2(12f, -120f), new Vector2(160f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.statusText = CreateText("StatusText", root.transform, new Vector2(12f, -144f), new Vector2(230f, 34f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
 
             GameObject portrait = CreatePanel("Portrait", root.transform, new Color(0.75f, 0.75f, 0.75f, 1f));
             RectTransform portraitRect = portrait.GetComponent<RectTransform>();
@@ -1056,7 +2394,7 @@ namespace PawSlayers
         {
             GameObject root = CreatePanel("EnemyView", parent, new Color(0.93f, 0.84f, 0.84f, 1f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
-            layout.preferredHeight = 120f;
+            layout.preferredHeight = 206f;
             Button button = root.AddComponent<Button>();
             Outline outline = root.AddComponent<Outline>();
             outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
@@ -1068,8 +2406,12 @@ namespace PawSlayers
             view.button = button;
             view.highlightOutline = outline;
             view.enemyNameText = CreateText("EnemyName", root.transform, new Vector2(12f, -12f), new Vector2(220f, 24f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.hpText = CreateText("HpText", root.transform, new Vector2(12f, -48f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.intentText = CreateText("IntentText", root.transform, new Vector2(12f, -76f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.hpText = CreateText("HpText", root.transform, new Vector2(12f, -42f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.blockText = CreateText("BlockText", root.transform, new Vector2(12f, -66f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.phaseText = CreateText("PhaseText", root.transform, new Vector2(12f, -90f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.intentText = CreateText("IntentText", root.transform, new Vector2(12f, -114f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.intentDescriptionText = CreateText("IntentDescriptionText", root.transform, new Vector2(12f, -138f), new Vector2(220f, 32f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.statusText = CreateText("StatusText", root.transform, new Vector2(12f, -172f), new Vector2(220f, 32f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
             return view;
         }
 

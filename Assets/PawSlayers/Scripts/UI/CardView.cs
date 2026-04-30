@@ -19,30 +19,72 @@ namespace PawSlayers
         public Outline selectionOutline;
 
         private CardData cardData;
+        private RuntimeCardState runtimeCard;
         private Action<CardData> onClicked;
+        private Action<RuntimeCardState> onRuntimeClicked;
 
         public CardData CardData => cardData;
+        public RuntimeCardState RuntimeCard => runtimeCard;
 
         public void Setup(CardData data, Action<CardData> clickAction)
         {
             cardData = data;
+            runtimeCard = null;
             onClicked = clickAction;
+            onRuntimeClicked = null;
 
-            cardNameText.text = data.cardName;
-            ownerText.text = data.ownerHeroId == HeroId.Neutral ? "Owner: Neutral" : "Owner: " + data.ownerHeroId;
-            typeText.text = "Type: " + data.cardType;
-            costText.text = data.cost.ToString();
-            descriptionText.text = data.description;
-
-            ConfigureReadableText();
-
-            artImage.sprite = data.cardArt;
-            artImage.enabled = true;
-            artImage.color = data.cardArt != null ? Color.white : new Color(0.82f, 0.82f, 0.82f, 1f);
+            ApplyDisplay(
+                data.GetDisplayName(false),
+                data.ownerHeroId,
+                data.cardType,
+                data.cost,
+                data.BuildDescription(false),
+                false,
+                data.cardArt);
 
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(HandleClick);
             SetSelected(false);
+        }
+
+        public void Setup(RuntimeCardState data, Action<RuntimeCardState> clickAction, string descriptionOverride = null)
+        {
+            runtimeCard = data;
+            cardData = data != null ? data.baseCard : null;
+            onRuntimeClicked = clickAction;
+            onClicked = null;
+
+            if (data == null)
+            {
+                return;
+            }
+
+            ApplyDisplay(
+                data.DisplayName,
+                data.OwnerHeroId,
+                data.CardType,
+                data.Cost,
+                string.IsNullOrWhiteSpace(descriptionOverride) ? data.Description : descriptionOverride,
+                data.isUpgraded,
+                data.CardArt);
+
+            button.onClick.RemoveAllListeners();
+            button.onClick.AddListener(HandleClick);
+            SetSelected(false);
+        }
+
+        private void ApplyDisplay(string displayName, HeroId ownerHeroId, CardType cardType, int cost, string description, bool isUpgraded, Sprite cardArt)
+        {
+            cardNameText.text = displayName;
+            ownerText.text = ownerHeroId == HeroId.Neutral ? "Owner: Neutral" : "Owner: " + ownerHeroId;
+            typeText.text = isUpgraded ? "Type: " + cardType + "  UPGRADED" : "Type: " + cardType;
+            costText.text = cost.ToString();
+            descriptionText.text = description;
+            ConfigureReadableText();
+
+            artImage.sprite = cardArt;
+            artImage.enabled = true;
+            artImage.color = cardArt != null ? Color.white : new Color(0.82f, 0.82f, 0.82f, 1f);
         }
 
         public void SetDisabled(bool isDisabled, string disabledReason)
@@ -99,6 +141,12 @@ namespace PawSlayers
 
         private void HandleClick()
         {
+            if (runtimeCard != null)
+            {
+                onRuntimeClicked?.Invoke(runtimeCard);
+                return;
+            }
+
             onClicked?.Invoke(cardData);
         }
     }

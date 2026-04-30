@@ -34,11 +34,12 @@ namespace PawSlayers.EditorTools
 
             CreateHeroSelectionScene(heroDatabase, cardDatabase, heroCardPrefab);
             CreateBattleScene(cardViewPrefab, heroViewPrefab, enemyViewPrefab);
+            CreateMapScene(cardViewPrefab);
             AddScenesToBuildSettings();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            EditorUtility.DisplayDialog("Paw Slayers", "Prototype setup generated.\n\nScenes:\n- HeroSelection\n- Battle", "Nice");
+            EditorUtility.DisplayDialog("Paw Slayers", "Prototype setup generated.\n\nScenes:\n- HeroSelection\n- Battle\n- Map", "Nice");
         }
 
         private static void EnsureFolders()
@@ -95,18 +96,21 @@ namespace PawSlayers.EditorTools
         {
             List<CardData> cardAssets = new List<CardData>
             {
-                CreateOrUpdateCard("swift_slash", "Swift Slash", "Deal 8 damage.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 8),
-                CreateOrUpdateCard("guard_stance", "Guard Stance", "Gain 8 block.", HeroId.Capybara, CardType.Skill, TargetType.Self, 1, block: 8),
-                CreateOrUpdateCard("shadow_strike", "Shadow Strike", "Deal 7 damage. Apply Weak later.", HeroId.Koala, CardType.Attack, TargetType.Enemy, 1, damage: 7, weakAmount: 1),
-                CreateOrUpdateCard("smoke_step", "Smoke Step", "Gain 6 block. Draw 1 card.", HeroId.Koala, CardType.Skill, TargetType.Self, 1, block: 6, drawAmount: 1),
-                CreateOrUpdateCard("staff_tap", "Staff Tap", "Deal 5 damage.", HeroId.Sloth, CardType.Attack, TargetType.Enemy, 1, damage: 5),
-                CreateOrUpdateCard("soothing_light", "Soothing Light", "Heal 8 HP.", HeroId.Sloth, CardType.Skill, TargetType.Ally, 1, heal: 8),
-                CreateOrUpdateCard("shield_bash", "Shield Bash", "Deal 6 damage. Gain 4 block.", HeroId.Panda, CardType.Attack, TargetType.Enemy, 1, damage: 6, block: 4),
-                CreateOrUpdateCard("barkskin_guard", "Barkskin Guard", "Gain 16 block. Taunt later.", HeroId.Panda, CardType.Skill, TargetType.Self, 2, block: 16, taunt: true),
-                CreateOrUpdateCard("power_combo", "Power Combo", "Deal 12 damage.", HeroId.Kangaroo, CardType.Attack, TargetType.Enemy, 2, damage: 12),
-                CreateOrUpdateCard("battle_focus", "Battle Focus", "Gain 2 Strength later.", HeroId.Kangaroo, CardType.Skill, TargetType.Self, 1, strengthAmount: 2),
-                CreateOrUpdateCard("snack_time", "Snack Time", "Draw 1 card.", HeroId.Neutral, CardType.Skill, TargetType.None, 1, drawAmount: 1),
-                CreateOrUpdateCard("quick_guard", "Quick Guard", "Gain 5 block.", HeroId.Neutral, CardType.Skill, TargetType.Self, 1, block: 5)
+                CreateOrUpdateCard("swift_slash", "Swift Slash", "Deal 8 damage.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 8, upgradedDamage: 11),
+                CreateOrUpdateCard("guard_stance", "Guard Stance", "Gain 8 block.", HeroId.Capybara, CardType.Skill, TargetType.Self, 1, block: 8, upgradedBlock: 12),
+                CreateOrUpdateCard("pommel_tap", "Pommel Tap", "Deal 5 damage. Apply 1 Stun.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 5, stunAmount: 1, upgradedDamage: 7, upgradedStunAmount: 1),
+                CreateOrUpdateCard("shadow_strike", "Shadow Strike", "Deal 7 damage. Apply 1 Weak.", HeroId.Koala, CardType.Attack, TargetType.Enemy, 1, damage: 7, weakAmount: 1, upgradedDamage: 10, upgradedWeakAmount: 2),
+                CreateOrUpdateCard("smoke_step", "Smoke Step", "Gain 6 block. Draw 1 card.", HeroId.Koala, CardType.Skill, TargetType.Self, 1, block: 6, drawAmount: 1, upgradedBlock: 9, upgradedDrawAmount: 1),
+                CreateOrUpdateCard("muzzle_trick", "Muzzle Trick", "Apply 1 Silence. Draw 1 card.", HeroId.Koala, CardType.Skill, TargetType.Enemy, 1, drawAmount: 1, silenceAmount: 1, upgradedDrawAmount: 1, upgradedSilenceAmount: 2),
+                CreateOrUpdateCard("staff_tap", "Staff Tap", "Deal 5 damage.", HeroId.Sloth, CardType.Attack, TargetType.Enemy, 1, damage: 5, upgradedDamage: 8),
+                CreateOrUpdateCard("soothing_light", "Soothing Light", "Heal 8 HP.", HeroId.Sloth, CardType.Skill, TargetType.Ally, 1, heal: 8, upgradedHeal: 12),
+                CreateOrUpdateCard("quiet_blessing", "Quiet Blessing", "Heal 6 HP.", HeroId.Sloth, CardType.Skill, TargetType.Ally, 1, heal: 6, upgradedHeal: 9),
+                CreateOrUpdateCard("shield_bash", "Shield Bash", "Deal 6 damage. Gain 4 block.", HeroId.Panda, CardType.Attack, TargetType.Enemy, 1, damage: 6, block: 4, upgradedDamage: 9, upgradedBlock: 7),
+                CreateOrUpdateCard("barkskin_guard", "Barkskin Guard", "Gain 16 block. Gain 1 Taunt.", HeroId.Panda, CardType.Skill, TargetType.Self, 2, block: 16, tauntAmount: 1, upgradedBlock: 22, upgradedTauntAmount: 2),
+                CreateOrUpdateCard("power_combo", "Power Combo", "Deal 12 damage.", HeroId.Kangaroo, CardType.Attack, TargetType.Enemy, 2, damage: 12, upgradedDamage: 16),
+                CreateOrUpdateCard("battle_focus", "Battle Focus", "Gain 2 Strength.", HeroId.Kangaroo, CardType.Skill, TargetType.Self, 1, strengthAmount: 2, upgradedStrengthAmount: 3),
+                CreateOrUpdateCard("snack_time", "Snack Time", "Draw 1 card.", HeroId.Neutral, CardType.Skill, TargetType.None, 1, drawAmount: 1, upgradedDrawAmount: 2),
+                CreateOrUpdateCard("quick_guard", "Quick Guard", "Gain 5 block.", HeroId.Neutral, CardType.Skill, TargetType.Self, 1, block: 5, upgradedBlock: 8)
             };
 
             CardDatabase database = LoadOrCreateAsset<CardDatabase>(DataFolder + "/CardDatabase.asset");
@@ -129,7 +133,24 @@ namespace PawSlayers.EditorTools
             int drawAmount = 0,
             int strengthAmount = 0,
             int weakAmount = 0,
-            bool taunt = false)
+            int vulnerableAmount = 0,
+            int bleedAmount = 0,
+            int poisonAmount = 0,
+            int tauntAmount = 0,
+            int stunAmount = 0,
+            int silenceAmount = 0,
+            int upgradedDamage = 0,
+            int upgradedBlock = 0,
+            int upgradedHeal = 0,
+            int upgradedDrawAmount = 0,
+            int upgradedStrengthAmount = 0,
+            int upgradedWeakAmount = 0,
+            int upgradedVulnerableAmount = 0,
+            int upgradedBleedAmount = 0,
+            int upgradedPoisonAmount = 0,
+            int upgradedTauntAmount = 0,
+            int upgradedStunAmount = 0,
+            int upgradedSilenceAmount = 0)
         {
             string path = $"{CardDataFolder}/{cardName.Replace(" ", string.Empty)}.asset";
             CardData card = LoadOrCreateAsset<CardData>(path);
@@ -146,7 +167,24 @@ namespace PawSlayers.EditorTools
             card.drawAmount = drawAmount;
             card.strengthAmount = strengthAmount;
             card.weakAmount = weakAmount;
-            card.taunt = taunt;
+            card.vulnerableAmount = vulnerableAmount;
+            card.bleedAmount = bleedAmount;
+            card.poisonAmount = poisonAmount;
+            card.tauntAmount = tauntAmount;
+            card.stunAmount = stunAmount;
+            card.silenceAmount = silenceAmount;
+            card.upgradedDamage = upgradedDamage;
+            card.upgradedBlock = upgradedBlock;
+            card.upgradedHeal = upgradedHeal;
+            card.upgradedDrawAmount = upgradedDrawAmount;
+            card.upgradedStrengthAmount = upgradedStrengthAmount;
+            card.upgradedWeakAmount = upgradedWeakAmount;
+            card.upgradedVulnerableAmount = upgradedVulnerableAmount;
+            card.upgradedBleedAmount = upgradedBleedAmount;
+            card.upgradedPoisonAmount = upgradedPoisonAmount;
+            card.upgradedTauntAmount = upgradedTauntAmount;
+            card.upgradedStunAmount = upgradedStunAmount;
+            card.upgradedSilenceAmount = upgradedSilenceAmount;
             EditorUtility.SetDirty(card);
             return card;
         }
@@ -207,7 +245,7 @@ namespace PawSlayers.EditorTools
             string path = PrefabFolder + "/BattleHeroView.prefab";
             DeleteAssetIfExists(path);
 
-            GameObject root = CreateUiObject("BattleHeroView", null, new Vector2(260f, 140f));
+            GameObject root = CreateUiObject("BattleHeroView", null, new Vector2(260f, 178f));
             Image background = root.AddComponent<Image>();
             background.color = new Color(0.86f, 0.93f, 0.86f, 1f);
 
@@ -221,6 +259,7 @@ namespace PawSlayers.EditorTools
             Text hpText = CreateText("HpText", root.transform, new Vector2(12f, -92f), new Vector2(160f, 20f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
             Text blockText = CreateText("BlockText", root.transform, new Vector2(12f, -112f), new Vector2(120f, 20f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
             Text stateText = CreateText("StateText", root.transform, new Vector2(150f, -112f), new Vector2(90f, 20f), 16, FontStyle.Bold, TextAnchor.UpperRight);
+            Text statusText = CreateText("StatusText", root.transform, new Vector2(12f, -136f), new Vector2(230f, 30f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
 
             BattleHeroView view = root.AddComponent<BattleHeroView>();
             view.heroNameText = heroName;
@@ -228,6 +267,7 @@ namespace PawSlayers.EditorTools
             view.hpText = hpText;
             view.blockText = blockText;
             view.stateText = stateText;
+            view.statusText = statusText;
             view.portraitImage = portraitImage;
             view.backgroundImage = background;
 
@@ -287,18 +327,26 @@ namespace PawSlayers.EditorTools
             string path = PrefabFolder + "/EnemyView.prefab";
             DeleteAssetIfExists(path);
 
-            GameObject root = CreateUiObject("EnemyView", null, new Vector2(260f, 120f));
+            GameObject root = CreateUiObject("EnemyView", null, new Vector2(260f, 206f));
             Image background = root.AddComponent<Image>();
             background.color = new Color(0.93f, 0.84f, 0.84f, 1f);
 
             Text enemyName = CreateText("EnemyName", root.transform, new Vector2(12f, -12f), new Vector2(220f, 24f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            Text hpText = CreateText("HpText", root.transform, new Vector2(12f, -48f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            Text intentText = CreateText("IntentText", root.transform, new Vector2(12f, -76f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text hpText = CreateText("HpText", root.transform, new Vector2(12f, -42f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            Text blockText = CreateText("BlockText", root.transform, new Vector2(12f, -66f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            Text phaseText = CreateText("PhaseText", root.transform, new Vector2(12f, -90f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text intentText = CreateText("IntentText", root.transform, new Vector2(12f, -114f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text intentDescriptionText = CreateText("IntentDescriptionText", root.transform, new Vector2(12f, -138f), new Vector2(220f, 32f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            Text statusText = CreateText("StatusText", root.transform, new Vector2(12f, -172f), new Vector2(220f, 28f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
 
             EnemyView view = root.AddComponent<EnemyView>();
             view.enemyNameText = enemyName;
             view.hpText = hpText;
+            view.blockText = blockText;
+            view.phaseText = phaseText;
             view.intentText = intentText;
+            view.intentDescriptionText = intentDescriptionText;
+            view.statusText = statusText;
             view.backgroundImage = background;
 
             EnemyView prefab = SavePrefab<EnemyView>(root, path);
@@ -321,6 +369,7 @@ namespace PawSlayers.EditorTools
             runManager.cardDatabase = cardDatabase;
             runManager.heroSelectionSceneName = "HeroSelection";
             runManager.battleSceneName = "Battle";
+            runManager.mapSceneName = "Map";
 
             GameObject rootPanel = CreatePanel("SelectionRoot", canvas.transform, new Color(0.95f, 0.92f, 0.84f, 1f));
             StretchFull(rootPanel.GetComponent<RectTransform>(), 20f);
@@ -553,13 +602,30 @@ namespace PawSlayers.EditorTools
             EditorSceneManager.SaveScene(scene, SceneFolder + "/Battle.unity");
         }
 
+        private static void CreateMapScene(CardView cardViewPrefab)
+        {
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            scene.name = "Map";
+
+            CreateCanvas();
+            CreateEventSystem();
+
+            GameObject managerObject = new GameObject("MapManagers");
+            MapManager mapManager = managerObject.AddComponent<MapManager>();
+            mapManager.cardViewPrefab = cardViewPrefab;
+
+            EditorSceneManager.SaveScene(scene, SceneFolder + "/Map.unity");
+        }
+
         private static void AddScenesToBuildSettings()
         {
             string heroSelectionPath = SceneFolder + "/HeroSelection.unity";
             string battlePath = SceneFolder + "/Battle.unity";
+            string mapPath = SceneFolder + "/Map.unity";
             List<EditorBuildSettingsScene> scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
             UpsertScene(scenes, heroSelectionPath);
             UpsertScene(scenes, battlePath);
+            UpsertScene(scenes, mapPath);
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 

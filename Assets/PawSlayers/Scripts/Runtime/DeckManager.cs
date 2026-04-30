@@ -5,28 +5,28 @@ namespace PawSlayers
 {
     public class DeckManager : MonoBehaviour
     {
-        [SerializeField] private List<CardData> runDeck = new List<CardData>();
-        [SerializeField] private List<CardData> discardPile = new List<CardData>();
-        [SerializeField] private List<CardData> drawPile = new List<CardData>();
-        [SerializeField] private List<CardData> hand = new List<CardData>();
+        [SerializeField] private List<RuntimeCardState> runDeck = new List<RuntimeCardState>();
+        [SerializeField] private List<RuntimeCardState> discardPile = new List<RuntimeCardState>();
+        [SerializeField] private List<RuntimeCardState> drawPile = new List<RuntimeCardState>();
+        [SerializeField] private List<RuntimeCardState> hand = new List<RuntimeCardState>();
 
-        public IReadOnlyList<CardData> RunDeck => runDeck;
-        public IReadOnlyList<CardData> DiscardPile => discardPile;
-        public IReadOnlyList<CardData> DrawPile => drawPile;
-        public IReadOnlyList<CardData> Hand => hand;
+        public IReadOnlyList<RuntimeCardState> RunDeck => runDeck;
+        public IReadOnlyList<RuntimeCardState> DiscardPile => discardPile;
+        public IReadOnlyList<RuntimeCardState> DrawPile => drawPile;
+        public IReadOnlyList<RuntimeCardState> Hand => hand;
 
-        public void SetStartingDeck(List<CardData> cards)
+        public void SetStartingDeck(List<RuntimeCardState> cards)
         {
-            runDeck = new List<CardData>(cards);
+            runDeck = new List<RuntimeCardState>(cards);
             discardPile.Clear();
             hand.Clear();
-            drawPile = new List<CardData>(cards);
+            drawPile = new List<RuntimeCardState>(cards);
             Shuffle(drawPile);
         }
 
-        public List<CardData> DrawCards(int amount)
+        public List<RuntimeCardState> DrawCards(int amount)
         {
-            List<CardData> drawn = new List<CardData>();
+            List<RuntimeCardState> drawn = new List<RuntimeCardState>();
             for (int index = 0; index < amount; index++)
             {
                 if (drawPile.Count == 0)
@@ -39,7 +39,7 @@ namespace PawSlayers
                     break;
                 }
 
-                CardData card = drawPile[0];
+                RuntimeCardState card = drawPile[0];
                 drawPile.RemoveAt(0);
                 hand.Add(card);
                 drawn.Add(card);
@@ -48,7 +48,7 @@ namespace PawSlayers
             return drawn;
         }
 
-        public void DiscardCard(CardData card)
+        public void DiscardCard(RuntimeCardState card)
         {
             if (card == null)
             {
@@ -65,7 +65,7 @@ namespace PawSlayers
         {
             while (hand.Count > 0)
             {
-                CardData card = hand[0];
+                RuntimeCardState card = hand[0];
                 hand.RemoveAt(0);
                 discardPile.Add(card);
             }
@@ -83,7 +83,7 @@ namespace PawSlayers
             Shuffle(drawPile);
         }
 
-        public void AddCardToDeck(CardData card)
+        public void AddCardToDeck(RuntimeCardState card)
         {
             if (card == null)
             {
@@ -94,7 +94,30 @@ namespace PawSlayers
             discardPile.Add(card);
         }
 
-        private void Shuffle(List<CardData> cards)
+        public void AddCardToDiscard(RuntimeCardState card)
+        {
+            if (card == null)
+            {
+                return;
+            }
+
+            discardPile.Add(card);
+        }
+
+        public void RemoveCardsWhere(System.Predicate<RuntimeCardState> match)
+        {
+            if (match == null)
+            {
+                return;
+            }
+
+            runDeck.RemoveAll(match);
+            discardPile.RemoveAll(match);
+            drawPile.RemoveAll(match);
+            hand.RemoveAll(match);
+        }
+
+        private void Shuffle(List<RuntimeCardState> cards)
         {
             for (int index = 0; index < cards.Count; index++)
             {

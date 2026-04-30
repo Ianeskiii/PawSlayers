@@ -25,5 +25,22 @@ MonoBehaviour:
   drawAmount: 0
   strengthAmount: 0
   weakAmount: 0
-  taunt: 0
+  vulnerableAmount: 0
+  bleedAmount: 0
+  poisonAmount: 0
+  tauntAmount: 0
+  stunAmount: 0
+  silenceAmount: 0
+  upgradedDamage: 16
+  upgradedBlock: 0
+  upgradedHeal: 0
+  upgradedDrawAmount: 0
+  upgradedStrengthAmount: 0
+  upgradedWeakAmount: 0
+  upgradedVulnerableAmount: 0
+  upgradedBleedAmount: 0
+  upgradedPoisonAmount: 0
+  upgradedTauntAmount: 0
+  upgradedStunAmount: 0
+  upgradedSilenceAmount: 0
   cardArt: {fileID: 0}

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   cardId: battle_focus
   cardName: Battle Focus
-  description: Gain 2 Strength later.
+  description: Gain 2 Strength.
   ownerHeroId: 5
   cardType: 1
   targetType: 2
@@ -25,5 +25,22 @@ MonoBehaviour:
   drawAmount: 0
   strengthAmount: 2
   weakAmount: 0
-  taunt: 0
+  vulnerableAmount: 0
+  bleedAmount: 0
+  poisonAmount: 0
+  tauntAmount: 0
+  stunAmount: 0
+  silenceAmount: 0
+  upgradedDamage: 0
+  upgradedBlock: 0
+  upgradedHeal: 0
+  upgradedDrawAmount: 0
+  upgradedStrengthAmount: 3
+  upgradedWeakAmount: 0
+  upgradedVulnerableAmount: 0
+  upgradedBleedAmount: 0
+  upgradedPoisonAmount: 0
+  upgradedTauntAmount: 0
+  upgradedStunAmount: 0
+  upgradedSilenceAmount: 0
   cardArt: {fileID: 0}

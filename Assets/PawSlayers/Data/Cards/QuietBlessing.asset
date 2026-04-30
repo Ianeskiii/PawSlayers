@@ -10,37 +10,37 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 10f5a8cdde6737c45beecd9c362d1539, type: 3}
-  m_Name: BarkskinGuard
+  m_Name: QuietBlessing
   m_EditorClassIdentifier: 
-  cardId: barkskin_guard
-  cardName: Barkskin Guard
-  description: Gain 16 block. Gain 1 Taunt.
-  ownerHeroId: 4
+  cardId: quiet_blessing
+  cardName: Quiet Blessing
+  description: Heal 6 HP.
+  ownerHeroId: 3
   cardType: 1
-  targetType: 2
-  cost: 2
+  targetType: 1
+  cost: 1
   damage: 0
-  block: 16
-  heal: 0
+  block: 0
+  heal: 6
   drawAmount: 0
   strengthAmount: 0
   weakAmount: 0
   vulnerableAmount: 0
   bleedAmount: 0
   poisonAmount: 0
-  tauntAmount: 1
+  tauntAmount: 0
   stunAmount: 0
   silenceAmount: 0
   upgradedDamage: 0
-  upgradedBlock: 22
-  upgradedHeal: 0
+  upgradedBlock: 0
+  upgradedHeal: 9
   upgradedDrawAmount: 0
   upgradedStrengthAmount: 0
   upgradedWeakAmount: 0
   upgradedVulnerableAmount: 0
   upgradedBleedAmount: 0
   upgradedPoisonAmount: 0
-  upgradedTauntAmount: 2
+  upgradedTauntAmount: 0
   upgradedStunAmount: 0
   upgradedSilenceAmount: 0
   cardArt: {fileID: 0}
