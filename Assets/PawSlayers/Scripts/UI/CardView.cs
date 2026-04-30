@@ -16,6 +16,7 @@ namespace PawSlayers
         public Image backgroundImage;
         public Button button;
         public CanvasGroup canvasGroup;
+        public Outline selectionOutline;
 
         private CardData cardData;
         private Action<CardData> onClicked;
@@ -28,38 +29,71 @@ namespace PawSlayers
             onClicked = clickAction;
 
             cardNameText.text = data.cardName;
-            ownerText.text = data.ownerHeroId == HeroId.Neutral ? "Neutral" : data.ownerHeroId.ToString();
-            typeText.text = data.cardType.ToString();
+            ownerText.text = data.ownerHeroId == HeroId.Neutral ? "Owner: Neutral" : "Owner: " + data.ownerHeroId;
+            typeText.text = "Type: " + data.cardType;
             costText.text = data.cost.ToString();
             descriptionText.text = data.description;
+
+            ConfigureReadableText();
+
             artImage.sprite = data.cardArt;
             artImage.enabled = true;
             artImage.color = data.cardArt != null ? Color.white : new Color(0.82f, 0.82f, 0.82f, 1f);
 
             button.onClick.RemoveAllListeners();
             button.onClick.AddListener(HandleClick);
+            SetSelected(false);
         }
 
-        public void SetPlayable(bool isPlayable, string disabledReason)
+        public void SetDisabled(bool isDisabled, string disabledReason)
         {
             if (canvasGroup != null)
             {
-                canvasGroup.alpha = isPlayable ? 1f : 0.55f;
+                canvasGroup.alpha = isDisabled ? 0.55f : 1f;
             }
 
             if (backgroundImage != null)
             {
-                backgroundImage.color = isPlayable ? Color.white : new Color(0.55f, 0.55f, 0.55f, 1f);
+                backgroundImage.color = isDisabled ? new Color(0.55f, 0.55f, 0.55f, 1f) : Color.white;
             }
 
             if (disabledReasonText != null)
             {
-                disabledReasonText.text = isPlayable ? string.Empty : disabledReason;
+                disabledReasonText.text = isDisabled ? disabledReason : string.Empty;
             }
 
             if (button != null)
             {
-                button.interactable = isPlayable;
+                button.interactable = !isDisabled;
+            }
+        }
+
+        public void SetSelected(bool isSelected)
+        {
+            if (selectionOutline != null)
+            {
+                selectionOutline.enabled = isSelected;
+            }
+        }
+
+        private void ConfigureReadableText()
+        {
+            if (cardNameText != null)
+            {
+                cardNameText.resizeTextForBestFit = true;
+                cardNameText.resizeTextMinSize = 14;
+                cardNameText.resizeTextMaxSize = 22;
+                cardNameText.horizontalOverflow = HorizontalWrapMode.Wrap;
+                cardNameText.verticalOverflow = VerticalWrapMode.Overflow;
+            }
+
+            if (descriptionText != null)
+            {
+                descriptionText.resizeTextForBestFit = true;
+                descriptionText.resizeTextMinSize = 12;
+                descriptionText.resizeTextMaxSize = 15;
+                descriptionText.horizontalOverflow = HorizontalWrapMode.Wrap;
+                descriptionText.verticalOverflow = VerticalWrapMode.Overflow;
             }
         }
 

@@ -34,9 +34,12 @@ namespace PawSlayers
         private readonly List<EnemyView> enemyViews = new List<EnemyView>();
         private readonly List<CardView> handViews = new List<CardView>();
         private readonly List<EnemyRuntimeState> enemies = new List<EnemyRuntimeState>();
-        private int currentEnergy;
+
         private const int MaxEnergy = 3;
+
+        private int currentEnergy;
         private bool battleEnded;
+        private CardData selectedCard;
 
         private void Start()
         {
@@ -49,10 +52,16 @@ namespace PawSlayers
 
         public void RefreshAllUi()
         {
+            if (selectedCard != null && IsCardDisabled(selectedCard, out _))
+            {
+                ClearCardSelection();
+            }
+
             RefreshTopBar();
             RefreshHeroViews();
             RefreshEnemyViews();
             RefreshHandViews();
+            RefreshTargetHighlights();
         }
 
         public void DrawOneCard()
@@ -62,9 +71,9 @@ namespace PawSlayers
                 return;
             }
 
-            runManager.DrawCards(1);
-            AddLog("Drew 1 card.");
-            RefreshHandViews();
+            int drawn = runManager.DrawCards(1).Count;
+            AddLog("Player drew " + drawn + " card.");
+            RefreshAllUi();
         }
 
         public void EndTurn()
@@ -74,12 +83,18 @@ namespace PawSlayers
                 return;
             }
 
-            RunEnemyTurn();
+            ClearCardSelection();
             runManager.DiscardHand();
-            currentEnergy = MaxEnergy;
-            runManager.DrawCards(5);
-            AddLog("End turn. Drew a new hand.");
-            RefreshAllUi();
+            RunEnemyTurn();
+            CheckBattleState();
+
+            if (battleEnded)
+            {
+                RefreshAllUi();
+                return;
+            }
+
+            StartPlayerTurn();
             CheckBattleState();
         }
 
@@ -92,6 +107,7 @@ namespace PawSlayers
 
             battleEnded = true;
             AddLog("Battle won.");
+
             if (rewardCardManager != null)
             {
                 rewardCardManager.ShowRewards();
@@ -101,6 +117,64 @@ namespace PawSlayers
             {
                 endTurnButton.interactable = false;
             }
+        }
+
+        private void InitializeBattle()
+        {
+            runManager.EnsureDirectBattleTestState();
+
+            Debug.Log($"Selected heroes: {runManager.SelectedHeroIds.Count}");
+
+            CreateDefaultEnemies();
+            Debug.Log($"Enemies spawned: {enemies.Count}");
+
+            runManager.BuildAndShuffleRunDeck();
+            Debug.Log($"Run deck cards: {runManager.RunDeck.Count}");
+            Debug.Log($"Draw pile count: {runManager.DrawPile.Count}");
+
+            BuildHeroViews();
+            BuildEnemyViews();
+            AddLog("Battle started.");
+            StartPlayerTurn();
+            Debug.Log($"Starting hand: {runManager.Hand.Count}");
+        }
+
+        private void StartPlayerTurn()
+        {
+            ResetHeroBlock();
+            currentEnergy = MaxEnergy;
+            ClearCardSelection();
+            int drawn = runManager.DrawCards(5).Count;
+            AddLog($"Player turn started. Drew {drawn} cards.");
+            RefreshAllUi();
+        }
+
+        private void ResetHeroBlock()
+        {
+            foreach (RuntimeHeroState hero in runManager.ActiveHeroesRuntime)
+            {
+                hero.block = 0;
+            }
+        }
+
+        private void CreateDefaultEnemies()
+        {
+            enemies.Clear();
+            enemies.Add(CreateEnemy("sporeling", "Sporeling", 50, 6));
+            enemies.Add(CreateEnemy("fungus_brute", "Fungus Brute", 78, 12));
+            enemies.Add(CreateEnemy("batty", "Batty", 40, 8));
+        }
+
+        private EnemyRuntimeState CreateEnemy(string enemyId, string enemyName, int maxHp, int attackDamage)
+        {
+            return new EnemyRuntimeState
+            {
+                enemyId = enemyId,
+                enemyName = enemyName,
+                maxHp = maxHp,
+                currentHp = maxHp,
+                attackDamage = attackDamage
+            };
         }
 
         private void BuildHeroViews()
@@ -122,8 +196,11 @@ namespace PawSlayers
                 BattleHeroView heroView = heroViewPrefab != null
                     ? Instantiate(heroViewPrefab, heroContainer)
                     : CreateRuntimeHeroView(heroContainer);
-                heroViews.Add(heroView);
+
+                EnsureHeroViewInteractive(heroView);
+                heroView.Setup(HandleHeroClicked);
                 heroView.Refresh(hero);
+                heroViews.Add(heroView);
             }
         }
 
@@ -146,8 +223,11 @@ namespace PawSlayers
                 EnemyView enemyView = enemyViewPrefab != null
                     ? Instantiate(enemyViewPrefab, enemyContainer)
                     : CreateRuntimeEnemyView(enemyContainer);
-                enemyViews.Add(enemyView);
+
+                EnsureEnemyViewInteractive(enemyView);
+                enemyView.Setup(HandleEnemyClicked);
                 enemyView.Refresh(enemy);
+                enemyViews.Add(enemyView);
             }
         }
 
@@ -158,7 +238,7 @@ namespace PawSlayers
                 return;
             }
 
-            for (int index = 0; index < heroViews.Count; index++)
+            for (int index = 0; index < heroViews.Count && index < runManager.ActiveHeroesRuntime.Count; index++)
             {
                 heroViews[index].Refresh(runManager.ActiveHeroesRuntime[index]);
             }
@@ -191,145 +271,195 @@ namespace PawSlayers
                 CardView cardView = cardViewPrefab != null
                     ? Instantiate(cardViewPrefab, handContainer)
                     : CreateRuntimeCardView(handContainer);
-                cardView.Setup(card, PlayCard);
 
-                bool canPlay = CanPlayCard(card, out string reason);
-                cardView.SetPlayable(canPlay, reason);
+                EnsureCardViewInteractive(cardView);
+                cardView.Setup(card, OnCardClicked);
+
+                bool isDisabled = IsCardDisabled(card, out string disabledReason);
+                cardView.SetDisabled(isDisabled, disabledReason);
+                cardView.SetSelected(selectedCard == card);
                 handViews.Add(cardView);
             }
         }
 
-        private void PlayCard(CardData card)
+        private void OnCardClicked(CardData card)
         {
-            if (!CanPlayCard(card, out string reason))
+            if (battleEnded || card == null)
             {
-                AddLog(reason);
-                RefreshHandViews();
                 return;
             }
 
-            currentEnergy -= card.cost;
-            RuntimeHeroState ownerHero = GetOwnerHero(card);
-            RuntimeHeroState effectTarget = ownerHero ?? runManager.ActiveHeroesRuntime.FirstOrDefault(hero => hero.IsAlive);
-            EnemyRuntimeState targetEnemy = enemies.FirstOrDefault(enemy => enemy.IsAlive);
-
-            if (card.damage > 0 && targetEnemy != null)
+            if (selectedCard == card)
             {
-                targetEnemy.TakeDamage(card.damage);
-                AddLog($"{card.cardName} dealt {card.damage} damage to {targetEnemy.enemyName}.");
+                ClearCardSelection();
+                RefreshAllUi();
+                return;
             }
 
-            if (card.block > 0 && effectTarget != null)
+            if (IsCardDisabled(card, out string disabledReason))
             {
-                effectTarget.GainBlock(card.block);
-                AddLog($"{effectTarget.heroData.heroName} gained {card.block} block.");
-            }
-
-            if (card.heal > 0 && effectTarget != null)
-            {
-                effectTarget.Heal(card.heal);
-                AddLog($"{effectTarget.heroData.heroName} healed {card.heal} HP.");
-            }
-
-            if (card.drawAmount > 0)
-            {
-                runManager.DrawCards(card.drawAmount);
-                AddLog($"{card.cardName} drew {card.drawAmount} card.");
-            }
-
-            if (card.strengthAmount > 0)
-            {
-                AddLog($"{card.cardName} grants Strength later. Placeholder value: {card.strengthAmount}");
-            }
-
-            if (card.weakAmount > 0)
-            {
-                AddLog($"{card.cardName} applies Weak later. Placeholder value: {card.weakAmount}");
-            }
-
-            if (card.taunt)
-            {
-                AddLog($"{card.cardName} applies Taunt later. Placeholder active.");
-            }
-
-            runManager.DiscardCard(card);
-
-            RefreshAllUi();
-            CheckBattleState();
-        }
-
-        private RuntimeHeroState GetOwnerHero(CardData card)
-        {
-            if (card == null || card.ownerHeroId == HeroId.Neutral)
-            {
-                return null;
-            }
-
-            return runManager.GetHeroState(card.ownerHeroId);
-        }
-
-        private bool CanPlayCard(CardData card, out string reason)
-        {
-            if (!runManager.CanPlayCard(card, out reason))
-            {
-                return false;
+                AddLog(disabledReason + ".");
+                RefreshAllUi();
+                return;
             }
 
             if (card.cost > currentEnergy)
             {
-                reason = "Not enough energy";
-                return false;
+                AddLog("Not enough energy.");
+                return;
             }
 
-            if (card.damage > 0 && enemies.All(enemy => !enemy.IsAlive))
+            selectedCard = card;
+
+            if (card.targetType == TargetType.None)
             {
-                reason = "No enemies left";
-                return false;
+                ResolveCardPlay(card, null, null);
+                return;
             }
 
-            return true;
+            RefreshAllUi();
         }
 
-        private void InitializeBattle()
+        private void HandleHeroClicked(RuntimeHeroState hero)
         {
-            runManager.EnsureDirectBattleTestState();
-
-            Debug.Log($"Selected heroes: {runManager.SelectedHeroIds.Count}");
-
-            CreateDefaultEnemies();
-            Debug.Log($"Enemies spawned: {enemies.Count}");
-
-            runManager.BuildAndShuffleRunDeck();
-            Debug.Log($"Run deck cards: {runManager.RunDeck.Count}");
-            Debug.Log($"Draw pile after shuffle: {runManager.DrawPile.Count}");
-
-            currentEnergy = MaxEnergy;
-            runManager.DrawCards(5);
-            Debug.Log($"Starting hand: {runManager.Hand.Count}");
-
-            BuildHeroViews();
-            BuildEnemyViews();
-            AddLog("Battle started.");
-        }
-
-        private void CreateDefaultEnemies()
-        {
-            enemies.Clear();
-            enemies.Add(CreateEnemy("sporeling", "Sporeling", 50, 6));
-            enemies.Add(CreateEnemy("fungus_brute", "Fungus Brute", 78, 12));
-            enemies.Add(CreateEnemy("batty", "Batty", 40, 8));
-        }
-
-        private EnemyRuntimeState CreateEnemy(string enemyId, string enemyName, int maxHp, int attackDamage)
-        {
-            return new EnemyRuntimeState
+            if (selectedCard == null || hero == null)
             {
-                enemyId = enemyId,
-                enemyName = enemyName,
-                maxHp = maxHp,
-                currentHp = maxHp,
-                attackDamage = attackDamage
-            };
+                return;
+            }
+
+            if (!IsValidHeroTarget(selectedCard, hero))
+            {
+                AddLog("Invalid target.");
+                return;
+            }
+
+            ResolveCardPlay(selectedCard, hero, null);
+        }
+
+        private void HandleEnemyClicked(EnemyRuntimeState enemy)
+        {
+            if (selectedCard == null || enemy == null)
+            {
+                return;
+            }
+
+            if (!IsValidEnemyTarget(selectedCard, enemy))
+            {
+                AddLog("Invalid target.");
+                return;
+            }
+
+            ResolveCardPlay(selectedCard, null, enemy);
+        }
+
+        private void ResolveCardPlay(CardData card, RuntimeHeroState chosenHeroTarget, EnemyRuntimeState chosenEnemyTarget)
+        {
+            if (card == null)
+            {
+                return;
+            }
+
+            if (IsCardDisabled(card, out string disabledReason))
+            {
+                AddLog(disabledReason + ".");
+                return;
+            }
+
+            if (card.cost > currentEnergy)
+            {
+                AddLog("Not enough energy.");
+                return;
+            }
+
+            RuntimeHeroState ownerHero = GetOwnerHero(card);
+            RuntimeHeroState heroTarget = ResolveHeroTarget(card, ownerHero, chosenHeroTarget);
+            EnemyRuntimeState enemyTarget = ResolveEnemyTarget(card, chosenEnemyTarget);
+
+            currentEnergy -= card.cost;
+
+            string sourceName = ownerHero != null ? ownerHero.heroData.heroName : "Neutral";
+            string targetName = enemyTarget != null
+                ? enemyTarget.enemyName
+                : heroTarget != null
+                    ? heroTarget.heroData.heroName
+                    : "no target";
+
+            AddLog($"{sourceName} used {card.cardName} on {targetName}.");
+
+            if (card.damage > 0 && enemyTarget != null)
+            {
+                enemyTarget.TakeDamage(card.damage);
+            }
+
+            if (card.block > 0 && heroTarget != null)
+            {
+                heroTarget.GainBlock(card.block);
+                AddLog($"{heroTarget.heroData.heroName} gained {card.block} block.");
+            }
+
+            if (card.heal > 0 && heroTarget != null)
+            {
+                int beforeHp = heroTarget.currentHp;
+                heroTarget.Heal(card.heal);
+                int healedAmount = heroTarget.currentHp - beforeHp;
+                AddLog($"{heroTarget.heroData.heroName} healed {healedAmount} HP.");
+            }
+
+            if (card.drawAmount > 0)
+            {
+                int drawn = runManager.DrawCards(card.drawAmount).Count;
+                AddLog($"Player drew {drawn} cards.");
+            }
+
+            if (card.strengthAmount > 0)
+            {
+                AddLog($"{sourceName} gained {card.strengthAmount} Strength.");
+            }
+
+            if (card.weakAmount > 0 && enemyTarget != null)
+            {
+                AddLog($"{enemyTarget.enemyName} received {card.weakAmount} Weak.");
+            }
+
+            if (card.taunt && heroTarget != null)
+            {
+                AddLog($"{heroTarget.heroData.heroName} gained Taunt.");
+            }
+
+            runManager.DiscardCard(card);
+            ClearCardSelection();
+            RefreshAllUi();
+            CheckBattleState();
+        }
+
+        private RuntimeHeroState ResolveHeroTarget(CardData card, RuntimeHeroState ownerHero, RuntimeHeroState chosenHeroTarget)
+        {
+            if (card.targetType == TargetType.Self)
+            {
+                return ownerHero;
+            }
+
+            if (card.targetType == TargetType.Ally)
+            {
+                return chosenHeroTarget ?? runManager.ActiveHeroesRuntime.FirstOrDefault(hero => hero.IsAlive);
+            }
+
+            if (card.targetType == TargetType.AllAllies)
+            {
+                return ownerHero ?? runManager.ActiveHeroesRuntime.FirstOrDefault(hero => hero.IsAlive);
+            }
+
+            return ownerHero ?? chosenHeroTarget;
+        }
+
+        private EnemyRuntimeState ResolveEnemyTarget(CardData card, EnemyRuntimeState chosenEnemyTarget)
+        {
+            if (card.targetType == TargetType.Enemy || card.targetType == TargetType.AllEnemies)
+            {
+                return chosenEnemyTarget ?? enemies.FirstOrDefault(enemy => enemy.IsAlive);
+            }
+
+            return null;
         }
 
         private void RunEnemyTurn()
@@ -347,6 +477,7 @@ namespace PawSlayers
 
                 if (!targetHero.IsAlive)
                 {
+                    AddLog($"{targetHero.heroData.heroName} is down.");
                     targetHero = runManager.ActiveHeroesRuntime.FirstOrDefault(hero => hero.IsAlive);
                     if (targetHero == null)
                     {
@@ -364,14 +495,15 @@ namespace PawSlayers
                 return;
             }
 
-            if (runManager.ActiveHeroesRuntime.Count > 0 && runManager.ActiveHeroesRuntime.All(hero => !hero.IsAlive))
+            if (!battleEnded && runManager.ActiveHeroesRuntime.Count > 0 && runManager.ActiveHeroesRuntime.All(hero => !hero.IsAlive))
             {
                 battleEnded = true;
-                AddLog("Party defeated.");
-                if (endTurnButton != null)
-                {
-                    endTurnButton.interactable = false;
-                }
+                AddLog("Battle lost.");
+            }
+
+            if (battleEnded && endTurnButton != null)
+            {
+                endTurnButton.interactable = false;
             }
         }
 
@@ -390,6 +522,94 @@ namespace PawSlayers
             if (energyText != null)
             {
                 energyText.text = $"Energy: {currentEnergy}/{MaxEnergy}";
+            }
+        }
+
+        private bool IsCardDisabled(CardData card, out string reason)
+        {
+            if (!runManager.CanPlayCard(card, out reason))
+            {
+                return true;
+            }
+
+            reason = string.Empty;
+            return false;
+        }
+
+        private bool IsValidHeroTarget(CardData card, RuntimeHeroState hero)
+        {
+            if (card == null || hero == null || !hero.IsAlive)
+            {
+                return false;
+            }
+
+            RuntimeHeroState ownerHero = GetOwnerHero(card);
+            switch (card.targetType)
+            {
+                case TargetType.Self:
+                    return ownerHero == hero;
+                case TargetType.Ally:
+                case TargetType.AllAllies:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private bool IsValidEnemyTarget(CardData card, EnemyRuntimeState enemy)
+        {
+            if (card == null || enemy == null || !enemy.IsAlive)
+            {
+                return false;
+            }
+
+            return card.targetType == TargetType.Enemy || card.targetType == TargetType.AllEnemies;
+        }
+
+        private void RefreshTargetHighlights()
+        {
+            foreach (BattleHeroView heroView in heroViews)
+            {
+                bool isHighlighted = selectedCard != null && heroView.HeroState != null && IsValidHeroTarget(selectedCard, heroView.HeroState);
+                heroView.SetTargetHighlight(isHighlighted);
+            }
+
+            foreach (EnemyView enemyView in enemyViews)
+            {
+                bool isHighlighted = selectedCard != null && enemyView.EnemyState != null && IsValidEnemyTarget(selectedCard, enemyView.EnemyState);
+                enemyView.SetTargetHighlight(isHighlighted);
+            }
+        }
+
+        private RuntimeHeroState GetOwnerHero(CardData card)
+        {
+            if (card == null || card.ownerHeroId == HeroId.Neutral)
+            {
+                return null;
+            }
+
+            return runManager.GetHeroState(card.ownerHeroId);
+        }
+
+        private void ClearCardSelection()
+        {
+            selectedCard = null;
+        }
+
+        private void AddLog(string message)
+        {
+            if (battleLogText == null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(battleLogText.text))
+            {
+                battleLogText.text = message;
+            }
+            else
+            {
+                battleLogText.text = message + "\n" + battleLogText.text;
             }
         }
 
@@ -547,14 +767,14 @@ namespace PawSlayers
             CreateText("HandLabel", handPanel.transform, new Vector2(12f, -12f), new Vector2(200f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft).text = "Hand";
             handContainer = CreateLayoutContainer("HandContainer", handPanel.transform, false, new Vector2(12f, 12f), new Vector2(-12f, -48f));
 
-            GameObject leftFooter = CreatePanel("LogPanel", root.transform, new Color(0.85f, 0.89f, 0.94f, 1f));
-            RectTransform logRect = leftFooter.GetComponent<RectTransform>();
+            GameObject logPanel = CreatePanel("LogPanel", root.transform, new Color(0.85f, 0.89f, 0.94f, 1f));
+            RectTransform logRect = logPanel.GetComponent<RectTransform>();
             logRect.anchorMin = new Vector2(0f, 0f);
             logRect.anchorMax = new Vector2(0f, 0f);
             logRect.pivot = new Vector2(0f, 0f);
             logRect.anchoredPosition = new Vector2(20f, 260f);
             logRect.sizeDelta = new Vector2(520f, 130f);
-            battleLogText = CreateText("BattleLog", leftFooter.transform, new Vector2(12f, -12f), new Vector2(496f, 106f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            battleLogText = CreateText("BattleLog", logPanel.transform, new Vector2(12f, -12f), new Vector2(496f, 106f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
 
             GameObject debugPanel = CreatePanel("DebugPanel", root.transform, new Color(0.82f, 0.82f, 0.82f, 1f));
             RectTransform debugRect = debugPanel.GetComponent<RectTransform>();
@@ -601,20 +821,87 @@ namespace PawSlayers
             rewardCardManager.rewardCardPrefab = cardViewPrefab;
         }
 
-        private void AddLog(string message)
+        private void EnsureHeroViewInteractive(BattleHeroView view)
         {
-            if (battleLogText == null)
+            if (view.button == null)
             {
-                return;
+                view.button = view.gameObject.GetComponent<Button>();
+                if (view.button == null)
+                {
+                    view.button = view.gameObject.AddComponent<Button>();
+                }
             }
 
-            if (string.IsNullOrWhiteSpace(battleLogText.text))
+            if (view.highlightOutline == null)
             {
-                battleLogText.text = message;
+                view.highlightOutline = view.gameObject.GetComponent<Outline>();
+                if (view.highlightOutline == null)
+                {
+                    view.highlightOutline = view.gameObject.AddComponent<Outline>();
+                }
+
+                view.highlightOutline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
+                view.highlightOutline.effectDistance = new Vector2(4f, -4f);
+                view.highlightOutline.enabled = false;
             }
-            else
+        }
+
+        private void EnsureEnemyViewInteractive(EnemyView view)
+        {
+            if (view.button == null)
             {
-                battleLogText.text = message + "\n" + battleLogText.text;
+                view.button = view.gameObject.GetComponent<Button>();
+                if (view.button == null)
+                {
+                    view.button = view.gameObject.AddComponent<Button>();
+                }
+            }
+
+            if (view.highlightOutline == null)
+            {
+                view.highlightOutline = view.gameObject.GetComponent<Outline>();
+                if (view.highlightOutline == null)
+                {
+                    view.highlightOutline = view.gameObject.AddComponent<Outline>();
+                }
+
+                view.highlightOutline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
+                view.highlightOutline.effectDistance = new Vector2(4f, -4f);
+                view.highlightOutline.enabled = false;
+            }
+        }
+
+        private void EnsureCardViewInteractive(CardView view)
+        {
+            if (view.button == null)
+            {
+                view.button = view.gameObject.GetComponent<Button>();
+                if (view.button == null)
+                {
+                    view.button = view.gameObject.AddComponent<Button>();
+                }
+            }
+
+            if (view.canvasGroup == null)
+            {
+                view.canvasGroup = view.gameObject.GetComponent<CanvasGroup>();
+                if (view.canvasGroup == null)
+                {
+                    view.canvasGroup = view.gameObject.AddComponent<CanvasGroup>();
+                }
+            }
+
+            if (view.selectionOutline == null)
+            {
+                view.selectionOutline = view.gameObject.GetComponent<Outline>();
+                if (view.selectionOutline == null)
+                {
+                    view.selectionOutline = view.gameObject.AddComponent<Outline>();
+                }
+
+                view.selectionOutline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
+                view.selectionOutline.effectDistance = new Vector2(4f, -4f);
+                view.selectionOutline.enabled = false;
             }
         }
 
@@ -623,14 +910,22 @@ namespace PawSlayers
             GameObject root = CreatePanel("BattleHeroView", parent, new Color(0.86f, 0.93f, 0.86f, 1f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
             layout.preferredHeight = 140f;
+            Button button = root.AddComponent<Button>();
+            Outline outline = root.AddComponent<Outline>();
+            outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
+            outline.effectDistance = new Vector2(4f, -4f);
+            outline.enabled = false;
 
             BattleHeroView view = root.AddComponent<BattleHeroView>();
             view.backgroundImage = root.GetComponent<Image>();
+            view.button = button;
+            view.highlightOutline = outline;
             view.heroNameText = CreateText("HeroName", root.transform, new Vector2(12f, -12f), new Vector2(220f, 24f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
             view.heroClassText = CreateText("HeroClass", root.transform, new Vector2(12f, -38f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
             view.hpText = CreateText("HpText", root.transform, new Vector2(12f, -72f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
             view.blockText = CreateText("BlockText", root.transform, new Vector2(12f, -98f), new Vector2(120f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.stateText = CreateText("StateText", root.transform, new Vector2(140f, -98f), new Vector2(90f, 22f), 18, FontStyle.Bold, TextAnchor.UpperRight);
+            view.stateText = CreateText("StateText", root.transform, new Vector2(12f, -120f), new Vector2(160f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+
             GameObject portrait = CreatePanel("Portrait", root.transform, new Color(0.75f, 0.75f, 0.75f, 1f));
             RectTransform portraitRect = portrait.GetComponent<RectTransform>();
             portraitRect.anchorMin = new Vector2(1f, 1f);
@@ -647,9 +942,16 @@ namespace PawSlayers
             GameObject root = CreatePanel("EnemyView", parent, new Color(0.93f, 0.84f, 0.84f, 1f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
             layout.preferredHeight = 120f;
+            Button button = root.AddComponent<Button>();
+            Outline outline = root.AddComponent<Outline>();
+            outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
+            outline.effectDistance = new Vector2(4f, -4f);
+            outline.enabled = false;
 
             EnemyView view = root.AddComponent<EnemyView>();
             view.backgroundImage = root.GetComponent<Image>();
+            view.button = button;
+            view.highlightOutline = outline;
             view.enemyNameText = CreateText("EnemyName", root.transform, new Vector2(12f, -12f), new Vector2(220f, 24f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
             view.hpText = CreateText("HpText", root.transform, new Vector2(12f, -48f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
             view.intentText = CreateText("IntentText", root.transform, new Vector2(12f, -76f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
@@ -660,30 +962,37 @@ namespace PawSlayers
         {
             GameObject root = CreatePanel("CardView", parent, Color.white);
             LayoutElement layout = root.AddComponent<LayoutElement>();
-            layout.preferredWidth = 220f;
-            layout.preferredHeight = 300f;
+            layout.preferredWidth = 250f;
+            layout.preferredHeight = 320f;
 
             Button button = root.AddComponent<Button>();
             CanvasGroup canvasGroup = root.AddComponent<CanvasGroup>();
+            Outline outline = root.AddComponent<Outline>();
+            outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
+            outline.effectDistance = new Vector2(4f, -4f);
+            outline.enabled = false;
 
             CardView view = root.AddComponent<CardView>();
             view.backgroundImage = root.GetComponent<Image>();
             view.button = button;
             view.canvasGroup = canvasGroup;
-            view.cardNameText = CreateText("CardName", root.transform, new Vector2(10f, -10f), new Vector2(150f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.costText = CreateText("CostText", root.transform, new Vector2(170f, -10f), new Vector2(40f, 28f), 22, FontStyle.Bold, TextAnchor.UpperRight);
-            view.ownerText = CreateText("OwnerText", root.transform, new Vector2(10f, -40f), new Vector2(190f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
-            view.typeText = CreateText("TypeText", root.transform, new Vector2(10f, -62f), new Vector2(190f, 22f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.selectionOutline = outline;
+            view.cardNameText = CreateText("CardName", root.transform, new Vector2(10f, -10f), new Vector2(180f, 40f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.costText = CreateText("CostText", root.transform, new Vector2(198f, -10f), new Vector2(40f, 28f), 22, FontStyle.Bold, TextAnchor.UpperRight);
+            view.ownerText = CreateText("OwnerText", root.transform, new Vector2(10f, -54f), new Vector2(220f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
+            view.typeText = CreateText("TypeText", root.transform, new Vector2(10f, -78f), new Vector2(220f, 22f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+
             GameObject art = CreatePanel("Art", root.transform, new Color(0.82f, 0.82f, 0.82f, 1f));
             RectTransform artRect = art.GetComponent<RectTransform>();
             artRect.anchorMin = new Vector2(0f, 1f);
             artRect.anchorMax = new Vector2(0f, 1f);
             artRect.pivot = new Vector2(0f, 1f);
-            artRect.anchoredPosition = new Vector2(20f, -90f);
-            artRect.sizeDelta = new Vector2(180f, 90f);
+            artRect.anchoredPosition = new Vector2(20f, -108f);
+            artRect.sizeDelta = new Vector2(210f, 90f);
             view.artImage = art.GetComponent<Image>();
-            view.descriptionText = CreateText("Description", root.transform, new Vector2(10f, -192f), new Vector2(190f, 64f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.disabledReasonText = CreateText("DisabledReason", root.transform, new Vector2(10f, -260f), new Vector2(190f, 28f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
+
+            view.descriptionText = CreateText("Description", root.transform, new Vector2(10f, -208f), new Vector2(230f, 74f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.disabledReasonText = CreateText("DisabledReason", root.transform, new Vector2(10f, -286f), new Vector2(230f, 28f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
             view.disabledReasonText.color = new Color(0.7f, 0.1f, 0.1f, 1f);
             return view;
         }
@@ -739,6 +1048,8 @@ namespace PawSlayers
             text.fontStyle = fontStyle;
             text.alignment = alignment;
             text.color = Color.black;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
 
             RectTransform rect = text.rectTransform;
             rect.anchorMin = new Vector2(0f, 1f);

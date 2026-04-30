@@ -44,17 +44,23 @@ namespace PawSlayers
                 CardView view = rewardCardPrefab != null
                     ? Instantiate(rewardCardPrefab, rewardContainer)
                     : CreateRuntimeRewardCardView(rewardContainer);
+
                 view.Setup(choice, SelectReward);
-                view.SetPlayable(true, string.Empty);
+                view.SetDisabled(false, string.Empty);
             }
 
-            rewardTitleText.text = "Choose 1 Reward";
+            rewardTitleText.text = "Choose 1 reward card";
             rewardPanel.SetActive(true);
         }
 
         public void SelectReward(CardData selectedCard)
         {
-            runManager.AddRewardCard(selectedCard);
+            if (runManager != null && selectedCard != null)
+            {
+                runManager.AddRewardCard(selectedCard);
+                Debug.Log("Reward selected: " + selectedCard.cardName);
+            }
+
             rewardPanel.SetActive(false);
         }
 
@@ -63,8 +69,8 @@ namespace PawSlayers
             GameObject root = new GameObject("RewardCardView", typeof(RectTransform));
             root.transform.SetParent(parent, false);
             LayoutElement layout = root.AddComponent<LayoutElement>();
-            layout.preferredWidth = 220f;
-            layout.preferredHeight = 300f;
+            layout.preferredWidth = 250f;
+            layout.preferredHeight = 320f;
 
             Image background = root.AddComponent<Image>();
             background.color = Color.white;
@@ -75,10 +81,10 @@ namespace PawSlayers
             view.backgroundImage = background;
             view.button = button;
             view.canvasGroup = canvasGroup;
-            view.cardNameText = CreateText("CardName", root.transform, new Vector2(10f, -10f), new Vector2(150f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.costText = CreateText("CostText", root.transform, new Vector2(170f, -10f), new Vector2(40f, 28f), 22, FontStyle.Bold, TextAnchor.UpperRight);
-            view.ownerText = CreateText("OwnerText", root.transform, new Vector2(10f, -40f), new Vector2(190f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
-            view.typeText = CreateText("TypeText", root.transform, new Vector2(10f, -62f), new Vector2(190f, 22f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.cardNameText = CreateText("CardName", root.transform, new Vector2(10f, -10f), new Vector2(180f, 40f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.costText = CreateText("CostText", root.transform, new Vector2(198f, -10f), new Vector2(40f, 28f), 22, FontStyle.Bold, TextAnchor.UpperRight);
+            view.ownerText = CreateText("OwnerText", root.transform, new Vector2(10f, -54f), new Vector2(220f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
+            view.typeText = CreateText("TypeText", root.transform, new Vector2(10f, -78f), new Vector2(220f, 22f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
 
             GameObject art = new GameObject("Art", typeof(RectTransform));
             art.transform.SetParent(root.transform, false);
@@ -88,12 +94,12 @@ namespace PawSlayers
             artRect.anchorMin = new Vector2(0f, 1f);
             artRect.anchorMax = new Vector2(0f, 1f);
             artRect.pivot = new Vector2(0f, 1f);
-            artRect.anchoredPosition = new Vector2(20f, -90f);
-            artRect.sizeDelta = new Vector2(180f, 90f);
+            artRect.anchoredPosition = new Vector2(20f, -108f);
+            artRect.sizeDelta = new Vector2(210f, 90f);
             view.artImage = artImage;
 
-            view.descriptionText = CreateText("Description", root.transform, new Vector2(10f, -192f), new Vector2(190f, 64f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.disabledReasonText = CreateText("DisabledReason", root.transform, new Vector2(10f, -260f), new Vector2(190f, 28f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
+            view.descriptionText = CreateText("Description", root.transform, new Vector2(10f, -208f), new Vector2(230f, 74f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.disabledReasonText = CreateText("DisabledReason", root.transform, new Vector2(10f, -286f), new Vector2(230f, 28f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
             view.disabledReasonText.color = new Color(0.7f, 0.1f, 0.1f, 1f);
             return view;
         }
@@ -108,6 +114,8 @@ namespace PawSlayers
             text.fontStyle = fontStyle;
             text.alignment = alignment;
             text.color = Color.black;
+            text.horizontalOverflow = HorizontalWrapMode.Wrap;
+            text.verticalOverflow = VerticalWrapMode.Overflow;
 
             RectTransform rect = text.rectTransform;
             rect.anchorMin = new Vector2(0f, 1f);

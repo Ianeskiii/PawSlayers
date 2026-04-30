@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,6 +13,24 @@ namespace PawSlayers
         public Text stateText;
         public Image portraitImage;
         public Image backgroundImage;
+        public Button button;
+        public Outline highlightOutline;
+
+        private RuntimeHeroState heroState;
+        private Action<RuntimeHeroState> onClicked;
+
+        public RuntimeHeroState HeroState => heroState;
+
+        public void Setup(Action<RuntimeHeroState> clickAction)
+        {
+            onClicked = clickAction;
+
+            if (button != null)
+            {
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(HandleClick);
+            }
+        }
 
         public void Refresh(RuntimeHeroState heroState)
         {
@@ -20,11 +39,14 @@ namespace PawSlayers
                 return;
             }
 
+            this.heroState = heroState;
+
             heroNameText.text = heroState.heroData.heroName;
             heroClassText.text = heroState.heroData.heroClass.ToString();
             hpText.text = $"HP: {heroState.currentHp}/{heroState.heroData.maxHp}";
             blockText.text = $"Block: {heroState.block}";
-            stateText.text = heroState.IsAlive ? "Alive" : "Down";
+            stateText.text = $"Status: {(heroState.IsAlive ? "Alive" : "Down")}";
+
             portraitImage.sprite = heroState.heroData.portrait;
             portraitImage.enabled = true;
             portraitImage.color = heroState.heroData.portrait != null ? Color.white : new Color(0.75f, 0.75f, 0.75f, 1f);
@@ -33,6 +55,19 @@ namespace PawSlayers
             {
                 backgroundImage.color = heroState.IsAlive ? new Color(0.86f, 0.93f, 0.86f, 1f) : new Color(0.55f, 0.55f, 0.55f, 1f);
             }
+        }
+
+        public void SetTargetHighlight(bool isHighlighted)
+        {
+            if (highlightOutline != null)
+            {
+                highlightOutline.enabled = isHighlighted;
+            }
+        }
+
+        private void HandleClick()
+        {
+            onClicked?.Invoke(heroState);
         }
     }
 }
