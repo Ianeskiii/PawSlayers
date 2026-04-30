@@ -12,6 +12,25 @@ namespace PawSlayers
 {
     public class RunManager : MonoBehaviour
     {
+        private static readonly HashSet<string> PrototypeStarterCardIds = new HashSet<string>
+        {
+            "swift_slash",
+            "guard_stance",
+            "pommel_tap",
+            "shadow_strike",
+            "smoke_step",
+            "muzzle_trick",
+            "staff_tap",
+            "soothing_light",
+            "quiet_blessing",
+            "shield_bash",
+            "barkskin_guard",
+            "power_combo",
+            "battle_focus",
+            "snack_time",
+            "quick_guard"
+        };
+
         public static RunManager Instance { get; private set; }
 
         [Header("Data")]
@@ -836,6 +855,8 @@ namespace PawSlayers
                 cardDatabase.cards = CreatePrototypeCards();
             }
 
+            NormalizePrototypeCardFlags();
+
             if (relicDatabase == null)
             {
                 relicDatabase = new List<RelicData>();
@@ -1132,7 +1153,7 @@ namespace PawSlayers
                 }
 
                 RuntimeCardState cardToUpgrade = currentRunDeck
-                    .Where(card => card != null && card.OwnerHeroId == heroId && card.baseCard != null && card.baseCard.isStarterCard && !card.isUpgraded && card.CanUpgrade)
+                    .Where(card => card != null && card.OwnerHeroId == heroId && card.baseCard != null && (card.baseCard.isStarterCard || PrototypeStarterCardIds.Contains(card.baseCard.cardId)) && !card.isUpgraded && card.CanUpgrade)
                     .OrderBy(_ => UnityEngine.Random.value)
                     .FirstOrDefault();
 
@@ -1143,6 +1164,27 @@ namespace PawSlayers
 
                 cardToUpgrade.Upgrade();
                 Debug.Log($"{heroId} Level 4 bonus: {cardToUpgrade.DisplayName} starts upgraded.");
+            }
+        }
+
+        private void NormalizePrototypeCardFlags()
+        {
+            if (cardDatabase == null || cardDatabase.cards == null)
+            {
+                return;
+            }
+
+            foreach (CardData card in cardDatabase.cards)
+            {
+                if (card == null || string.IsNullOrWhiteSpace(card.cardId))
+                {
+                    continue;
+                }
+
+                if (PrototypeStarterCardIds.Contains(card.cardId))
+                {
+                    card.isStarterCard = true;
+                }
             }
         }
 

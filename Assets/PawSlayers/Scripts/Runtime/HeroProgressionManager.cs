@@ -8,6 +8,24 @@ namespace PawSlayers
     {
         private const string SaveKey = "PawSlayers_HeroProgression";
         private static readonly int[] LevelThresholds = { 0, 25, 60, 110, 180 };
+        private static readonly HashSet<string> StarterCardIds = new HashSet<string>
+        {
+            "swift_slash",
+            "guard_stance",
+            "pommel_tap",
+            "shadow_strike",
+            "smoke_step",
+            "muzzle_trick",
+            "staff_tap",
+            "soothing_light",
+            "quiet_blessing",
+            "shield_bash",
+            "barkskin_guard",
+            "power_combo",
+            "battle_focus",
+            "snack_time",
+            "quick_guard"
+        };
 
         private readonly Dictionary<HeroId, string> level3UnlockCardIds = new Dictionary<HeroId, string>
         {
@@ -119,7 +137,7 @@ namespace PawSlayers
                 return false;
             }
 
-            if (card.ownerHeroId == HeroId.Neutral || card.isStarterCard)
+            if (card.ownerHeroId == HeroId.Neutral || card.isStarterCard || StarterCardIds.Contains(card.cardId))
             {
                 return true;
             }
