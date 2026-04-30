@@ -1,0 +1,121 @@
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace PawSlayers
+{
+    public class RewardCardManager : MonoBehaviour
+    {
+        public RunManager runManager;
+        public CardDatabase cardDatabase;
+        public GameObject rewardPanel;
+        public Transform rewardContainer;
+        public CardView rewardCardPrefab;
+        public Text rewardTitleText;
+
+        public void ShowRewards()
+        {
+            if (runManager == null)
+            {
+                runManager = RunManager.Instance;
+            }
+
+            if (cardDatabase == null && runManager != null)
+            {
+                cardDatabase = runManager.cardDatabase;
+            }
+
+            if (rewardPanel == null || rewardContainer == null || rewardTitleText == null || cardDatabase == null || runManager == null)
+            {
+                return;
+            }
+
+            foreach (Transform child in rewardContainer)
+            {
+                Destroy(child.gameObject);
+            }
+
+            List<CardData> eligibleCards = cardDatabase.GetEligibleCards(runManager.SelectedHeroIds);
+            List<CardData> choices = eligibleCards.OrderBy(_ => Random.value).Take(3).ToList();
+
+            foreach (CardData choice in choices)
+            {
+                CardView view = rewardCardPrefab != null
+                    ? Instantiate(rewardCardPrefab, rewardContainer)
+                    : CreateRuntimeRewardCardView(rewardContainer);
+                view.Setup(choice, SelectReward);
+                view.SetPlayable(true, string.Empty);
+            }
+
+            rewardTitleText.text = "Choose 1 Reward";
+            rewardPanel.SetActive(true);
+        }
+
+        public void SelectReward(CardData selectedCard)
+        {
+            runManager.AddRewardCard(selectedCard);
+            rewardPanel.SetActive(false);
+        }
+
+        private CardView CreateRuntimeRewardCardView(Transform parent)
+        {
+            GameObject root = new GameObject("RewardCardView", typeof(RectTransform));
+            root.transform.SetParent(parent, false);
+            LayoutElement layout = root.AddComponent<LayoutElement>();
+            layout.preferredWidth = 220f;
+            layout.preferredHeight = 300f;
+
+            Image background = root.AddComponent<Image>();
+            background.color = Color.white;
+            Button button = root.AddComponent<Button>();
+            CanvasGroup canvasGroup = root.AddComponent<CanvasGroup>();
+
+            CardView view = root.AddComponent<CardView>();
+            view.backgroundImage = background;
+            view.button = button;
+            view.canvasGroup = canvasGroup;
+            view.cardNameText = CreateText("CardName", root.transform, new Vector2(10f, -10f), new Vector2(150f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.costText = CreateText("CostText", root.transform, new Vector2(170f, -10f), new Vector2(40f, 28f), 22, FontStyle.Bold, TextAnchor.UpperRight);
+            view.ownerText = CreateText("OwnerText", root.transform, new Vector2(10f, -40f), new Vector2(190f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
+            view.typeText = CreateText("TypeText", root.transform, new Vector2(10f, -62f), new Vector2(190f, 22f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+
+            GameObject art = new GameObject("Art", typeof(RectTransform));
+            art.transform.SetParent(root.transform, false);
+            Image artImage = art.AddComponent<Image>();
+            artImage.color = new Color(0.82f, 0.82f, 0.82f, 1f);
+            RectTransform artRect = art.GetComponent<RectTransform>();
+            artRect.anchorMin = new Vector2(0f, 1f);
+            artRect.anchorMax = new Vector2(0f, 1f);
+            artRect.pivot = new Vector2(0f, 1f);
+            artRect.anchoredPosition = new Vector2(20f, -90f);
+            artRect.sizeDelta = new Vector2(180f, 90f);
+            view.artImage = artImage;
+
+            view.descriptionText = CreateText("Description", root.transform, new Vector2(10f, -192f), new Vector2(190f, 64f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.disabledReasonText = CreateText("DisabledReason", root.transform, new Vector2(10f, -260f), new Vector2(190f, 28f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
+            view.disabledReasonText.color = new Color(0.7f, 0.1f, 0.1f, 1f);
+            return view;
+        }
+
+        private Text CreateText(string name, Transform parent, Vector2 anchoredPosition, Vector2 size, int fontSize, FontStyle fontStyle, TextAnchor alignment)
+        {
+            GameObject textObject = new GameObject(name, typeof(RectTransform));
+            textObject.transform.SetParent(parent, false);
+            Text text = textObject.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = fontSize;
+            text.fontStyle = fontStyle;
+            text.alignment = alignment;
+            text.color = Color.black;
+
+            RectTransform rect = text.rectTransform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = anchoredPosition;
+            rect.sizeDelta = size;
+            return text;
+        }
+    }
+}

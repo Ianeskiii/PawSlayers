@@ -1,0 +1,696 @@
+#if UNITY_EDITOR
+using System.Collections.Generic;
+using UnityEditor;
+using UnityEditor.Events;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+
+namespace PawSlayers.EditorTools
+{
+    public static class PawSlayersPrototypeSetupEditor
+    {
+        private const string RootFolder = "Assets/PawSlayers";
+        private const string DataFolder = RootFolder + "/Data";
+        private const string HeroDataFolder = DataFolder + "/Heroes";
+        private const string CardDataFolder = DataFolder + "/Cards";
+        private const string PrefabFolder = RootFolder + "/Prefabs";
+        private const string SceneFolder = RootFolder + "/Scenes";
+
+        [MenuItem("Tools/Paw Slayers/Generate Prototype Setup")]
+        public static void GeneratePrototypeSetup()
+        {
+            EnsureFolders();
+
+            HeroDatabase heroDatabase = CreateHeroDatabase();
+            CardDatabase cardDatabase = CreateCardDatabase();
+
+            HeroSelectionButtonView heroButtonPrefab = CreateHeroSelectionButtonPrefab();
+            BattleHeroView heroViewPrefab = CreateBattleHeroViewPrefab();
+            EnemyView enemyViewPrefab = CreateEnemyViewPrefab();
+            CardView cardViewPrefab = CreateCardViewPrefab();
+
+            CreateHeroSelectionScene(heroDatabase, cardDatabase, heroButtonPrefab);
+            CreateBattleScene(cardViewPrefab, heroViewPrefab, enemyViewPrefab);
+            AddScenesToBuildSettings();
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            EditorUtility.DisplayDialog("Paw Slayers", "Prototype setup generated.\n\nScenes:\n- HeroSelection\n- Battle", "Nice");
+        }
+
+        private static void EnsureFolders()
+        {
+            EnsureFolder("Assets", "PawSlayers");
+            EnsureFolder(RootFolder, "Data");
+            EnsureFolder(RootFolder, "Prefabs");
+            EnsureFolder(RootFolder, "Scenes");
+            EnsureFolder(DataFolder, "Heroes");
+            EnsureFolder(DataFolder, "Cards");
+            EnsureFolder(RootFolder, "Scripts");
+        }
+
+        private static void EnsureFolder(string parent, string child)
+        {
+            string fullPath = parent + "/" + child;
+            if (!AssetDatabase.IsValidFolder(fullPath))
+            {
+                AssetDatabase.CreateFolder(parent, child);
+            }
+        }
+
+        private static HeroDatabase CreateHeroDatabase()
+        {
+            List<HeroData> heroAssets = new List<HeroData>
+            {
+                CreateOrUpdateHero("Capybara", HeroId.Capybara, HeroClass.Swordsman, 42, "Front-line swordsman with steady offense and defense."),
+                CreateOrUpdateHero("Koala", HeroId.Koala, HeroClass.Thief, 34, "Fast thief who chips enemies and sets up tricky turns."),
+                CreateOrUpdateHero("Sloth", HeroId.Sloth, HeroClass.Healer, 36, "Slow but reliable support healer."),
+                CreateOrUpdateHero("Panda", HeroId.Panda, HeroClass.Tank, 50, "Heavy tank who stacks block and protects the team."),
+                CreateOrUpdateHero("Kangaroo", HeroId.Kangaroo, HeroClass.Fighter, 40, "Aggressive fighter with strong combo hits.")
+            };
+
+            HeroDatabase database = LoadOrCreateAsset<HeroDatabase>(DataFolder + "/HeroDatabase.asset");
+            database.heroes = heroAssets;
+            EditorUtility.SetDirty(database);
+            return database;
+        }
+
+        private static HeroData CreateOrUpdateHero(string heroName, HeroId heroId, HeroClass heroClass, int maxHp, string description)
+        {
+            string path = $"{HeroDataFolder}/{heroName}.asset";
+            HeroData hero = LoadOrCreateAsset<HeroData>(path);
+            hero.heroName = heroName;
+            hero.heroId = heroId;
+            hero.heroClass = heroClass;
+            hero.maxHp = maxHp;
+            hero.description = description;
+            EditorUtility.SetDirty(hero);
+            return hero;
+        }
+
+        private static CardDatabase CreateCardDatabase()
+        {
+            List<CardData> cardAssets = new List<CardData>
+            {
+                CreateOrUpdateCard("swift_slash", "Swift Slash", "Deal 8 damage.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 8),
+                CreateOrUpdateCard("guard_stance", "Guard Stance", "Gain 8 block.", HeroId.Capybara, CardType.Skill, TargetType.Self, 1, block: 8),
+                CreateOrUpdateCard("shadow_strike", "Shadow Strike", "Deal 7 damage. Apply Weak later.", HeroId.Koala, CardType.Attack, TargetType.Enemy, 1, damage: 7, weakAmount: 1),
+                CreateOrUpdateCard("smoke_step", "Smoke Step", "Gain 6 block. Draw 1 card.", HeroId.Koala, CardType.Skill, TargetType.Self, 1, block: 6, drawAmount: 1),
+                CreateOrUpdateCard("staff_tap", "Staff Tap", "Deal 5 damage.", HeroId.Sloth, CardType.Attack, TargetType.Enemy, 1, damage: 5),
+                CreateOrUpdateCard("soothing_light", "Soothing Light", "Heal 8 HP.", HeroId.Sloth, CardType.Skill, TargetType.Ally, 1, heal: 8),
+                CreateOrUpdateCard("shield_bash", "Shield Bash", "Deal 6 damage. Gain 4 block.", HeroId.Panda, CardType.Attack, TargetType.Enemy, 1, damage: 6, block: 4),
+                CreateOrUpdateCard("barkskin_guard", "Barkskin Guard", "Gain 16 block. Taunt later.", HeroId.Panda, CardType.Skill, TargetType.Self, 2, block: 16, taunt: true),
+                CreateOrUpdateCard("power_combo", "Power Combo", "Deal 12 damage.", HeroId.Kangaroo, CardType.Attack, TargetType.Enemy, 2, damage: 12),
+                CreateOrUpdateCard("battle_focus", "Battle Focus", "Gain 2 Strength later.", HeroId.Kangaroo, CardType.Skill, TargetType.Self, 1, strengthAmount: 2),
+                CreateOrUpdateCard("snack_time", "Snack Time", "Draw 1 card.", HeroId.Neutral, CardType.Skill, TargetType.None, 1, drawAmount: 1),
+                CreateOrUpdateCard("quick_guard", "Quick Guard", "Gain 5 block.", HeroId.Neutral, CardType.Skill, TargetType.Self, 1, block: 5)
+            };
+
+            CardDatabase database = LoadOrCreateAsset<CardDatabase>(DataFolder + "/CardDatabase.asset");
+            database.cards = cardAssets;
+            EditorUtility.SetDirty(database);
+            return database;
+        }
+
+        private static CardData CreateOrUpdateCard(
+            string cardId,
+            string cardName,
+            string description,
+            HeroId ownerHeroId,
+            CardType cardType,
+            TargetType targetType,
+            int cost,
+            int damage = 0,
+            int block = 0,
+            int heal = 0,
+            int drawAmount = 0,
+            int strengthAmount = 0,
+            int weakAmount = 0,
+            bool taunt = false)
+        {
+            string path = $"{CardDataFolder}/{cardName.Replace(" ", string.Empty)}.asset";
+            CardData card = LoadOrCreateAsset<CardData>(path);
+            card.cardId = cardId;
+            card.cardName = cardName;
+            card.description = description;
+            card.ownerHeroId = ownerHeroId;
+            card.cardType = cardType;
+            card.targetType = targetType;
+            card.cost = cost;
+            card.damage = damage;
+            card.block = block;
+            card.heal = heal;
+            card.drawAmount = drawAmount;
+            card.strengthAmount = strengthAmount;
+            card.weakAmount = weakAmount;
+            card.taunt = taunt;
+            EditorUtility.SetDirty(card);
+            return card;
+        }
+
+        private static T LoadOrCreateAsset<T>(string path) where T : ScriptableObject
+        {
+            T asset = AssetDatabase.LoadAssetAtPath<T>(path);
+            if (asset != null)
+            {
+                return asset;
+            }
+
+            asset = ScriptableObject.CreateInstance<T>();
+            AssetDatabase.CreateAsset(asset, path);
+            return asset;
+        }
+
+        private static HeroSelectionButtonView CreateHeroSelectionButtonPrefab()
+        {
+            string path = PrefabFolder + "/HeroSelectionButton.prefab";
+            DeleteAssetIfExists(path);
+
+            GameObject root = CreateUiObject("HeroSelectionButton", null, new Vector2(420f, 120f));
+            Image rootImage = root.AddComponent<Image>();
+            rootImage.color = new Color(0.93f, 0.88f, 0.76f, 1f);
+            Button button = root.AddComponent<Button>();
+
+            GameObject outlineObject = CreateUiObject("SelectionOutline", root.transform, Vector2.zero);
+            StretchFull(outlineObject.GetComponent<RectTransform>(), 0f);
+            Image outlineImage = outlineObject.AddComponent<Image>();
+            outlineImage.color = new Color(0f, 0f, 0f, 0f);
+
+            GameObject portraitObject = CreateUiObject("Portrait", root.transform, new Vector2(90f, 90f));
+            SetAnchoredRect(portraitObject.GetComponent<RectTransform>(), new Vector2(10f, -10f), new Vector2(90f, 90f), TextAnchor.UpperLeft);
+            Image portraitImage = portraitObject.AddComponent<Image>();
+            portraitImage.color = new Color(0.8f, 0.8f, 0.8f, 1f);
+
+            Text heroName = CreateText("HeroName", root.transform, new Vector2(110f, -12f), new Vector2(250f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text heroClass = CreateText("HeroClass", root.transform, new Vector2(110f, -42f), new Vector2(250f, 24f), 18, FontStyle.Italic, TextAnchor.UpperLeft);
+            Text description = CreateText("Description", root.transform, new Vector2(110f, -68f), new Vector2(290f, 44f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+
+            HeroSelectionButtonView view = root.AddComponent<HeroSelectionButtonView>();
+            view.heroNameText = heroName;
+            view.heroClassText = heroClass;
+            view.descriptionText = description;
+            view.portraitImage = portraitImage;
+            view.selectionOutline = outlineImage;
+            view.button = button;
+
+            HeroSelectionButtonView prefab = SavePrefab<HeroSelectionButtonView>(root, path);
+            Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static BattleHeroView CreateBattleHeroViewPrefab()
+        {
+            string path = PrefabFolder + "/BattleHeroView.prefab";
+            DeleteAssetIfExists(path);
+
+            GameObject root = CreateUiObject("BattleHeroView", null, new Vector2(260f, 140f));
+            Image background = root.AddComponent<Image>();
+            background.color = new Color(0.86f, 0.93f, 0.86f, 1f);
+
+            GameObject portraitObject = CreateUiObject("Portrait", root.transform, new Vector2(70f, 70f));
+            SetAnchoredRect(portraitObject.GetComponent<RectTransform>(), new Vector2(12f, -12f), new Vector2(70f, 70f), TextAnchor.UpperLeft);
+            Image portraitImage = portraitObject.AddComponent<Image>();
+            portraitImage.color = new Color(0.8f, 0.8f, 0.8f, 1f);
+
+            Text heroName = CreateText("HeroName", root.transform, new Vector2(92f, -12f), new Vector2(150f, 26f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text heroClass = CreateText("HeroClass", root.transform, new Vector2(92f, -38f), new Vector2(150f, 24f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            Text hpText = CreateText("HpText", root.transform, new Vector2(12f, -92f), new Vector2(160f, 20f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            Text blockText = CreateText("BlockText", root.transform, new Vector2(12f, -112f), new Vector2(120f, 20f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            Text stateText = CreateText("StateText", root.transform, new Vector2(150f, -112f), new Vector2(90f, 20f), 16, FontStyle.Bold, TextAnchor.UpperRight);
+
+            BattleHeroView view = root.AddComponent<BattleHeroView>();
+            view.heroNameText = heroName;
+            view.heroClassText = heroClass;
+            view.hpText = hpText;
+            view.blockText = blockText;
+            view.stateText = stateText;
+            view.portraitImage = portraitImage;
+            view.backgroundImage = background;
+
+            BattleHeroView prefab = SavePrefab<BattleHeroView>(root, path);
+            Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static CardView CreateCardViewPrefab()
+        {
+            string path = PrefabFolder + "/CardView.prefab";
+            DeleteAssetIfExists(path);
+
+            GameObject root = CreateUiObject("CardView", null, new Vector2(220f, 300f));
+            Image background = root.AddComponent<Image>();
+            background.color = Color.white;
+            Button button = root.AddComponent<Button>();
+            CanvasGroup canvasGroup = root.AddComponent<CanvasGroup>();
+
+            Text cardName = CreateText("CardName", root.transform, new Vector2(10f, -10f), new Vector2(150f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text costText = CreateText("CostText", root.transform, new Vector2(-10f, -10f), new Vector2(40f, 28f), 22, FontStyle.Bold, TextAnchor.UpperRight);
+            costText.rectTransform.anchorMin = new Vector2(1f, 1f);
+            costText.rectTransform.anchorMax = new Vector2(1f, 1f);
+            costText.rectTransform.pivot = new Vector2(1f, 1f);
+
+            Text ownerText = CreateText("Owner", root.transform, new Vector2(10f, -40f), new Vector2(190f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
+            Text typeText = CreateText("Type", root.transform, new Vector2(10f, -62f), new Vector2(190f, 22f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+
+            GameObject artObject = CreateUiObject("Art", root.transform, new Vector2(180f, 90f));
+            SetAnchoredRect(artObject.GetComponent<RectTransform>(), new Vector2(20f, -90f), new Vector2(180f, 90f), TextAnchor.UpperLeft);
+            Image artImage = artObject.AddComponent<Image>();
+            artImage.color = new Color(0.82f, 0.82f, 0.82f, 1f);
+
+            Text descriptionText = CreateText("Description", root.transform, new Vector2(10f, -192f), new Vector2(190f, 64f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            Text disabledReasonText = CreateText("DisabledReason", root.transform, new Vector2(10f, -260f), new Vector2(190f, 28f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
+            disabledReasonText.color = new Color(0.7f, 0.1f, 0.1f, 1f);
+
+            CardView view = root.AddComponent<CardView>();
+            view.cardNameText = cardName;
+            view.ownerText = ownerText;
+            view.typeText = typeText;
+            view.costText = costText;
+            view.descriptionText = descriptionText;
+            view.disabledReasonText = disabledReasonText;
+            view.artImage = artImage;
+            view.backgroundImage = background;
+            view.button = button;
+            view.canvasGroup = canvasGroup;
+
+            CardView prefab = SavePrefab<CardView>(root, path);
+            Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static EnemyView CreateEnemyViewPrefab()
+        {
+            string path = PrefabFolder + "/EnemyView.prefab";
+            DeleteAssetIfExists(path);
+
+            GameObject root = CreateUiObject("EnemyView", null, new Vector2(260f, 120f));
+            Image background = root.AddComponent<Image>();
+            background.color = new Color(0.93f, 0.84f, 0.84f, 1f);
+
+            Text enemyName = CreateText("EnemyName", root.transform, new Vector2(12f, -12f), new Vector2(220f, 24f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text hpText = CreateText("HpText", root.transform, new Vector2(12f, -48f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            Text intentText = CreateText("IntentText", root.transform, new Vector2(12f, -76f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+
+            EnemyView view = root.AddComponent<EnemyView>();
+            view.enemyNameText = enemyName;
+            view.hpText = hpText;
+            view.intentText = intentText;
+            view.backgroundImage = background;
+
+            EnemyView prefab = SavePrefab<EnemyView>(root, path);
+            Object.DestroyImmediate(root);
+            return prefab;
+        }
+
+        private static void CreateHeroSelectionScene(HeroDatabase heroDatabase, CardDatabase cardDatabase, HeroSelectionButtonView heroButtonPrefab)
+        {
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            scene.name = "HeroSelection";
+
+            Canvas canvas = CreateCanvas();
+            CreateEventSystem();
+
+            GameObject runManagerObject = new GameObject("RunManager");
+            RunManager runManager = runManagerObject.AddComponent<RunManager>();
+            runManagerObject.AddComponent<DeckManager>();
+            runManager.heroDatabase = heroDatabase;
+            runManager.cardDatabase = cardDatabase;
+            runManager.heroSelectionSceneName = "HeroSelection";
+            runManager.battleSceneName = "Battle";
+
+            GameObject rootPanel = CreatePanel("SelectionRoot", canvas.transform, new Color(0.95f, 0.92f, 0.84f, 1f));
+            StretchFull(rootPanel.GetComponent<RectTransform>(), 20f);
+
+            CreateText("Title", rootPanel.transform, new Vector2(20f, -20f), new Vector2(600f, 40f), 32, FontStyle.Bold, TextAnchor.UpperLeft).text = "Paw Slayers - Choose 3 Heroes";
+            Text selectedCount = CreateText("SelectedCount", rootPanel.transform, new Vector2(20f, -68f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text infoMessage = CreateText("InfoMessage", rootPanel.transform, new Vector2(260f, -68f), new Vector2(520f, 28f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            infoMessage.color = new Color(0.65f, 0.15f, 0.15f, 1f);
+
+            GameObject rosterContainer = CreateUiObject("RosterContainer", rootPanel.transform, new Vector2(0f, 0f));
+            RectTransform rosterRect = rosterContainer.GetComponent<RectTransform>();
+            rosterRect.anchorMin = new Vector2(0f, 0f);
+            rosterRect.anchorMax = new Vector2(1f, 1f);
+            rosterRect.offsetMin = new Vector2(20f, 90f);
+            rosterRect.offsetMax = new Vector2(-20f, -110f);
+            VerticalLayoutGroup rosterLayout = rosterContainer.AddComponent<VerticalLayoutGroup>();
+            rosterLayout.spacing = 12f;
+            rosterLayout.childControlWidth = false;
+            rosterLayout.childControlHeight = false;
+            rosterLayout.childForceExpandWidth = false;
+            rosterLayout.childForceExpandHeight = false;
+
+            GameObject startButtonObject = CreateButton("StartRunButton", rootPanel.transform, new Vector2(-20f, 20f), new Vector2(220f, 54f), "Start Run", TextAnchor.LowerRight);
+            Button startButton = startButtonObject.GetComponent<Button>();
+
+            HeroSelectionManager selectionManager = rootPanel.AddComponent<HeroSelectionManager>();
+            selectionManager.runManager = runManager;
+            selectionManager.heroButtonContainer = rosterContainer.transform;
+            selectionManager.heroButtonPrefab = heroButtonPrefab;
+            selectionManager.selectedCountText = selectedCount;
+            selectionManager.infoMessageText = infoMessage;
+            selectionManager.startRunButton = startButton;
+
+            EditorSceneManager.SaveScene(scene, SceneFolder + "/HeroSelection.unity");
+        }
+
+        private static void CreateBattleScene(CardView cardViewPrefab, BattleHeroView heroViewPrefab, EnemyView enemyViewPrefab)
+        {
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            scene.name = "Battle";
+
+            Canvas canvas = CreateCanvas();
+            CreateEventSystem();
+
+            GameObject rootPanel = CreatePanel("BattleRoot", canvas.transform, new Color(0.88f, 0.93f, 0.96f, 1f));
+            StretchFull(rootPanel.GetComponent<RectTransform>(), 20f);
+
+            Text titleText = CreateText("Title", rootPanel.transform, new Vector2(20f, -20f), new Vector2(600f, 40f), 30, FontStyle.Bold, TextAnchor.UpperLeft);
+            titleText.text = "Paw Slayers - Battle Prototype";
+            Text turnText = CreateText("TurnText", rootPanel.transform, new Vector2(20f, -62f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text energyText = CreateText("EnergyText", rootPanel.transform, new Vector2(260f, -62f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+
+            GameObject fieldArea = CreateUiObject("FieldArea", rootPanel.transform, Vector2.zero);
+            RectTransform fieldRect = fieldArea.GetComponent<RectTransform>();
+            fieldRect.anchorMin = new Vector2(0f, 0f);
+            fieldRect.anchorMax = new Vector2(1f, 1f);
+            fieldRect.offsetMin = new Vector2(20f, 290f);
+            fieldRect.offsetMax = new Vector2(-240f, -120f);
+
+            GameObject heroPanel = CreatePanel("HeroPanel", fieldArea.transform, new Color(0.85f, 0.91f, 0.84f, 1f));
+            RectTransform heroPanelRect = heroPanel.GetComponent<RectTransform>();
+            heroPanelRect.anchorMin = new Vector2(0f, 0f);
+            heroPanelRect.anchorMax = new Vector2(0.48f, 1f);
+            heroPanelRect.offsetMin = Vector2.zero;
+            heroPanelRect.offsetMax = new Vector2(-10f, 0f);
+            CreateText("HeroesLabel", heroPanel.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft).text = "Heroes";
+
+            GameObject heroContainer = CreateUiObject("HeroContainer", heroPanel.transform, Vector2.zero);
+            RectTransform heroRect = heroContainer.GetComponent<RectTransform>();
+            heroRect.anchorMin = new Vector2(0f, 0f);
+            heroRect.anchorMax = new Vector2(1f, 1f);
+            heroRect.offsetMin = new Vector2(12f, 12f);
+            heroRect.offsetMax = new Vector2(-12f, -48f);
+            VerticalLayoutGroup heroLayout = heroContainer.AddComponent<VerticalLayoutGroup>();
+            heroLayout.spacing = 10f;
+            heroLayout.childControlWidth = true;
+            heroLayout.childControlHeight = false;
+            heroLayout.childForceExpandWidth = true;
+            heroLayout.childForceExpandHeight = false;
+
+            GameObject enemyPanel = CreatePanel("EnemyPanel", fieldArea.transform, new Color(0.94f, 0.85f, 0.85f, 1f));
+            RectTransform enemyPanelRect = enemyPanel.GetComponent<RectTransform>();
+            enemyPanelRect.anchorMin = new Vector2(0.52f, 0f);
+            enemyPanelRect.anchorMax = new Vector2(1f, 1f);
+            enemyPanelRect.offsetMin = new Vector2(10f, 0f);
+            enemyPanelRect.offsetMax = Vector2.zero;
+            CreateText("EnemiesLabel", enemyPanel.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft).text = "Enemies";
+
+            GameObject enemyContainer = CreateUiObject("EnemyContainer", enemyPanel.transform, Vector2.zero);
+            RectTransform enemyRect = enemyContainer.GetComponent<RectTransform>();
+            enemyRect.anchorMin = new Vector2(0f, 0f);
+            enemyRect.anchorMax = new Vector2(1f, 1f);
+            enemyRect.offsetMin = new Vector2(12f, 12f);
+            enemyRect.offsetMax = new Vector2(-12f, -48f);
+            VerticalLayoutGroup enemyLayout = enemyContainer.AddComponent<VerticalLayoutGroup>();
+            enemyLayout.spacing = 10f;
+            enemyLayout.childControlWidth = true;
+            enemyLayout.childControlHeight = false;
+            enemyLayout.childForceExpandWidth = true;
+            enemyLayout.childForceExpandHeight = false;
+
+            GameObject debugPanel = CreatePanel("DebugPanel", rootPanel.transform, new Color(0.82f, 0.82f, 0.82f, 1f));
+            RectTransform debugRect = debugPanel.GetComponent<RectTransform>();
+            debugRect.anchorMin = new Vector2(1f, 0.5f);
+            debugRect.anchorMax = new Vector2(1f, 0.5f);
+            debugRect.pivot = new Vector2(1f, 0.5f);
+            debugRect.anchoredPosition = new Vector2(-20f, 0f);
+            debugRect.sizeDelta = new Vector2(200f, 420f);
+            CreateText("DebugLabel", debugPanel.transform, new Vector2(12f, -12f), new Vector2(180f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft).text = "Debug";
+
+            GameObject buttonRow = CreateUiObject("DebugButtons", debugPanel.transform, Vector2.zero);
+            RectTransform buttonRect = buttonRow.GetComponent<RectTransform>();
+            buttonRect.anchorMin = new Vector2(0f, 0f);
+            buttonRect.anchorMax = new Vector2(1f, 1f);
+            buttonRect.offsetMin = new Vector2(12f, 12f);
+            buttonRect.offsetMax = new Vector2(-12f, -48f);
+            VerticalLayoutGroup buttonLayout = buttonRow.AddComponent<VerticalLayoutGroup>();
+            buttonLayout.spacing = 10f;
+            buttonLayout.childControlWidth = true;
+            buttonLayout.childControlHeight = false;
+            buttonLayout.childForceExpandWidth = true;
+            buttonLayout.childForceExpandHeight = false;
+
+            Button drawButton = CreateButton("DrawButton", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Draw Card", TextAnchor.MiddleLeft).GetComponent<Button>();
+            Button endTurnButton = CreateButton("EndTurnButton", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "End Turn", TextAnchor.MiddleLeft).GetComponent<Button>();
+            Button kill1Button = CreateButton("KillHero1Button", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Kill Hero 1", TextAnchor.MiddleLeft).GetComponent<Button>();
+            Button kill2Button = CreateButton("KillHero2Button", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Kill Hero 2", TextAnchor.MiddleLeft).GetComponent<Button>();
+            Button kill3Button = CreateButton("KillHero3Button", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Kill Hero 3", TextAnchor.MiddleLeft).GetComponent<Button>();
+            Button healButton = CreateButton("HealAllButton", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Heal All", TextAnchor.MiddleLeft).GetComponent<Button>();
+            Button winButton = CreateButton("WinBattleButton", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Win Battle", TextAnchor.MiddleLeft).GetComponent<Button>();
+
+            GameObject handPanel = CreatePanel("HandPanel", rootPanel.transform, new Color(0.95f, 0.93f, 0.87f, 1f));
+            RectTransform handPanelRect = handPanel.GetComponent<RectTransform>();
+            handPanelRect.anchorMin = new Vector2(0f, 0f);
+            handPanelRect.anchorMax = new Vector2(1f, 0f);
+            handPanelRect.pivot = new Vector2(0.5f, 0f);
+            handPanelRect.offsetMin = new Vector2(20f, 20f);
+            handPanelRect.offsetMax = new Vector2(-20f, 260f);
+            CreateText("HandLabel", handPanel.transform, new Vector2(12f, -12f), new Vector2(200f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft).text = "Hand";
+
+            GameObject handContainer = CreateUiObject("HandContainer", handPanel.transform, Vector2.zero);
+            RectTransform handRect = handContainer.GetComponent<RectTransform>();
+            handRect.anchorMin = new Vector2(0f, 0f);
+            handRect.anchorMax = new Vector2(1f, 1f);
+            handRect.offsetMin = new Vector2(12f, 12f);
+            handRect.offsetMax = new Vector2(-12f, -48f);
+            HorizontalLayoutGroup handLayout = handContainer.AddComponent<HorizontalLayoutGroup>();
+            handLayout.spacing = 10f;
+            handLayout.childControlWidth = false;
+            handLayout.childControlHeight = false;
+            handLayout.childForceExpandWidth = false;
+            handLayout.childForceExpandHeight = false;
+
+            GameObject logPanel = CreatePanel("LogPanel", rootPanel.transform, new Color(0.85f, 0.89f, 0.94f, 1f));
+            RectTransform logRect = logPanel.GetComponent<RectTransform>();
+            logRect.anchorMin = new Vector2(0f, 0f);
+            logRect.anchorMax = new Vector2(0f, 0f);
+            logRect.pivot = new Vector2(0f, 0f);
+            logRect.anchoredPosition = new Vector2(20f, 260f);
+            logRect.sizeDelta = new Vector2(520f, 130f);
+            Text battleLog = CreateText("BattleLog", logPanel.transform, new Vector2(12f, -12f), new Vector2(496f, 106f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+
+            GameObject rewardPanel = CreatePanel("RewardPanel", rootPanel.transform, new Color(0f, 0f, 0f, 0.7f));
+            RectTransform rewardRect = rewardPanel.GetComponent<RectTransform>();
+            rewardRect.anchorMin = new Vector2(0f, 0f);
+            rewardRect.anchorMax = new Vector2(1f, 1f);
+            rewardRect.offsetMin = Vector2.zero;
+            rewardRect.offsetMax = Vector2.zero;
+
+            GameObject rewardBox = CreatePanel("RewardBox", rewardPanel.transform, new Color(0.97f, 0.95f, 0.88f, 1f));
+            RectTransform rewardBoxRect = rewardBox.GetComponent<RectTransform>();
+            rewardBoxRect.anchorMin = new Vector2(0.5f, 0.5f);
+            rewardBoxRect.anchorMax = new Vector2(0.5f, 0.5f);
+            rewardBoxRect.pivot = new Vector2(0.5f, 0.5f);
+            rewardBoxRect.sizeDelta = new Vector2(760f, 420f);
+            rewardBoxRect.anchoredPosition = Vector2.zero;
+
+            Text rewardTitle = CreateText("RewardTitle", rewardBox.transform, new Vector2(20f, -20f), new Vector2(300f, 32f), 28, FontStyle.Bold, TextAnchor.UpperLeft);
+            GameObject rewardContainer = CreateUiObject("RewardContainer", rewardBox.transform, Vector2.zero);
+            RectTransform rewardContainerRect = rewardContainer.GetComponent<RectTransform>();
+            rewardContainerRect.anchorMin = new Vector2(0f, 0f);
+            rewardContainerRect.anchorMax = new Vector2(1f, 1f);
+            rewardContainerRect.offsetMin = new Vector2(20f, 20f);
+            rewardContainerRect.offsetMax = new Vector2(-20f, -70f);
+            HorizontalLayoutGroup rewardLayout = rewardContainer.AddComponent<HorizontalLayoutGroup>();
+            rewardLayout.spacing = 12f;
+            rewardLayout.childControlWidth = false;
+            rewardLayout.childControlHeight = false;
+            rewardLayout.childForceExpandWidth = false;
+            rewardLayout.childForceExpandHeight = false;
+            rewardPanel.SetActive(false);
+
+            GameObject managerObject = new GameObject("BattleManagers");
+            BattleUIManager battleUiManager = managerObject.AddComponent<BattleUIManager>();
+            RewardCardManager rewardCardManager = managerObject.AddComponent<RewardCardManager>();
+            DebugBattleControls debugControls = managerObject.AddComponent<DebugBattleControls>();
+
+            battleUiManager.heroContainer = heroContainer.transform;
+            battleUiManager.heroViewPrefab = heroViewPrefab;
+            battleUiManager.enemyContainer = enemyContainer.transform;
+            battleUiManager.enemyViewPrefab = enemyViewPrefab;
+            battleUiManager.handContainer = handContainer.transform;
+            battleUiManager.cardViewPrefab = cardViewPrefab;
+            battleUiManager.titleText = titleText;
+            battleUiManager.turnText = turnText;
+            battleUiManager.energyText = energyText;
+            battleUiManager.battleLogText = battleLog;
+            battleUiManager.drawButton = drawButton;
+            battleUiManager.endTurnButton = endTurnButton;
+            battleUiManager.killHero1Button = kill1Button;
+            battleUiManager.killHero2Button = kill2Button;
+            battleUiManager.killHero3Button = kill3Button;
+            battleUiManager.healAllButton = healButton;
+            battleUiManager.winBattleButton = winButton;
+            battleUiManager.rewardCardManager = rewardCardManager;
+
+            rewardCardManager.rewardPanel = rewardPanel;
+            rewardCardManager.rewardContainer = rewardContainer.transform;
+            rewardCardManager.rewardCardPrefab = cardViewPrefab;
+            rewardCardManager.rewardTitleText = rewardTitle;
+
+            debugControls.battleUiManager = battleUiManager;
+
+            UnityEventTools.AddIntPersistentListener(kill1Button.onClick, debugControls.KillHeroSlot, 0);
+            UnityEventTools.AddIntPersistentListener(kill2Button.onClick, debugControls.KillHeroSlot, 1);
+            UnityEventTools.AddIntPersistentListener(kill3Button.onClick, debugControls.KillHeroSlot, 2);
+            UnityEventTools.AddPersistentListener(healButton.onClick, debugControls.HealAllHeroes);
+            UnityEventTools.AddPersistentListener(winButton.onClick, debugControls.WinBattle);
+
+            EditorSceneManager.SaveScene(scene, SceneFolder + "/Battle.unity");
+        }
+
+        private static void AddScenesToBuildSettings()
+        {
+            string heroSelectionPath = SceneFolder + "/HeroSelection.unity";
+            string battlePath = SceneFolder + "/Battle.unity";
+            List<EditorBuildSettingsScene> scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
+            UpsertScene(scenes, heroSelectionPath);
+            UpsertScene(scenes, battlePath);
+            EditorBuildSettings.scenes = scenes.ToArray();
+        }
+
+        private static Canvas CreateCanvas()
+        {
+            GameObject canvasObject = new GameObject("Canvas", typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
+            Canvas canvas = canvasObject.GetComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+
+            CanvasScaler scaler = canvasObject.GetComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1920f, 1080f);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+            return canvas;
+        }
+
+        private static void CreateEventSystem()
+        {
+            new GameObject("EventSystem", typeof(EventSystem), typeof(StandaloneInputModule));
+        }
+
+        private static GameObject CreatePanel(string name, Transform parent, Color color)
+        {
+            GameObject panel = CreateUiObject(name, parent, Vector2.zero);
+            Image image = panel.AddComponent<Image>();
+            image.color = color;
+            return panel;
+        }
+
+        private static GameObject CreateButton(string name, Transform parent, Vector2 anchoredPosition, Vector2 size, string label, TextAnchor anchor)
+        {
+            GameObject buttonObject = CreateUiObject(name, parent, size);
+            RectTransform rect = buttonObject.GetComponent<RectTransform>();
+
+            if (anchor == TextAnchor.LowerRight)
+            {
+                rect.anchorMin = new Vector2(1f, 0f);
+                rect.anchorMax = new Vector2(1f, 0f);
+                rect.pivot = new Vector2(1f, 0f);
+                rect.anchoredPosition = new Vector2(anchoredPosition.x, anchoredPosition.y);
+            }
+
+            Image image = buttonObject.AddComponent<Image>();
+            image.color = new Color(0.36f, 0.55f, 0.31f, 1f);
+
+            Button button = buttonObject.AddComponent<Button>();
+            ColorBlock colors = button.colors;
+            colors.normalColor = image.color;
+            colors.highlightedColor = new Color(0.46f, 0.65f, 0.41f, 1f);
+            colors.pressedColor = new Color(0.26f, 0.45f, 0.21f, 1f);
+            button.colors = colors;
+
+            Text labelText = CreateText("Label", buttonObject.transform, Vector2.zero, size, 20, FontStyle.Bold, TextAnchor.MiddleCenter);
+            labelText.text = label;
+            StretchFull(labelText.rectTransform, 0f);
+            return buttonObject;
+        }
+
+        private static Text CreateText(string name, Transform parent, Vector2 anchoredPosition, Vector2 size, int fontSize, FontStyle fontStyle, TextAnchor alignment)
+        {
+            GameObject textObject = CreateUiObject(name, parent, size);
+            Text text = textObject.AddComponent<Text>();
+            text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            text.fontSize = fontSize;
+            text.fontStyle = fontStyle;
+            text.alignment = alignment;
+            text.color = Color.black;
+
+            RectTransform rect = text.rectTransform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = new Vector2(0f, 1f);
+            rect.anchoredPosition = anchoredPosition;
+            rect.sizeDelta = size;
+            return text;
+        }
+
+        private static GameObject CreateUiObject(string name, Transform parent, Vector2 size)
+        {
+            GameObject gameObject = new GameObject(name, typeof(RectTransform));
+            gameObject.transform.SetParent(parent, false);
+            RectTransform rect = gameObject.GetComponent<RectTransform>();
+            rect.sizeDelta = size;
+            return gameObject;
+        }
+
+        private static void StretchFull(RectTransform rectTransform, float padding)
+        {
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.offsetMin = new Vector2(padding, padding);
+            rectTransform.offsetMax = new Vector2(-padding, -padding);
+        }
+
+        private static void SetAnchoredRect(RectTransform rectTransform, Vector2 anchoredPosition, Vector2 size, TextAnchor anchor)
+        {
+            rectTransform.sizeDelta = size;
+            rectTransform.anchorMin = new Vector2(0f, 1f);
+            rectTransform.anchorMax = new Vector2(0f, 1f);
+            rectTransform.pivot = anchor == TextAnchor.UpperLeft ? new Vector2(0f, 1f) : new Vector2(0.5f, 0.5f);
+            rectTransform.anchoredPosition = anchoredPosition;
+        }
+
+        private static T SavePrefab<T>(GameObject source, string path) where T : Component
+        {
+            PrefabUtility.SaveAsPrefabAsset(source, path);
+            AssetDatabase.SaveAssets();
+            return AssetDatabase.LoadAssetAtPath<T>(path);
+        }
+
+        private static void UpsertScene(List<EditorBuildSettingsScene> scenes, string path)
+        {
+            for (int index = 0; index < scenes.Count; index++)
+            {
+                if (scenes[index].path == path)
+                {
+                    scenes[index] = new EditorBuildSettingsScene(path, true);
+                    return;
+                }
+            }
+
+            scenes.Add(new EditorBuildSettingsScene(path, true));
+        }
+
+        private static void DeleteAssetIfExists(string path)
+        {
+            if (AssetDatabase.LoadAssetAtPath<Object>(path) != null)
+            {
+                AssetDatabase.DeleteAsset(path);
+            }
+        }
+    }
+}
+#endif
