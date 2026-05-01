@@ -18,6 +18,7 @@ namespace PawSlayers
         public string intentName;
         public string intentDescription;
         public bool intentIsAttack = true;
+        public UnityEngine.Sprite battleSprite;
         public StatusEffectState statuses = new StatusEffectState();
 
         public bool IsAlive

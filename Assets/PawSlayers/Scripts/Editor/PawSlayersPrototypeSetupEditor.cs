@@ -16,8 +16,17 @@ namespace PawSlayers.EditorTools
         private const string DataFolder = RootFolder + "/Data";
         private const string HeroDataFolder = DataFolder + "/Heroes";
         private const string CardDataFolder = DataFolder + "/Cards";
+        private const string EnemyArtDatabasePath = DataFolder + "/EnemyArtDatabase.asset";
         private const string PrefabFolder = RootFolder + "/Prefabs";
         private const string SceneFolder = RootFolder + "/Scenes";
+        private const string ArtFolder = RootFolder + "/Art";
+        private const string ResourcesFolder = RootFolder + "/Resources";
+        private const string ResourcesArtFolder = ResourcesFolder + "/Art";
+        private const string HeroArtFolder = ArtFolder + "/Heroes";
+        private const string HeroPortraitArtFolder = ArtFolder + "/HeroPortraits";
+        private const string EnemyArtFolder = ArtFolder + "/Enemies";
+        private const string BossArtFolder = ArtFolder + "/Bosses";
+        private const string PlaceholderArtFolder = ArtFolder + "/Placeholders";
 
         [MenuItem("Tools/Paw Slayers/Generate Prototype Setup")]
         public static void GeneratePrototypeSetup()
@@ -26,6 +35,7 @@ namespace PawSlayers.EditorTools
 
             HeroDatabase heroDatabase = CreateHeroDatabase();
             CardDatabase cardDatabase = CreateCardDatabase();
+            EnemyArtDatabase enemyArtDatabase = CreateEnemyArtDatabase();
 
             HeroSelectionCardView heroCardPrefab = CreateHeroSelectionCardPrefab();
             BattleHeroView heroViewPrefab = CreateBattleHeroViewPrefab();
@@ -34,7 +44,7 @@ namespace PawSlayers.EditorTools
 
             CreateMainMenuScene(heroDatabase, cardDatabase);
             CreateHeroSelectionScene(heroDatabase, cardDatabase, heroCardPrefab);
-            CreateBattleScene(cardViewPrefab, heroViewPrefab, enemyViewPrefab);
+            CreateBattleScene(heroDatabase, cardDatabase, enemyArtDatabase, cardViewPrefab, heroViewPrefab, enemyViewPrefab);
             CreateMapScene(cardViewPrefab);
             CreateHeroProgressionScene(heroDatabase, cardDatabase);
             AddScenesToBuildSettings();
@@ -42,6 +52,57 @@ namespace PawSlayers.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             EditorUtility.DisplayDialog("Paw Slayers", "Prototype setup generated.\n\nScenes:\n- MainMenu\n- HeroSelection\n- Battle\n- Map\n- HeroProgression", "Nice");
+        }
+
+        [MenuItem("Tools/Paw Slayers/Assign Art From Resources")]
+        public static void AssignArtFromResources()
+        {
+            EnsureFolders();
+
+            EnemyArtDatabase enemyArtDatabase = CreateEnemyArtDatabase();
+            AssignHeroSpritesFromProjectFolders();
+
+            AssignEnemyResourceSprite(enemyArtDatabase, "sporeling", "Assets/PawSlayers/Resources/Art/Enemies/sporeling_battle.png");
+            AssignEnemyResourceSprite(enemyArtDatabase, "fungus_brute", "Assets/PawSlayers/Resources/Art/Enemies/fungus_brute_battle.png");
+            AssignEnemyResourceSprite(enemyArtDatabase, "batty", "Assets/PawSlayers/Resources/Art/Enemies/batty_battle.png");
+            AssignEnemyResourceSprite(enemyArtDatabase, "cave_rat", "Assets/PawSlayers/Resources/Art/Enemies/cave_rat_battle.png");
+            AssignEnemyResourceSprite(enemyArtDatabase, "thorn_sprite", "Assets/PawSlayers/Resources/Art/Enemies/thorn_sprite_battle.png");
+            AssignEnemyResourceSprite(enemyArtDatabase, "moss_troll", "Assets/PawSlayers/Resources/Art/Enemies/moss_troll_battle.png");
+            AssignEnemyResourceSprite(enemyArtDatabase, "crystal_slime", "Assets/PawSlayers/Resources/Art/Enemies/crystal_slime_battle.png");
+            AssignEnemyResourceSprite(enemyArtDatabase, "bandit_crow", "Assets/PawSlayers/Resources/Art/Enemies/bandit_crow_battle.png");
+            AssignEnemyResourceSprite(enemyArtDatabase, "old_treant", "Assets/PawSlayers/Resources/Art/Enemies/old_treant_battle.png");
+            AssignEnemyResourceSprite(enemyArtDatabase, "briar_king", "Assets/PawSlayers/Resources/Art/Bosses/briar_king_battle.png");
+
+            EditorUtility.SetDirty(enemyArtDatabase);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("Art assignment pass finished.");
+        }
+
+        [MenuItem("Tools/Paw Slayers/Validate Art Assignments")]
+        public static void ValidateArtAssignments()
+        {
+            string[] heroGuids = AssetDatabase.FindAssets("t:HeroData");
+            Debug.Log("Validate Art Assignments: found HeroData assets = " + heroGuids.Length);
+
+            foreach (string heroGuid in heroGuids)
+            {
+                string heroAssetPath = AssetDatabase.GUIDToAssetPath(heroGuid);
+                HeroData heroData = AssetDatabase.LoadAssetAtPath<HeroData>(heroAssetPath);
+
+                if (heroData == null)
+                {
+                    Debug.LogWarning("Validate Art Assignments: failed to load HeroData at " + heroAssetPath);
+                    continue;
+                }
+
+                Debug.Log(
+                    $"HeroData asset found: {heroAssetPath}\n" +
+                    $"- Hero: {heroData.heroName} ({heroData.heroId})\n" +
+                    $"- battleSprite: {(heroData.battleSprite != null ? AssetDatabase.GetAssetPath(heroData.battleSprite) : "EMPTY")}\n" +
+                    $"- portraitSprite: {(heroData.portraitSprite != null ? AssetDatabase.GetAssetPath(heroData.portraitSprite) : "EMPTY")}\n" +
+                    $"- portrait: {(heroData.portrait != null ? AssetDatabase.GetAssetPath(heroData.portrait) : "EMPTY")}");
+            }
         }
 
         private static void EnsureFolders()
@@ -53,6 +114,18 @@ namespace PawSlayers.EditorTools
             EnsureFolder(DataFolder, "Heroes");
             EnsureFolder(DataFolder, "Cards");
             EnsureFolder(RootFolder, "Scripts");
+            EnsureFolder(RootFolder, "Art");
+            EnsureFolder(RootFolder, "Resources");
+            EnsureFolder(ResourcesFolder, "Art");
+            EnsureFolder(ArtFolder, "Heroes");
+            EnsureFolder(ArtFolder, "HeroPortraits");
+            EnsureFolder(ArtFolder, "Enemies");
+            EnsureFolder(ArtFolder, "Bosses");
+            EnsureFolder(ArtFolder, "Placeholders");
+            EnsureFolder(ResourcesArtFolder, "Heroes");
+            EnsureFolder(ResourcesArtFolder, "HeroPortraits");
+            EnsureFolder(ResourcesArtFolder, "Enemies");
+            EnsureFolder(ResourcesArtFolder, "Bosses");
         }
 
         private static void EnsureFolder(string parent, string child)
@@ -117,6 +190,28 @@ namespace PawSlayers.EditorTools
 
             CardDatabase database = LoadOrCreateAsset<CardDatabase>(DataFolder + "/CardDatabase.asset");
             database.cards = cardAssets;
+            EditorUtility.SetDirty(database);
+            return database;
+        }
+
+        private static EnemyArtDatabase CreateEnemyArtDatabase()
+        {
+            EnemyArtDatabase database = LoadOrCreateAsset<EnemyArtDatabase>(EnemyArtDatabasePath);
+            if (database.enemies == null)
+            {
+                database.enemies = new List<EnemyArtDatabase.EnemyArtEntry>();
+            }
+
+            EnsureEnemyArtEntry(database, "sporeling");
+            EnsureEnemyArtEntry(database, "fungus_brute");
+            EnsureEnemyArtEntry(database, "batty");
+            EnsureEnemyArtEntry(database, "cave_rat");
+            EnsureEnemyArtEntry(database, "thorn_sprite");
+            EnsureEnemyArtEntry(database, "moss_troll");
+            EnsureEnemyArtEntry(database, "crystal_slime");
+            EnsureEnemyArtEntry(database, "bandit_crow");
+            EnsureEnemyArtEntry(database, "old_treant");
+            EnsureEnemyArtEntry(database, "briar_king");
             EditorUtility.SetDirty(database);
             return database;
         }
@@ -204,6 +299,177 @@ namespace PawSlayers.EditorTools
             return asset;
         }
 
+        private static void EnsureEnemyArtEntry(EnemyArtDatabase database, string enemyId)
+        {
+            if (database == null || string.IsNullOrWhiteSpace(enemyId))
+            {
+                return;
+            }
+
+            if (database.enemies.Exists(entry => entry != null && entry.enemyId == enemyId))
+            {
+                return;
+            }
+
+            database.enemies.Add(new EnemyArtDatabase.EnemyArtEntry { enemyId = enemyId });
+        }
+
+        private static Sprite LoadSpriteAsset(string assetPath)
+        {
+            if (string.IsNullOrWhiteSpace(assetPath))
+            {
+                return null;
+            }
+
+            Sprite sprite = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+            if (sprite != null)
+            {
+                return sprite;
+            }
+
+            Texture2D texture = AssetDatabase.LoadAssetAtPath<Texture2D>(assetPath);
+            if (texture == null)
+            {
+                return null;
+            }
+
+            Debug.LogWarning("Texture found but sprite missing at path: " + assetPath + ". Attempting to switch importer to Sprite (2D and UI).");
+
+            TextureImporter importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+            if (importer == null)
+            {
+                Debug.LogWarning("Failed to get TextureImporter for path: " + assetPath);
+                return null;
+            }
+
+            bool changed = false;
+
+            if (importer.textureType != TextureImporterType.Sprite)
+            {
+                importer.textureType = TextureImporterType.Sprite;
+                changed = true;
+            }
+
+            if (importer.spriteImportMode != SpriteImportMode.Single)
+            {
+                importer.spriteImportMode = SpriteImportMode.Single;
+                changed = true;
+            }
+
+            if (!importer.alphaIsTransparency)
+            {
+                importer.alphaIsTransparency = true;
+                changed = true;
+            }
+
+            if (importer.mipmapEnabled)
+            {
+                importer.mipmapEnabled = false;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                importer.SaveAndReimport();
+            }
+
+            sprite = AssetDatabase.LoadAssetAtPath<Sprite>(assetPath);
+            if (sprite == null)
+            {
+                Debug.LogWarning("Sprite import conversion did not produce a Sprite at path: " + assetPath);
+            }
+            else
+            {
+                Debug.Log("Sprite import conversion succeeded: " + assetPath);
+            }
+
+            return sprite;
+        }
+
+        private static void AssignHeroSpritesFromProjectFolders()
+        {
+            string[] heroGuids = AssetDatabase.FindAssets("t:HeroData");
+            Debug.Log("Assign Art From Resources: found HeroData assets = " + heroGuids.Length);
+
+            foreach (string heroGuid in heroGuids)
+            {
+                string heroAssetPath = AssetDatabase.GUIDToAssetPath(heroGuid);
+                HeroData heroData = AssetDatabase.LoadAssetAtPath<HeroData>(heroAssetPath);
+
+                if (heroData == null)
+                {
+                    Debug.LogWarning("Assign Art From Resources: failed to load HeroData at " + heroAssetPath);
+                    continue;
+                }
+
+                Debug.Log("HeroData asset found: " + heroAssetPath);
+
+                string heroStem = heroData.heroId.ToString().ToLowerInvariant() + "_" + heroData.heroClass.ToString().ToLowerInvariant();
+                Sprite battleSprite = TryLoadHeroSprite(
+                    heroData,
+                    "battle",
+                    new[]
+                    {
+                        $"{HeroArtFolder}/{heroStem}_battle.png",
+                        $"{ResourcesArtFolder}/Heroes/{heroStem}_battle.png"
+                    });
+
+                Sprite portraitSprite = TryLoadHeroSprite(
+                    heroData,
+                    "portrait",
+                    new[]
+                    {
+                        $"{HeroPortraitArtFolder}/{heroStem}_portrait.png",
+                        $"{ResourcesArtFolder}/HeroPortraits/{heroStem}_portrait.png"
+                    });
+
+                heroData.battleSprite = battleSprite;
+                heroData.portraitSprite = portraitSprite;
+                heroData.portrait = portraitSprite;
+
+                EditorUtility.SetDirty(heroData);
+
+                Debug.Log(battleSprite != null
+                    ? "Assigned hero battle sprite: " + heroData.heroName + " -> " + AssetDatabase.GetAssetPath(battleSprite)
+                    : "Failed to assign hero battle sprite: " + heroData.heroName);
+
+                Debug.Log(portraitSprite != null
+                    ? "Assigned hero portrait sprite: " + heroData.heroName + " -> " + AssetDatabase.GetAssetPath(portraitSprite)
+                    : "Failed to assign hero portrait sprite: " + heroData.heroName);
+            }
+        }
+
+        private static Sprite TryLoadHeroSprite(HeroData heroData, string spriteKind, IEnumerable<string> candidatePaths)
+        {
+            foreach (string candidatePath in candidatePaths)
+            {
+                Debug.Log($"Checking {spriteKind} sprite path for {heroData.heroName}: {candidatePath}");
+                Sprite sprite = LoadSpriteAsset(candidatePath);
+                if (sprite != null)
+                {
+                    Debug.Log($"Found {spriteKind} sprite for {heroData.heroName}: {candidatePath}");
+                    return sprite;
+                }
+            }
+
+            Debug.LogWarning($"Missing {spriteKind} sprite for {heroData.heroName} after checking all candidate paths.");
+            return null;
+        }
+
+        private static void AssignEnemyResourceSprite(EnemyArtDatabase database, string enemyId, string assetPath)
+        {
+            if (database == null)
+            {
+                return;
+            }
+
+            Sprite sprite = LoadSpriteAsset(assetPath);
+            database.SetBattleSprite(enemyId, sprite);
+            Debug.Log(sprite != null
+                ? "Assigned enemy sprite: " + enemyId
+                : "Missing enemy sprite: " + enemyId);
+        }
+
         private static HeroSelectionCardView CreateHeroSelectionCardPrefab()
         {
             string path = PrefabFolder + "/HeroSelectionCard.prefab";
@@ -223,6 +489,7 @@ namespace PawSlayers.EditorTools
             SetAnchoredRect(portraitObject.GetComponent<RectTransform>(), new Vector2(18f, -20f), new Vector2(96f, 96f), TextAnchor.UpperLeft);
             Image portraitImage = portraitObject.AddComponent<Image>();
             portraitImage.color = new Color(0.8f, 0.8f, 0.8f, 1f);
+            portraitImage.preserveAspect = true;
 
             Text heroName = CreateText("HeroName", root.transform, new Vector2(132f, -18f), new Vector2(220f, 26f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
             Text heroClass = CreateText("HeroClass", root.transform, new Vector2(132f, -48f), new Vector2(220f, 22f), 18, FontStyle.Italic, TextAnchor.UpperLeft);
@@ -255,6 +522,7 @@ namespace PawSlayers.EditorTools
             SetAnchoredRect(portraitObject.GetComponent<RectTransform>(), new Vector2(12f, -12f), new Vector2(70f, 70f), TextAnchor.UpperLeft);
             Image portraitImage = portraitObject.AddComponent<Image>();
             portraitImage.color = new Color(0.8f, 0.8f, 0.8f, 1f);
+            portraitImage.preserveAspect = true;
 
             Text heroName = CreateText("HeroName", root.transform, new Vector2(92f, -12f), new Vector2(150f, 26f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
             Text heroClass = CreateText("HeroClass", root.transform, new Vector2(92f, -38f), new Vector2(150f, 24f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
@@ -283,29 +551,82 @@ namespace PawSlayers.EditorTools
             string path = PrefabFolder + "/CardView.prefab";
             DeleteAssetIfExists(path);
 
-            GameObject root = CreateUiObject("CardView", null, new Vector2(220f, 300f));
+            GameObject root = CreateUiObject("CardView", null, new Vector2(236f, 336f));
             Image background = root.AddComponent<Image>();
-            background.color = Color.white;
+            background.color = new Color(0.96f, 0.93f, 0.84f, 1f);
             Button button = root.AddComponent<Button>();
             CanvasGroup canvasGroup = root.AddComponent<CanvasGroup>();
+            Outline outline = root.AddComponent<Outline>();
+            outline.effectColor = new Color(0.95f, 0.80f, 0.27f, 1f);
+            outline.effectDistance = new Vector2(4f, -4f);
+            outline.enabled = false;
 
-            Text cardName = CreateText("CardName", root.transform, new Vector2(10f, -10f), new Vector2(150f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            Text costText = CreateText("CostText", root.transform, new Vector2(-10f, -10f), new Vector2(40f, 28f), 22, FontStyle.Bold, TextAnchor.UpperRight);
-            costText.rectTransform.anchorMin = new Vector2(1f, 1f);
-            costText.rectTransform.anchorMax = new Vector2(1f, 1f);
-            costText.rectTransform.pivot = new Vector2(1f, 1f);
+            GameObject ownerAccentObject = CreateUiObject("OwnerAccent", root.transform, Vector2.zero);
+            Image ownerAccent = ownerAccentObject.AddComponent<Image>();
+            ownerAccent.color = new Color(0.66f, 0.58f, 0.43f, 1f);
+            RectTransform ownerAccentRect = ownerAccentObject.GetComponent<RectTransform>();
+            ownerAccentRect.anchorMin = new Vector2(0f, 0f);
+            ownerAccentRect.anchorMax = new Vector2(0f, 1f);
+            ownerAccentRect.pivot = new Vector2(0f, 0.5f);
+            ownerAccentRect.anchoredPosition = Vector2.zero;
+            ownerAccentRect.sizeDelta = new Vector2(10f, 0f);
 
-            Text ownerText = CreateText("Owner", root.transform, new Vector2(10f, -40f), new Vector2(190f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
-            Text typeText = CreateText("Type", root.transform, new Vector2(10f, -62f), new Vector2(190f, 22f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            GameObject headerObject = CreateUiObject("HeaderBanner", root.transform, Vector2.zero);
+            Image headerBanner = headerObject.AddComponent<Image>();
+            headerBanner.color = new Color(0.24f, 0.50f, 0.42f, 1f);
+            RectTransform headerRect = headerObject.GetComponent<RectTransform>();
+            headerRect.anchorMin = new Vector2(0f, 1f);
+            headerRect.anchorMax = new Vector2(1f, 1f);
+            headerRect.pivot = new Vector2(0.5f, 1f);
+            headerRect.offsetMin = new Vector2(10f, -86f);
+            headerRect.offsetMax = new Vector2(-10f, -56f);
 
-            GameObject artObject = CreateUiObject("Art", root.transform, new Vector2(180f, 90f));
-            SetAnchoredRect(artObject.GetComponent<RectTransform>(), new Vector2(20f, -90f), new Vector2(180f, 90f), TextAnchor.UpperLeft);
+            GameObject costBadgeObject = CreateUiObject("CostBadge", root.transform, new Vector2(42f, 42f));
+            Image costBadge = costBadgeObject.AddComponent<Image>();
+            costBadge.color = new Color(0.20f, 0.40f, 0.70f, 1f);
+            SetAnchoredRect(costBadgeObject.GetComponent<RectTransform>(), new Vector2(12f, -12f), new Vector2(42f, 42f), TextAnchor.UpperLeft);
+
+            Text costText = CreateText("CostText", costBadgeObject.transform, Vector2.zero, new Vector2(42f, 42f), 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchFull(costText.rectTransform, 0f);
+            costText.color = Color.white;
+
+            Text cardName = CreateText("CardName", root.transform, new Vector2(62f, -12f), new Vector2(154f, 34f), 20, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text upgradedLabel = CreateText("UpgradedLabel", root.transform, new Vector2(132f, -14f), new Vector2(84f, 18f), 11, FontStyle.Bold, TextAnchor.UpperRight);
+            upgradedLabel.color = new Color(0.72f, 0.56f, 0.16f, 1f);
+
+            Text ownerText = CreateText("Owner", root.transform, new Vector2(16f, -50f), new Vector2(202f, 18f), 14, FontStyle.Italic, TextAnchor.UpperLeft);
+            Text typeText = CreateText("Type", root.transform, new Vector2(16f, -74f), new Vector2(110f, 18f), 13, FontStyle.Bold, TextAnchor.MiddleCenter);
+            typeText.color = new Color(0.98f, 0.96f, 0.90f, 1f);
+
+            GameObject artFrameObject = CreateUiObject("ArtFrame", root.transform, new Vector2(204f, 94f));
+            Image artFrame = artFrameObject.AddComponent<Image>();
+            artFrame.color = new Color(0.72f, 0.64f, 0.50f, 1f);
+            SetAnchoredRect(artFrameObject.GetComponent<RectTransform>(), new Vector2(16f, -102f), new Vector2(204f, 94f), TextAnchor.UpperLeft);
+
+            GameObject artObject = CreateUiObject("Art", artFrameObject.transform, new Vector2(192f, 82f));
+            StretchFull(artObject.GetComponent<RectTransform>(), 6f);
             Image artImage = artObject.AddComponent<Image>();
-            artImage.color = new Color(0.82f, 0.82f, 0.82f, 1f);
+            artImage.color = new Color(0.84f, 0.82f, 0.76f, 1f);
 
-            Text descriptionText = CreateText("Description", root.transform, new Vector2(10f, -192f), new Vector2(190f, 64f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
-            Text disabledReasonText = CreateText("DisabledReason", root.transform, new Vector2(10f, -260f), new Vector2(190f, 28f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
-            disabledReasonText.color = new Color(0.7f, 0.1f, 0.1f, 1f);
+            Text artLabel = CreateText("ArtLabel", artFrameObject.transform, Vector2.zero, new Vector2(180f, 48f), 18, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchFull(artLabel.rectTransform, 8f);
+
+            Text descriptionText = CreateText("Description", root.transform, new Vector2(16f, -210f), new Vector2(204f, 88f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
+
+            GameObject disabledOverlayObject = CreateUiObject("DisabledOverlay", root.transform, Vector2.zero);
+            Image disabledOverlay = disabledOverlayObject.AddComponent<Image>();
+            disabledOverlay.color = new Color(0.10f, 0.10f, 0.12f, 0.42f);
+            StretchFull(disabledOverlayObject.GetComponent<RectTransform>(), 0f);
+            disabledOverlay.enabled = false;
+
+            Text disabledReasonText = CreateText("DisabledReason", disabledOverlayObject.transform, new Vector2(18f, -302f), new Vector2(200f, 28f), 14, FontStyle.Bold, TextAnchor.MiddleCenter);
+            disabledReasonText.color = new Color(1f, 0.95f, 0.95f, 1f);
+            RectTransform disabledReasonRect = disabledReasonText.rectTransform;
+            disabledReasonRect.anchorMin = new Vector2(0f, 0f);
+            disabledReasonRect.anchorMax = new Vector2(1f, 0f);
+            disabledReasonRect.pivot = new Vector2(0.5f, 0f);
+            disabledReasonRect.anchoredPosition = new Vector2(0f, 14f);
+            disabledReasonRect.sizeDelta = new Vector2(-18f, 40f);
 
             CardView view = root.AddComponent<CardView>();
             view.cardNameText = cardName;
@@ -314,10 +635,18 @@ namespace PawSlayers.EditorTools
             view.costText = costText;
             view.descriptionText = descriptionText;
             view.disabledReasonText = disabledReasonText;
+            view.upgradedLabelText = upgradedLabel;
+            view.artLabelText = artLabel;
             view.artImage = artImage;
             view.backgroundImage = background;
+            view.costBadgeImage = costBadge;
+            view.disabledOverlayImage = disabledOverlay;
+            view.headerBannerImage = headerBanner;
+            view.ownerAccentImage = ownerAccent;
+            view.artFrameImage = artFrame;
             view.button = button;
             view.canvasGroup = canvasGroup;
+            view.selectionOutline = outline;
 
             CardView prefab = SavePrefab<CardView>(root, path);
             Object.DestroyImmediate(root);
@@ -350,6 +679,13 @@ namespace PawSlayers.EditorTools
             view.intentDescriptionText = intentDescriptionText;
             view.statusText = statusText;
             view.backgroundImage = background;
+
+            GameObject spriteObject = CreateUiObject("EnemySprite", root.transform, new Vector2(88f, 88f));
+            SetAnchoredRect(spriteObject.GetComponent<RectTransform>(), new Vector2(160f, -12f), new Vector2(88f, 88f), TextAnchor.UpperLeft);
+            Image spriteImage = spriteObject.AddComponent<Image>();
+            spriteImage.color = new Color(0.75f, 0.75f, 0.78f, 1f);
+            spriteImage.preserveAspect = true;
+            view.spriteImage = spriteImage;
 
             EnemyView prefab = SavePrefab<EnemyView>(root, path);
             Object.DestroyImmediate(root);
@@ -413,7 +749,7 @@ namespace PawSlayers.EditorTools
             EditorSceneManager.SaveScene(scene, SceneFolder + "/MainMenu.unity");
         }
 
-        private static void CreateBattleScene(CardView cardViewPrefab, BattleHeroView heroViewPrefab, EnemyView enemyViewPrefab)
+        private static void CreateBattleScene(HeroDatabase heroDatabase, CardDatabase cardDatabase, EnemyArtDatabase enemyArtDatabase, CardView cardViewPrefab, BattleHeroView heroViewPrefab, EnemyView enemyViewPrefab)
         {
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "Battle";
@@ -573,15 +909,45 @@ namespace PawSlayers.EditorTools
             BattleUIManager battleUiManager = managerObject.AddComponent<BattleUIManager>();
             RewardCardManager rewardCardManager = managerObject.AddComponent<RewardCardManager>();
             DebugBattleControls debugControls = managerObject.AddComponent<DebugBattleControls>();
+            GameObject runManagerObject = new GameObject("RunManager");
+            RunManager runManager = runManagerObject.AddComponent<RunManager>();
+            runManagerObject.AddComponent<DeckManager>();
+            runManager.heroDatabase = heroDatabase;
+            runManager.cardDatabase = cardDatabase;
+            runManager.enemyArtDatabase = enemyArtDatabase;
+            runManager.mainMenuSceneName = "MainMenu";
+            runManager.heroSelectionSceneName = "HeroSelection";
+            runManager.battleSceneName = "Battle";
+            runManager.mapSceneName = "Map";
+            runManager.heroProgressionSceneName = "HeroProgression";
 
+            battleUiManager.runManager = runManager;
+            battleUiManager.enemyArtDatabase = enemyArtDatabase;
             battleUiManager.heroViewPrefab = heroViewPrefab;
             battleUiManager.enemyViewPrefab = enemyViewPrefab;
             battleUiManager.cardViewPrefab = cardViewPrefab;
             battleUiManager.rewardCardManager = rewardCardManager;
+            battleUiManager.drawButton = drawButton;
+            battleUiManager.endTurnButton = endTurnButton;
+            battleUiManager.killHero1Button = kill1Button;
+            battleUiManager.killHero2Button = kill2Button;
+            battleUiManager.killHero3Button = kill3Button;
+            battleUiManager.healAllButton = healButton;
+            battleUiManager.winBattleButton = winButton;
+            battleUiManager.battleLogText = battleLog;
+            battleUiManager.handContainer = handContainer.transform;
+            battleUiManager.heroContainer = heroContainer.transform;
+            battleUiManager.enemyContainer = enemyContainer.transform;
 
+            rewardCardManager.runManager = runManager;
+            rewardCardManager.cardDatabase = cardDatabase;
             rewardCardManager.rewardCardPrefab = cardViewPrefab;
+            rewardCardManager.rewardPanel = rewardPanel;
+            rewardCardManager.rewardContainer = rewardContainer.transform;
+            rewardCardManager.rewardTitleText = rewardTitle;
 
             debugControls.battleUiManager = battleUiManager;
+            debugControls.runManager = runManager;
 
             UnityEventTools.AddIntPersistentListener(kill1Button.onClick, debugControls.KillHeroSlot, 0);
             UnityEventTools.AddIntPersistentListener(kill2Button.onClick, debugControls.KillHeroSlot, 1);

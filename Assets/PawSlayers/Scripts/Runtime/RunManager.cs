@@ -36,6 +36,7 @@ namespace PawSlayers
         [Header("Data")]
         public HeroDatabase heroDatabase;
         public CardDatabase cardDatabase;
+        public EnemyArtDatabase enemyArtDatabase;
         public List<RelicData> relicDatabase = new List<RelicData>();
         public HeroProgressionManager progressionManager;
         public RunSaveManager runSaveManager;
@@ -633,9 +634,36 @@ namespace PawSlayers
         public void PrepareEncounterDeck()
         {
             EnsurePrototypeData();
+            EnsureDeckManager();
             InitializeCurrentRunDeckIfNeeded();
+
+            if (currentRunDeck == null)
+            {
+                currentRunDeck = new List<RuntimeCardState>();
+            }
+
             deckManager.SetStartingDeck(new List<RuntimeCardState>(currentRunDeck));
-            Debug.Log("Run deck cards after filtering: " + string.Join(", ", currentRunDeck.Select(card => card.DisplayName)));
+
+            Debug.Log("Run deck cards after filtering: " +
+                    string.Join(", ", currentRunDeck
+                        .Where(card => card != null)
+                        .Select(card => card.DisplayName)));
+        }
+
+        private void EnsureDeckManager()
+        {
+            if (deckManager != null)
+            {
+                return;
+            }
+
+            deckManager = GetComponent<DeckManager>();
+
+            if (deckManager == null)
+            {
+                deckManager = gameObject.AddComponent<DeckManager>();
+                Debug.LogWarning("DeckManager was missing on RunManager. Added one automatically.");
+            }
         }
 
         public void InitializeCurrentRunDeckIfNeeded()
@@ -658,6 +686,13 @@ namespace PawSlayers
             }
 
             currentRunDeck = DeckBuilder.BuildStartingDeck(cardDatabase.cards, selectedHeroIds, progressionManager);
+
+            if (currentRunDeck == null || currentRunDeck.Count == 0)
+            {
+                Debug.LogWarning("Starting deck build returned no cards. Falling back to prototype starter deck.");
+                currentRunDeck = DeckBuilder.BuildStartingDeck(CreatePrototypeCards(), selectedHeroIds, null);
+            }
+
             ApplyStartingDeckProgressionBonuses();
             Debug.Log("Initialized run deck. Count: " + currentRunDeck.Count);
         }
@@ -910,10 +945,8 @@ namespace PawSlayers
             gold = 100;
             runProgressSummaries.Clear();
 
-            if (deckManager != null)
-            {
-                deckManager.SetStartingDeck(new List<RuntimeCardState>());
-            }
+            EnsureDeckManager();
+            deckManager.SetStartingDeck(new List<RuntimeCardState>());
         }
 
         private void InitializeRelicPool()
@@ -1391,6 +1424,17 @@ namespace PawSlayers
                 RuntimeCardState runtimeCard = RuntimeCardState.Create(cardDefinition);
                 runtimeCard.isUpgraded = savedCard.isUpgraded;
                 currentRunDeck.Add(runtimeCard);
+            }
+
+            if (currentRunDeck.Count == 0)
+            {
+                Debug.LogWarning("Saved run deck restored as empty. Rebuilding from starter deck for the selected heroes.");
+                currentRunDeck = DeckBuilder.BuildStartingDeck(cardDatabase.cards, selectedHeroIds, progressionManager);
+
+                if (currentRunDeck == null || currentRunDeck.Count == 0)
+                {
+                    currentRunDeck = DeckBuilder.BuildStartingDeck(CreatePrototypeCards(), selectedHeroIds, null);
+                }
             }
         }
 

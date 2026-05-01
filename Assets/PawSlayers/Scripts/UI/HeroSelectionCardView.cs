@@ -58,9 +58,11 @@ namespace PawSlayers
 
             if (portraitImage != null)
             {
-                portraitImage.sprite = data.portrait;
+                Sprite portraitSprite = PawSlayersArtResolver.GetHeroPortraitSprite(data);
+                portraitImage.sprite = portraitSprite;
                 portraitImage.enabled = true;
-                portraitImage.color = data.portrait != null ? Color.white : new Color(0.75f, 0.75f, 0.75f, 1f);
+                portraitImage.preserveAspect = true;
+                portraitImage.color = portraitSprite != null ? Color.white : new Color(0.75f, 0.75f, 0.75f, 1f);
             }
 
             if (button != null)
@@ -169,9 +171,10 @@ namespace PawSlayers
 
             if (portraitImage != null)
             {
+                Sprite portraitSprite = heroData != null ? PawSlayersArtResolver.GetHeroPortraitSprite(heroData) : null;
                 portraitImage.color = isLocked
                     ? new Color(0.45f, 0.45f, 0.45f, 1f)
-                    : (heroData != null && heroData.portrait != null ? Color.white : new Color(0.75f, 0.75f, 0.75f, 1f));
+                    : (portraitSprite != null ? Color.white : new Color(0.75f, 0.75f, 0.75f, 1f));
             }
         }
 

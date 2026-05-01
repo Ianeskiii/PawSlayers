@@ -62,9 +62,14 @@ namespace PawSlayers
                     : string.Empty;
             }
 
-            portraitImage.sprite = heroState.heroData.portrait;
-            portraitImage.enabled = true;
-            portraitImage.color = heroState.heroData.portrait != null ? Color.white : new Color(0.75f, 0.75f, 0.75f, 1f);
+            if (portraitImage != null)
+            {
+                Sprite heroSprite = PawSlayersArtResolver.GetHeroBattleSprite(heroState.heroData);
+                portraitImage.sprite = heroSprite;
+                portraitImage.enabled = true;
+                portraitImage.preserveAspect = true;
+                portraitImage.color = heroSprite != null ? Color.white : new Color(0.75f, 0.75f, 0.75f, 1f);
+            }
 
             if (backgroundImage != null)
             {

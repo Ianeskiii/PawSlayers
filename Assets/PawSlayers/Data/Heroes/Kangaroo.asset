@@ -17,4 +17,6 @@ MonoBehaviour:
   heroClass: 5
   maxHp: 40
   description: Combo damage and strength.
-  portrait: {fileID: 0}
+  battleSprite: {fileID: 21300000, guid: 4bd3e9ed7ba72ed4da7bc50693bd4c32, type: 3}
+  portraitSprite: {fileID: 21300000, guid: f44c4f33e37901d499a2d245b7d45f26, type: 3}
+  portrait: {fileID: 21300000, guid: f44c4f33e37901d499a2d245b7d45f26, type: 3}

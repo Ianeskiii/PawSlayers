@@ -745,21 +745,35 @@ namespace PawSlayers
         {
             GameObject root = CreatePanel("ShopOffer", parent, new Color(0.93f, 0.89f, 0.80f, 1f));
             RectTransform rect = root.GetComponent<RectTransform>();
-            rect.sizeDelta = new Vector2(280f, 200f);
+            rect.sizeDelta = new Vector2(280f, 232f);
             LayoutElement layout = root.AddComponent<LayoutElement>();
             layout.preferredWidth = 280f;
-            layout.preferredHeight = 200f;
+            layout.preferredHeight = 232f;
             layout.minWidth = 280f;
-            layout.minHeight = 200f;
+            layout.minHeight = 232f;
 
             Color accent = GetShopOfferColor(offer.offerType);
+            GameObject accentStrip = CreatePanel("AccentStrip", root.transform, accent);
+            RectTransform accentRect = accentStrip.GetComponent<RectTransform>();
+            accentRect.anchorMin = new Vector2(0f, 1f);
+            accentRect.anchorMax = new Vector2(1f, 1f);
+            accentRect.pivot = new Vector2(0.5f, 1f);
+            accentRect.offsetMin = new Vector2(0f, -10f);
+            accentRect.offsetMax = new Vector2(0f, 0f);
+
             Text title = CreateText("OfferTitle", root.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
             title.text = offer.title;
             title.color = TextDarkColor;
-            Text description = CreateText("OfferDescription", root.transform, new Vector2(12f, -46f), new Vector2(248f, 76f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            Text description = CreateText("OfferDescription", root.transform, new Vector2(12f, -48f), new Vector2(248f, 68f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
             description.text = offer.description;
             description.color = new Color(0.28f, 0.24f, 0.20f, 1f);
-            Text cost = CreateText("OfferCost", root.transform, new Vector2(12f, -128f), new Vector2(140f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+
+            if (offer.offerType == ShopOfferType.Card && offer.cardData != null)
+            {
+                CreateMiniCardPreview(root.transform, offer.cardData, new Vector2(12f, -118f));
+            }
+
+            Text cost = CreateText("OfferCost", root.transform, new Vector2(12f, -164f), new Vector2(140f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
             cost.text = "Cost: " + offer.cost;
             cost.color = GoldColor;
 
@@ -771,7 +785,7 @@ namespace PawSlayers
             buyRect.anchoredPosition = new Vector2(-12f, 12f);
             buyRect.sizeDelta = new Vector2(110f, 42f);
 
-            Text soldText = CreateText("SoldText", root.transform, new Vector2(12f, -160f), new Vector2(120f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text soldText = CreateText("SoldText", root.transform, new Vector2(12f, -194f), new Vector2(120f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
             soldText.text = offer.isPurchased ? "Sold" : string.Empty;
             soldText.color = offer.isPurchased ? DisabledColor : accent;
 
@@ -779,6 +793,58 @@ namespace PawSlayers
             StyleButton(buyButton, accent, false);
             buyButton.onClick.RemoveAllListeners();
             buyButton.onClick.AddListener(() => TryBuyShopOffer(offer));
+        }
+
+        private void CreateMiniCardPreview(Transform parent, CardData card, Vector2 anchoredPosition)
+        {
+            GameObject preview = CreatePanel("CardPreview", parent, new Color(0.96f, 0.93f, 0.84f, 1f));
+            RectTransform previewRect = preview.GetComponent<RectTransform>();
+            previewRect.anchorMin = new Vector2(0f, 1f);
+            previewRect.anchorMax = new Vector2(0f, 1f);
+            previewRect.pivot = new Vector2(0f, 1f);
+            previewRect.anchoredPosition = anchoredPosition;
+            previewRect.sizeDelta = new Vector2(248f, 58f);
+
+            GameObject accent = CreatePanel("OwnerAccent", preview.transform, GetCardOwnerColor(card.ownerHeroId));
+            RectTransform accentRect = accent.GetComponent<RectTransform>();
+            accentRect.anchorMin = new Vector2(0f, 0f);
+            accentRect.anchorMax = new Vector2(0f, 1f);
+            accentRect.pivot = new Vector2(0f, 0.5f);
+            accentRect.anchoredPosition = Vector2.zero;
+            accentRect.sizeDelta = new Vector2(8f, 0f);
+
+            GameObject typeBadge = CreatePanel("TypeBadge", preview.transform, GetCardTypeColor(card.cardType));
+            RectTransform typeRect = typeBadge.GetComponent<RectTransform>();
+            typeRect.anchorMin = new Vector2(0f, 1f);
+            typeRect.anchorMax = new Vector2(0f, 1f);
+            typeRect.pivot = new Vector2(0f, 1f);
+            typeRect.anchoredPosition = new Vector2(16f, -10f);
+            typeRect.sizeDelta = new Vector2(52f, 20f);
+
+            Text typeLabel = CreateText("TypeLabel", typeBadge.transform, Vector2.zero, new Vector2(52f, 20f), 11, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchFull(typeLabel.rectTransform, 0f);
+            typeLabel.text = card.cardType.ToString().ToUpperInvariant();
+            typeLabel.color = TextLightColor;
+
+            Text nameText = CreateText("CardName", preview.transform, new Vector2(76f, -10f), new Vector2(118f, 20f), 17, FontStyle.Bold, TextAnchor.UpperLeft);
+            nameText.text = card.cardName;
+            nameText.color = TextDarkColor;
+            Text ownerText = CreateText("CardOwner", preview.transform, new Vector2(76f, -30f), new Vector2(126f, 16f), 12, FontStyle.Italic, TextAnchor.UpperLeft);
+            ownerText.text = card.ownerHeroId == HeroId.Neutral ? "Neutral" : card.ownerHeroId.ToString();
+            ownerText.color = new Color(0.33f, 0.28f, 0.22f, 1f);
+
+            GameObject costBadge = CreatePanel("CostBadge", preview.transform, new Color(0.22f, 0.41f, 0.71f, 1f));
+            RectTransform costRect = costBadge.GetComponent<RectTransform>();
+            costRect.anchorMin = new Vector2(1f, 0.5f);
+            costRect.anchorMax = new Vector2(1f, 0.5f);
+            costRect.pivot = new Vector2(1f, 0.5f);
+            costRect.anchoredPosition = new Vector2(-10f, 0f);
+            costRect.sizeDelta = new Vector2(36f, 36f);
+
+            Text costText = CreateText("CostText", costBadge.transform, Vector2.zero, new Vector2(36f, 36f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchFull(costText.rectTransform, 0f);
+            costText.text = card.cost.ToString();
+            costText.color = TextLightColor;
         }
 
         private void TryBuyShopOffer(ShopOffer offer)
@@ -836,7 +902,7 @@ namespace PawSlayers
 
             if (shopInfoText != null)
             {
-                shopInfoText.text = "Remove 1 card from your deck.";
+                shopInfoText.text = "Remove 1 card permanently from this run.";
             }
 
             foreach (RuntimeCardState card in runManager.CurrentRunDeck.ToList())
@@ -877,7 +943,7 @@ namespace PawSlayers
 
             if (shopInfoText != null)
             {
-                shopInfoText.text = "Upgrade 1 card in your deck.";
+                shopInfoText.text = "Choose 1 card to upgrade.";
             }
 
             foreach (RuntimeCardState card in upgradeChoices)
@@ -1681,6 +1747,38 @@ namespace PawSlayers
                     return HealColor;
                 default:
                     return new Color(0.49f, 0.37f, 0.20f, 1f);
+            }
+        }
+
+        private Color GetCardTypeColor(CardType cardType)
+        {
+            switch (cardType)
+            {
+                case CardType.Attack:
+                    return new Color(0.72f, 0.31f, 0.22f, 1f);
+                case CardType.Skill:
+                    return new Color(0.24f, 0.50f, 0.42f, 1f);
+                default:
+                    return new Color(0.45f, 0.39f, 0.57f, 1f);
+            }
+        }
+
+        private Color GetCardOwnerColor(HeroId heroId)
+        {
+            switch (heroId)
+            {
+                case HeroId.Capybara:
+                    return new Color(0.58f, 0.38f, 0.24f, 1f);
+                case HeroId.Koala:
+                    return new Color(0.47f, 0.42f, 0.58f, 1f);
+                case HeroId.Sloth:
+                    return new Color(0.36f, 0.57f, 0.39f, 1f);
+                case HeroId.Panda:
+                    return new Color(0.64f, 0.59f, 0.36f, 1f);
+                case HeroId.Kangaroo:
+                    return new Color(0.74f, 0.42f, 0.20f, 1f);
+                default:
+                    return new Color(0.66f, 0.58f, 0.43f, 1f);
             }
         }
 

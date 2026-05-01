@@ -116,12 +116,29 @@ namespace PawSlayers
             RectTransform rect = panel.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(0f, 210f);
 
+            GameObject portraitPanel = CreatePanel("PortraitFrame", rect, new Color(0.72f, 0.64f, 0.50f, 1f));
+            RectTransform portraitFrameRect = portraitPanel.GetComponent<RectTransform>();
+            portraitFrameRect.anchorMin = new Vector2(0f, 1f);
+            portraitFrameRect.anchorMax = new Vector2(0f, 1f);
+            portraitFrameRect.pivot = new Vector2(0f, 1f);
+            portraitFrameRect.anchoredPosition = new Vector2(18f, -18f);
+            portraitFrameRect.sizeDelta = new Vector2(112f, 112f);
+
+            GameObject portraitObject = CreateUiObject("Portrait", portraitFrameRect, Vector2.zero);
+            Image portraitImage = portraitObject.AddComponent<Image>();
+            RectTransform portraitRect = portraitObject.GetComponent<RectTransform>();
+            StretchFull(portraitRect, 6f);
+            Sprite portraitSprite = PawSlayersArtResolver.GetHeroPortraitSprite(hero);
+            portraitImage.sprite = portraitSprite;
+            portraitImage.preserveAspect = true;
+            portraitImage.color = portraitSprite != null ? Color.white : new Color(0.75f, 0.75f, 0.75f, 1f);
+
             if (progress != null && !progress.isUnlocked)
             {
                 panel.GetComponent<Image>().color = new Color(0.62f, 0.62f, 0.62f, 1f);
             }
 
-            Text heroName = CreateText("HeroName", rect, new Vector2(18f, -16f), new Vector2(440f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text heroName = CreateText("HeroName", rect, new Vector2(148f, -16f), new Vector2(440f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
             heroName.text = $"{hero.heroName} - {hero.heroClass}";
             heroName.color = new Color(0.18f, 0.15f, 0.12f, 1f);
 
@@ -130,23 +147,23 @@ namespace PawSlayers
             int nextTarget = progressionManager != null ? progressionManager.GetNextLevelXpTarget(hero.heroId) : 25;
             string unlockedText = progress != null && progress.isUnlocked ? "Unlocked" : "Locked";
 
-            Text levelText = CreateText("LevelText", rect, new Vector2(18f, -50f), new Vector2(180f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text levelText = CreateText("LevelText", rect, new Vector2(148f, -50f), new Vector2(180f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
             levelText.text = $"Level {level}";
             levelText.color = new Color(0.17f, 0.28f, 0.17f, 1f);
 
-            Text xpText = CreateText("XpText", rect, new Vector2(18f, -76f), new Vector2(260f, 22f), 17, FontStyle.Normal, TextAnchor.UpperLeft);
+            Text xpText = CreateText("XpText", rect, new Vector2(148f, -76f), new Vector2(260f, 22f), 17, FontStyle.Normal, TextAnchor.UpperLeft);
             xpText.text = level >= 5 ? $"XP: {xp} / Max" : $"XP: {xp} / {nextTarget}";
             xpText.color = new Color(0.18f, 0.35f, 0.53f, 1f);
 
-            CreateXpBar(rect, xp, level, nextTarget);
+            CreateXpBar(rect, xp, level, nextTarget, new Vector2(148f, -102f));
 
-            Text unlockedStateText = CreateText("UnlockedText", rect, new Vector2(18f, -114f), new Vector2(220f, 22f), 17, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text unlockedStateText = CreateText("UnlockedText", rect, new Vector2(148f, -114f), new Vector2(220f, 22f), 17, FontStyle.Bold, TextAnchor.UpperLeft);
             unlockedStateText.text = unlockedText;
             unlockedStateText.color = progress != null && progress.isUnlocked
                 ? new Color(0.22f, 0.46f, 0.27f, 1f)
                 : new Color(0.55f, 0.15f, 0.15f, 1f);
 
-            Text descText = CreateText("DescriptionText", rect, new Vector2(18f, -142f), new Vector2(440f, 40f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
+            Text descText = CreateText("DescriptionText", rect, new Vector2(148f, -142f), new Vector2(340f, 40f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
             descText.text = hero.description;
             descText.color = new Color(0.28f, 0.25f, 0.22f, 1f);
 
@@ -316,7 +333,7 @@ namespace PawSlayers
             image.color = new Color(0.10f, 0.15f, 0.12f, 1f);
         }
 
-        private void CreateXpBar(RectTransform parent, int xp, int level, int nextTarget)
+        private void CreateXpBar(RectTransform parent, int xp, int level, int nextTarget, Vector2 anchoredPosition)
         {
             GameObject barRoot = CreateUiObject("XpBarRoot", parent, new Vector2(260f, 10f));
             Image bg = barRoot.AddComponent<Image>();
@@ -325,7 +342,7 @@ namespace PawSlayers
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = new Vector2(0f, 1f);
             rect.pivot = new Vector2(0f, 1f);
-            rect.anchoredPosition = new Vector2(18f, -102f);
+            rect.anchoredPosition = anchoredPosition;
 
             GameObject fill = CreateUiObject("XpBarFill", rect, Vector2.zero);
             Image fillImage = fill.AddComponent<Image>();

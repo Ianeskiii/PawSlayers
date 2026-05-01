@@ -11,6 +11,8 @@ namespace PawSlayers
         public int maxHp = 40;
         [TextArea(2, 4)]
         public string description;
+        public Sprite battleSprite;
+        public Sprite portraitSprite;
         public Sprite portrait;
     }
 }

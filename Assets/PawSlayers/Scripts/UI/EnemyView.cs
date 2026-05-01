@@ -13,6 +13,7 @@ namespace PawSlayers
         public Text intentText;
         public Text intentDescriptionText;
         public Text statusText;
+        public Image spriteImage;
         public Image backgroundImage;
         public Image hpBarFillImage;
         public Image dimOverlayImage;
@@ -78,6 +79,20 @@ namespace PawSlayers
                 statusText.text = enemy.statuses.HasAnyActiveStatus()
                     ? enemy.GetStatusSummaryText()
                     : string.Empty;
+            }
+
+            if (spriteImage != null)
+            {
+                spriteImage.sprite = enemy.battleSprite;
+                spriteImage.enabled = true;
+                spriteImage.preserveAspect = true;
+                spriteImage.color = enemy.battleSprite != null ? Color.white : new Color(0.70f, 0.70f, 0.74f, 1f);
+
+                RectTransform spriteRect = spriteImage.rectTransform;
+                if (spriteRect != null)
+                {
+                    spriteRect.sizeDelta = enemy.isBoss ? new Vector2(108f, 108f) : new Vector2(88f, 88f);
+                }
             }
 
             if (backgroundImage != null)

@@ -9,6 +9,7 @@ namespace PawSlayers
     {
         [Header("Dependencies")]
         public RunManager runManager;
+        public EnemyArtDatabase enemyArtDatabase;
         public RewardCardManager rewardCardManager;
         public Transform heroContainer;
         public BattleHeroView heroViewPrefab;
@@ -71,6 +72,11 @@ namespace PawSlayers
             EnsureRuntimeUi();
             BindButtons();
             InitializeEncounterFlow();
+        }
+
+        private void OnEnable()
+        {
+            BindButtons();
         }
 
         public void RefreshAllUi()
@@ -262,6 +268,11 @@ namespace PawSlayers
             ClearCardSelection();
             ResetRelicStateForBattle();
 
+            if (rewardCardManager != null && rewardCardManager.rewardPanel != null)
+            {
+                rewardCardManager.rewardPanel.SetActive(false);
+            }
+
             CreateEncounterForCurrentRun();
             Debug.Log($"Selected heroes: {runManager.SelectedHeroIds.Count}");
             Debug.Log($"Enemies spawned: {enemies.Count}");
@@ -421,6 +432,7 @@ namespace PawSlayers
                 maxHp = maxHp,
                 currentHp = maxHp,
                 attackDamage = attackDamage,
+                battleSprite = PawSlayersArtResolver.GetEnemyBattleSprite(enemyArtDatabase != null ? enemyArtDatabase : runManager != null ? runManager.enemyArtDatabase : null, enemyId, false),
                 intentName = "Attack",
                 intentDescription = $"Deal {attackDamage} damage to one hero."
             };
@@ -438,6 +450,7 @@ namespace PawSlayers
                 maxHp = 220,
                 currentHp = 220,
                 attackDamage = 16,
+                battleSprite = PawSlayersArtResolver.GetEnemyBattleSprite(enemyArtDatabase != null ? enemyArtDatabase : runManager != null ? runManager.enemyArtDatabase : null, "briar_king", true),
                 isBoss = true,
                 currentPhase = 1,
                 phaseTwoTriggered = false,
@@ -550,6 +563,7 @@ namespace PawSlayers
 
                 bool isDisabled = IsCardDisabled(card, out string disabledReason);
                 cardView.SetDisabled(isDisabled, disabledReason);
+                cardView.SetAffordable(GetModifiedCardCost(card, false) <= currentEnergy);
                 cardView.SetSelected(selectedCard == card);
                 handViews.Add(cardView);
             }
@@ -1151,6 +1165,11 @@ namespace PawSlayers
 
         private void EnsureRunManager()
         {
+            if (RunManager.Instance != null && runManager != RunManager.Instance)
+            {
+                runManager = RunManager.Instance;
+            }
+
             if (runManager == null)
             {
                 runManager = RunManager.Instance;
@@ -1158,12 +1177,22 @@ namespace PawSlayers
 
             if (runManager != null)
             {
+                if (enemyArtDatabase == null)
+                {
+                    enemyArtDatabase = runManager.enemyArtDatabase;
+                }
+
                 return;
             }
 
             GameObject runManagerObject = new GameObject("RunManager");
             runManager = runManagerObject.AddComponent<RunManager>();
             runManagerObject.AddComponent<DeckManager>();
+
+            if (enemyArtDatabase == null && runManager != null)
+            {
+                enemyArtDatabase = runManager.enemyArtDatabase;
+            }
         }
 
         private void BindButtons()
@@ -2576,6 +2605,24 @@ namespace PawSlayers
                 }
             }
 
+            if (endTurnButton == null)
+            {
+                Transform endTurnTransform = canvasTransform.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "EndTurnButton");
+                if (endTurnTransform != null)
+                {
+                    endTurnButton = endTurnTransform.GetComponent<Button>();
+                }
+            }
+
+            if (drawButton == null)
+            {
+                Transform drawTransform = canvasTransform.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "DrawButton");
+                if (drawTransform != null)
+                {
+                    drawButton = drawTransform.GetComponent<Button>();
+                }
+            }
+
             if (debugToggleButton == null && titleText != null)
             {
                 debugToggleButton = CreateButton("DebugToggleButton", titleText.transform.parent, "Debug");
@@ -2677,6 +2724,29 @@ namespace PawSlayers
                 view.tauntText.color = new Color(0.66f, 0.42f, 0.12f, 1f);
             }
 
+            if (view.portraitImage == null)
+            {
+                GameObject portrait = CreatePanel("Portrait", view.transform, new Color(0.75f, 0.75f, 0.75f, 1f));
+                RectTransform portraitRect = portrait.GetComponent<RectTransform>();
+                portraitRect.anchorMin = new Vector2(1f, 1f);
+                portraitRect.anchorMax = new Vector2(1f, 1f);
+                portraitRect.pivot = new Vector2(1f, 1f);
+                portraitRect.anchoredPosition = new Vector2(-14f, -14f);
+                portraitRect.sizeDelta = new Vector2(62f, 62f);
+                view.portraitImage = portrait.GetComponent<Image>();
+            }
+
+            if (view.portraitImage != null)
+            {
+                RectTransform portraitRect = view.portraitImage.rectTransform;
+                portraitRect.anchorMin = new Vector2(1f, 1f);
+                portraitRect.anchorMax = new Vector2(1f, 1f);
+                portraitRect.pivot = new Vector2(1f, 1f);
+                portraitRect.anchoredPosition = new Vector2(-14f, -14f);
+                portraitRect.sizeDelta = new Vector2(78f, 78f);
+                view.portraitImage.preserveAspect = true;
+            }
+
             EnsureBarVisuals(view.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(12f, -72f), new Vector2(170f, 12f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
             EnsureDimOverlay(view.transform, ref view.dimOverlayImage, "DimOverlay");
         }
@@ -2743,6 +2813,29 @@ namespace PawSlayers
             if (view.statusText == null)
             {
                 view.statusText = CreateText("StatusText", view.transform, new Vector2(12f, -172f), new Vector2(220f, 32f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
+            }
+
+            if (view.spriteImage == null)
+            {
+                GameObject spriteObject = CreatePanel("EnemySprite", view.transform, new Color(0.70f, 0.70f, 0.74f, 1f));
+                RectTransform spriteRect = spriteObject.GetComponent<RectTransform>();
+                spriteRect.anchorMin = new Vector2(1f, 1f);
+                spriteRect.anchorMax = new Vector2(1f, 1f);
+                spriteRect.pivot = new Vector2(1f, 1f);
+                spriteRect.anchoredPosition = new Vector2(-14f, -14f);
+                spriteRect.sizeDelta = new Vector2(88f, 88f);
+                view.spriteImage = spriteObject.GetComponent<Image>();
+            }
+
+            if (view.spriteImage != null)
+            {
+                RectTransform spriteRect = view.spriteImage.rectTransform;
+                spriteRect.anchorMin = new Vector2(1f, 1f);
+                spriteRect.anchorMax = new Vector2(1f, 1f);
+                spriteRect.pivot = new Vector2(1f, 1f);
+                spriteRect.anchoredPosition = new Vector2(-14f, -14f);
+                spriteRect.sizeDelta = new Vector2(88f, 88f);
+                view.spriteImage.preserveAspect = true;
             }
 
             EnsureBarVisuals(view.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(12f, -42f), new Vector2(180f, 12f), new Color(0.82f, 0.22f, 0.22f, 1f), new Color(0.20f, 0.12f, 0.12f, 1f));
@@ -2930,8 +3023,9 @@ namespace PawSlayers
             portraitRect.anchorMax = new Vector2(1f, 1f);
             portraitRect.pivot = new Vector2(1f, 1f);
             portraitRect.anchoredPosition = new Vector2(-14f, -14f);
-            portraitRect.sizeDelta = new Vector2(62f, 62f);
+            portraitRect.sizeDelta = new Vector2(78f, 78f);
             view.portraitImage = portrait.GetComponent<Image>();
+            view.portraitImage.preserveAspect = true;
             EnsureBarVisuals(root.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(14f, -66f), new Vector2(160f, 12f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
             EnsureDimOverlay(root.transform, ref view.dimOverlayImage, "DimOverlay");
             return view;
@@ -2966,6 +3060,17 @@ namespace PawSlayers
             view.intentDescriptionText.color = new Color(0.96f, 0.94f, 0.89f, 1f);
             view.statusText = CreateText("StatusText", root.transform, new Vector2(14f, -206f), new Vector2(220f, 18f), 12, FontStyle.Normal, TextAnchor.UpperLeft);
             view.statusText.color = new Color(0.88f, 0.90f, 0.95f, 1f);
+
+            GameObject sprite = CreatePanel("EnemySprite", root.transform, new Color(0.70f, 0.70f, 0.74f, 1f));
+            RectTransform spriteRect = sprite.GetComponent<RectTransform>();
+            spriteRect.anchorMin = new Vector2(1f, 1f);
+            spriteRect.anchorMax = new Vector2(1f, 1f);
+            spriteRect.pivot = new Vector2(1f, 1f);
+            spriteRect.anchoredPosition = new Vector2(-14f, -14f);
+            spriteRect.sizeDelta = new Vector2(88f, 88f);
+            view.spriteImage = sprite.GetComponent<Image>();
+            view.spriteImage.preserveAspect = true;
+
             EnsureBarVisuals(root.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(14f, -66f), new Vector2(170f, 12f), new Color(0.82f, 0.22f, 0.22f, 1f), new Color(0.20f, 0.12f, 0.12f, 1f));
             EnsureDimOverlay(root.transform, ref view.dimOverlayImage, "DimOverlay");
             return view;

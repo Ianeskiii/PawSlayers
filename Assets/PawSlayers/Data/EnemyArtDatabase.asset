@@ -1,0 +1,35 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c95f721a31b49a44bad4469e8c686d01, type: 3}
+  m_Name: EnemyArtDatabase
+  m_EditorClassIdentifier: 
+  enemies:
+  - enemyId: sporeling
+    battleSprite: {fileID: 0}
+  - enemyId: fungus_brute
+    battleSprite: {fileID: 0}
+  - enemyId: batty
+    battleSprite: {fileID: 0}
+  - enemyId: cave_rat
+    battleSprite: {fileID: 0}
+  - enemyId: thorn_sprite
+    battleSprite: {fileID: 0}
+  - enemyId: moss_troll
+    battleSprite: {fileID: 0}
+  - enemyId: crystal_slime
+    battleSprite: {fileID: 0}
+  - enemyId: bandit_crow
+    battleSprite: {fileID: 0}
+  - enemyId: old_treant
+    battleSprite: {fileID: 0}
+  - enemyId: briar_king
+    battleSprite: {fileID: 0}
