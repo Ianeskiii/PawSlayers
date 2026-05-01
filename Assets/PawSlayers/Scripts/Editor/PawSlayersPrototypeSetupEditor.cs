@@ -209,9 +209,9 @@ namespace PawSlayers.EditorTools
             string path = PrefabFolder + "/HeroSelectionCard.prefab";
             DeleteAssetIfExists(path);
 
-            GameObject root = CreateUiObject("HeroSelectionCard", null, new Vector2(460f, 120f));
+            GameObject root = CreateUiObject("HeroSelectionCard", null, new Vector2(390f, 210f));
             Image rootImage = root.AddComponent<Image>();
-            rootImage.color = new Color(0.93f, 0.88f, 0.76f, 1f);
+            rootImage.color = new Color(0.92f, 0.88f, 0.78f, 1f);
             Button button = root.AddComponent<Button>();
 
             GameObject outlineObject = CreateUiObject("SelectionOutline", root.transform, Vector2.zero);
@@ -219,14 +219,14 @@ namespace PawSlayers.EditorTools
             Image outlineImage = outlineObject.AddComponent<Image>();
             outlineImage.color = new Color(0f, 0f, 0f, 0f);
 
-            GameObject portraitObject = CreateUiObject("Portrait", root.transform, new Vector2(90f, 90f));
-            SetAnchoredRect(portraitObject.GetComponent<RectTransform>(), new Vector2(10f, -10f), new Vector2(90f, 90f), TextAnchor.UpperLeft);
+            GameObject portraitObject = CreateUiObject("Portrait", root.transform, new Vector2(96f, 96f));
+            SetAnchoredRect(portraitObject.GetComponent<RectTransform>(), new Vector2(18f, -20f), new Vector2(96f, 96f), TextAnchor.UpperLeft);
             Image portraitImage = portraitObject.AddComponent<Image>();
             portraitImage.color = new Color(0.8f, 0.8f, 0.8f, 1f);
 
-            Text heroName = CreateText("HeroName", root.transform, new Vector2(110f, -12f), new Vector2(250f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
-            Text heroClass = CreateText("HeroClass", root.transform, new Vector2(110f, -42f), new Vector2(250f, 24f), 18, FontStyle.Italic, TextAnchor.UpperLeft);
-            Text description = CreateText("Description", root.transform, new Vector2(110f, -68f), new Vector2(290f, 44f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            Text heroName = CreateText("HeroName", root.transform, new Vector2(132f, -18f), new Vector2(220f, 26f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
+            Text heroClass = CreateText("HeroClass", root.transform, new Vector2(132f, -48f), new Vector2(220f, 22f), 18, FontStyle.Italic, TextAnchor.UpperLeft);
+            Text description = CreateText("Description", root.transform, new Vector2(132f, -142f), new Vector2(230f, 44f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
 
             HeroSelectionCardView view = root.AddComponent<HeroSelectionCardView>();
             view.heroNameText = heroName;
@@ -375,37 +375,12 @@ namespace PawSlayers.EditorTools
             runManager.mapSceneName = "Map";
             runManager.heroProgressionSceneName = "HeroProgression";
 
-            GameObject rootPanel = CreatePanel("SelectionRoot", canvas.transform, new Color(0.95f, 0.92f, 0.84f, 1f));
+            GameObject rootPanel = CreatePanel("SelectionRoot", canvas.transform, new Color(0.10f, 0.15f, 0.12f, 1f));
             StretchFull(rootPanel.GetComponent<RectTransform>(), 20f);
-
-            CreateText("Title", rootPanel.transform, new Vector2(20f, -20f), new Vector2(600f, 40f), 32, FontStyle.Bold, TextAnchor.UpperLeft).text = "Paw Slayers - Choose 3 Heroes";
-            Text selectedCount = CreateText("SelectedCount", rootPanel.transform, new Vector2(20f, -68f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            Text infoMessage = CreateText("InfoMessage", rootPanel.transform, new Vector2(260f, -68f), new Vector2(520f, 28f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            infoMessage.color = new Color(0.65f, 0.15f, 0.15f, 1f);
-
-            GameObject rosterContainer = CreateUiObject("HeroCardContainer", rootPanel.transform, new Vector2(0f, 0f));
-            RectTransform rosterRect = rosterContainer.GetComponent<RectTransform>();
-            rosterRect.anchorMin = new Vector2(0f, 0f);
-            rosterRect.anchorMax = new Vector2(1f, 1f);
-            rosterRect.offsetMin = new Vector2(20f, 90f);
-            rosterRect.offsetMax = new Vector2(-20f, -110f);
-            VerticalLayoutGroup rosterLayout = rosterContainer.AddComponent<VerticalLayoutGroup>();
-            rosterLayout.spacing = 12f;
-            rosterLayout.childControlWidth = false;
-            rosterLayout.childControlHeight = false;
-            rosterLayout.childForceExpandWidth = false;
-            rosterLayout.childForceExpandHeight = false;
-
-            GameObject startButtonObject = CreateButton("StartRunButton", rootPanel.transform, new Vector2(-20f, 20f), new Vector2(220f, 54f), "Start Run", TextAnchor.LowerRight);
-            Button startButton = startButtonObject.GetComponent<Button>();
 
             HeroSelectionManager selectionManager = rootPanel.AddComponent<HeroSelectionManager>();
             selectionManager.runManager = runManager;
-            selectionManager.heroCardContainer = rosterContainer.transform;
             selectionManager.heroCardPrefab = heroCardPrefab;
-            selectionManager.selectedCountText = selectedCount;
-            selectionManager.infoMessageText = infoMessage;
-            selectionManager.startRunButton = startButton;
 
             EditorSceneManager.SaveScene(scene, SceneFolder + "/HeroSelection.unity");
         }
@@ -429,7 +404,7 @@ namespace PawSlayers.EditorTools
             runManager.mapSceneName = "Map";
             runManager.heroProgressionSceneName = "HeroProgression";
 
-            GameObject rootPanel = CreatePanel("MainMenuRoot", canvas.transform, new Color(0.92f, 0.95f, 0.88f, 1f));
+            GameObject rootPanel = CreatePanel("MainMenuRoot", canvas.transform, new Color(0.10f, 0.15f, 0.12f, 1f));
             StretchFull(rootPanel.GetComponent<RectTransform>(), 20f);
 
             MainMenuManager menuManager = rootPanel.AddComponent<MainMenuManager>();
@@ -599,29 +574,12 @@ namespace PawSlayers.EditorTools
             RewardCardManager rewardCardManager = managerObject.AddComponent<RewardCardManager>();
             DebugBattleControls debugControls = managerObject.AddComponent<DebugBattleControls>();
 
-            battleUiManager.heroContainer = heroContainer.transform;
             battleUiManager.heroViewPrefab = heroViewPrefab;
-            battleUiManager.enemyContainer = enemyContainer.transform;
             battleUiManager.enemyViewPrefab = enemyViewPrefab;
-            battleUiManager.handContainer = handContainer.transform;
             battleUiManager.cardViewPrefab = cardViewPrefab;
-            battleUiManager.titleText = titleText;
-            battleUiManager.turnText = turnText;
-            battleUiManager.energyText = energyText;
-            battleUiManager.battleLogText = battleLog;
-            battleUiManager.drawButton = drawButton;
-            battleUiManager.endTurnButton = endTurnButton;
-            battleUiManager.killHero1Button = kill1Button;
-            battleUiManager.killHero2Button = kill2Button;
-            battleUiManager.killHero3Button = kill3Button;
-            battleUiManager.healAllButton = healButton;
-            battleUiManager.winBattleButton = winButton;
             battleUiManager.rewardCardManager = rewardCardManager;
 
-            rewardCardManager.rewardPanel = rewardPanel;
-            rewardCardManager.rewardContainer = rewardContainer.transform;
             rewardCardManager.rewardCardPrefab = cardViewPrefab;
-            rewardCardManager.rewardTitleText = rewardTitle;
 
             debugControls.battleUiManager = battleUiManager;
 
@@ -668,7 +626,7 @@ namespace PawSlayers.EditorTools
             runManager.mapSceneName = "Map";
             runManager.heroProgressionSceneName = "HeroProgression";
 
-            GameObject rootPanel = CreatePanel("HeroProgressionRoot", canvas.transform, new Color(0.94f, 0.93f, 0.88f, 1f));
+            GameObject rootPanel = CreatePanel("HeroProgressionRoot", canvas.transform, new Color(0.10f, 0.15f, 0.12f, 1f));
             StretchFull(rootPanel.GetComponent<RectTransform>(), 20f);
 
             HeroProgressionScreenManager progressionManager = rootPanel.AddComponent<HeroProgressionScreenManager>();

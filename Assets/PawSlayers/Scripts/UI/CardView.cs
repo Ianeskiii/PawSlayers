@@ -12,8 +12,11 @@ namespace PawSlayers
         public Text costText;
         public Text descriptionText;
         public Text disabledReasonText;
+        public Text upgradedLabelText;
         public Image artImage;
         public Image backgroundImage;
+        public Image costBadgeImage;
+        public Image disabledOverlayImage;
         public Button button;
         public CanvasGroup canvasGroup;
         public Outline selectionOutline;
@@ -80,11 +83,31 @@ namespace PawSlayers
             typeText.text = isUpgraded ? "Type: " + cardType + "  UPGRADED" : "Type: " + cardType;
             costText.text = cost.ToString();
             descriptionText.text = description;
+            if (upgradedLabelText != null)
+            {
+                upgradedLabelText.text = isUpgraded ? "UPGRADED" : string.Empty;
+            }
             ConfigureReadableText();
 
             artImage.sprite = cardArt;
             artImage.enabled = true;
             artImage.color = cardArt != null ? Color.white : new Color(0.82f, 0.82f, 0.82f, 1f);
+
+            if (backgroundImage != null)
+            {
+                backgroundImage.color = cardType == CardType.Status
+                    ? new Color(0.76f, 0.76f, 0.80f, 1f)
+                    : new Color(0.96f, 0.93f, 0.84f, 1f);
+            }
+
+            if (costBadgeImage != null)
+            {
+                costBadgeImage.color = cardType == CardType.Attack
+                    ? new Color(0.77f, 0.22f, 0.22f, 1f)
+                    : cardType == CardType.Skill
+                        ? new Color(0.23f, 0.42f, 0.72f, 1f)
+                        : new Color(0.42f, 0.42f, 0.52f, 1f);
+            }
         }
 
         public void SetDisabled(bool isDisabled, string disabledReason)
@@ -96,12 +119,17 @@ namespace PawSlayers
 
             if (backgroundImage != null)
             {
-                backgroundImage.color = isDisabled ? new Color(0.55f, 0.55f, 0.55f, 1f) : Color.white;
+                backgroundImage.color = isDisabled ? new Color(0.58f, 0.58f, 0.58f, 1f) : backgroundImage.color;
             }
 
             if (disabledReasonText != null)
             {
                 disabledReasonText.text = isDisabled ? disabledReason : string.Empty;
+            }
+
+            if (disabledOverlayImage != null)
+            {
+                disabledOverlayImage.enabled = isDisabled;
             }
 
             if (button != null)
@@ -115,6 +143,15 @@ namespace PawSlayers
             if (selectionOutline != null)
             {
                 selectionOutline.enabled = isSelected;
+            }
+
+            RectTransform rect = transform as RectTransform;
+            if (rect != null)
+            {
+                rect.localScale = isSelected ? new Vector3(1.04f, 1.04f, 1f) : Vector3.one;
+                rect.anchoredPosition = isSelected
+                    ? new Vector2(rect.anchoredPosition.x, 10f)
+                    : new Vector2(rect.anchoredPosition.x, 0f);
             }
         }
 

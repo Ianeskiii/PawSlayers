@@ -22,8 +22,12 @@ namespace PawSlayers
         public Text turnText;
         public Text energyText;
         public Text runProgressText;
+        public Text goldText;
         public Text relicsText;
+        public Text drawPileText;
+        public Text discardPileText;
         public Text battleLogText;
+        public Text debugToggleText;
         public Button drawButton;
         public Button endTurnButton;
         public Button killHero1Button;
@@ -34,6 +38,10 @@ namespace PawSlayers
         public GameObject runWonPanel;
         public Text runWonText;
         public Button returnToSelectionButton;
+        public Button debugToggleButton;
+        public GameObject debugPanelRoot;
+        public Transform debugButtonsContainer;
+        public Text combatLogTitleText;
 
         private readonly List<BattleHeroView> heroViews = new List<BattleHeroView>();
         private readonly List<EnemyView> enemyViews = new List<EnemyView>();
@@ -47,6 +55,7 @@ namespace PawSlayers
         private int currentEnergy;
         private bool battleEnded;
         private RuntimeCardState selectedCard;
+        private bool enemyTurnActive;
         private bool bambooCharmUsedThisBattle;
         private bool slothTeaUsedThisBattle;
         private bool thiefsBellUsedThisTurn;
@@ -108,7 +117,10 @@ namespace PawSlayers
                 return;
             }
 
+            enemyTurnActive = true;
+            RefreshTopBar();
             RunEnemyTurn();
+            enemyTurnActive = false;
             CheckBattleState();
 
             if (battleEnded)
@@ -129,6 +141,7 @@ namespace PawSlayers
             }
 
             battleEnded = true;
+            enemyTurnActive = false;
             CleanupTemporaryBattleCards();
             AddLog("Battle won.");
 
@@ -245,6 +258,7 @@ namespace PawSlayers
         private void StartEncounter()
         {
             battleEnded = false;
+            enemyTurnActive = false;
             ClearCardSelection();
             ResetRelicStateForBattle();
 
@@ -281,6 +295,8 @@ namespace PawSlayers
 
         private void StartPlayerTurn(bool isBattleStart = false)
         {
+            enemyTurnActive = false;
+
             if (!isBattleStart)
             {
                 TickHeroStartOfTurnStatuses();
@@ -962,6 +978,7 @@ namespace PawSlayers
             if (!battleEnded && runManager.ActiveHeroesRuntime.Count > 0 && runManager.ActiveHeroesRuntime.All(hero => !hero.IsAlive))
             {
                 battleEnded = true;
+                enemyTurnActive = false;
                 CleanupTemporaryBattleCards();
                 runManager.GrantRunLossXp();
                 runManager.MarkRunLost();
@@ -978,6 +995,7 @@ namespace PawSlayers
 
         private void ShowRunWon()
         {
+            enemyTurnActive = false;
             AddLog("Run won!");
             ShowBattleEndPanel(runManager.GetRunSummaryText(true));
         }
@@ -986,12 +1004,16 @@ namespace PawSlayers
         {
             if (titleText != null)
             {
-                titleText.text = runManager.IsBossBattle ? "Boss Battle: Briar King" : "Paw Slayers - Battle Prototype";
+                titleText.text = "Paw Slayers";
             }
 
             if (turnText != null)
             {
-                turnText.text = battleEnded ? "Turn: Battle Ended" : "Turn: Player";
+                turnText.text = battleEnded
+                    ? "Turn: Battle Ended"
+                    : enemyTurnActive
+                        ? "Turn: Enemy Turn"
+                        : "Turn: Player Turn";
             }
 
             if (energyText != null)
@@ -1004,9 +1026,32 @@ namespace PawSlayers
                 runProgressText.text = runManager.GetRunProgressLabel();
             }
 
+            if (goldText != null)
+            {
+                goldText.text = $"Gold: {runManager.Gold}";
+            }
+
             if (relicsText != null)
             {
-                relicsText.text = runManager.GetResourceSummaryText();
+                relicsText.text = runManager.OwnedRelics.Count > 0
+                    ? $"Relics: {runManager.OwnedRelics.Count}"
+                    : "Relics: No relics";
+            }
+
+            if (drawPileText != null)
+            {
+                drawPileText.text = $"Draw: {runManager.DrawPile.Count}";
+            }
+
+            if (discardPileText != null)
+            {
+                discardPileText.text = $"Discard: {runManager.DiscardPile.Count}";
+            }
+
+            if (endTurnButton != null)
+            {
+                bool rewardOpen = rewardCardManager != null && rewardCardManager.rewardPanel != null && rewardCardManager.rewardPanel.activeSelf;
+                endTurnButton.interactable = !battleEnded && !enemyTurnActive && !rewardOpen;
             }
         }
 
@@ -1096,6 +1141,12 @@ namespace PawSlayers
             {
                 battleLogText.text = message + "\n" + battleLogText.text;
             }
+
+            string[] lines = battleLogText.text
+                .Split(new[] { '\n' }, System.StringSplitOptions.RemoveEmptyEntries)
+                .Take(8)
+                .ToArray();
+            battleLogText.text = string.Join("\n", lines);
         }
 
         private void EnsureRunManager()
@@ -1163,6 +1214,12 @@ namespace PawSlayers
             {
                 returnToSelectionButton.onClick.RemoveAllListeners();
                 returnToSelectionButton.onClick.AddListener(ReturnToHeroSelection);
+            }
+
+            if (debugToggleButton != null)
+            {
+                debugToggleButton.onClick.RemoveAllListeners();
+                debugToggleButton.onClick.AddListener(ToggleDebugPanel);
             }
         }
 
@@ -2176,6 +2233,34 @@ namespace PawSlayers
             }
         }
 
+        private void ToggleDebugPanel()
+        {
+            if (debugPanelRoot == null)
+            {
+                return;
+            }
+
+            bool newState = !debugPanelRoot.activeSelf;
+            debugPanelRoot.SetActive(newState);
+
+            if (debugToggleText != null)
+            {
+                debugToggleText.text = newState ? "Hide Debug" : "Debug";
+            }
+        }
+
+        private Button CreateDebugActionButton(string name, Transform parent, string label, UnityEngine.Events.UnityAction callback)
+        {
+            Button button = CreateButton(name, parent, label);
+            if (button != null && callback != null)
+            {
+                button.onClick.RemoveAllListeners();
+                button.onClick.AddListener(callback);
+            }
+
+            return button;
+        }
+
         private bool CanUseConfiguredEnemyViewPrefab()
         {
             return enemyViewPrefab != null &&
@@ -2210,6 +2295,7 @@ namespace PawSlayers
             if (titleText != null && heroContainer != null && enemyContainer != null && handContainer != null && runProgressText != null && relicsText != null && rewardCardManager != null && rewardCardManager.continueButton != null && returnToSelectionButton != null)
             {
                 rewardCardManager.battleUiManager = this;
+                EnsureBattleScenePolish(canvas.transform);
                 return;
             }
 
@@ -2218,76 +2304,151 @@ namespace PawSlayers
                 Destroy(child.gameObject);
             }
 
-            GameObject root = CreatePanel("BattleRoot", canvas.transform, new Color(0.89f, 0.93f, 0.96f, 1f));
+            GameObject root = CreatePanel("BattleRoot", canvas.transform, new Color(0.12f, 0.16f, 0.14f, 1f));
             StretchFull(root.GetComponent<RectTransform>(), 18f);
 
-            titleText = CreateText("Title", root.transform, new Vector2(20f, -20f), new Vector2(600f, 40f), 32, FontStyle.Bold, TextAnchor.UpperLeft);
-            turnText = CreateText("TurnText", root.transform, new Vector2(20f, -68f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            energyText = CreateText("EnergyText", root.transform, new Vector2(260f, -68f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            runProgressText = CreateText("RunProgressText", root.transform, new Vector2(500f, -68f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            relicsText = CreateText("RelicsText", root.transform, new Vector2(980f, -20f), new Vector2(700f, 90f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            GameObject topBar = CreatePanel("TopBar", root.transform, new Color(0.20f, 0.17f, 0.13f, 0.92f));
+            RectTransform topBarRect = topBar.GetComponent<RectTransform>();
+            topBarRect.anchorMin = new Vector2(0f, 1f);
+            topBarRect.anchorMax = new Vector2(1f, 1f);
+            topBarRect.pivot = new Vector2(0.5f, 1f);
+            topBarRect.anchoredPosition = Vector2.zero;
+            topBarRect.sizeDelta = new Vector2(0f, 88f);
+
+            runProgressText = CreateText("RunProgressText", topBar.transform, new Vector2(20f, -18f), new Vector2(280f, 26f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            runProgressText.color = new Color(0.98f, 0.92f, 0.75f, 1f);
+            titleText = CreateText("Title", topBar.transform, new Vector2(0f, -16f), new Vector2(380f, 32f), 32, FontStyle.Bold, TextAnchor.UpperCenter);
+            titleText.rectTransform.anchorMin = new Vector2(0.5f, 1f);
+            titleText.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+            titleText.rectTransform.pivot = new Vector2(0.5f, 1f);
+            titleText.rectTransform.anchoredPosition = new Vector2(0f, -16f);
+            titleText.color = new Color(0.98f, 0.95f, 0.86f, 1f);
+            goldText = CreateText("GoldText", topBar.transform, new Vector2(-310f, -18f), new Vector2(130f, 24f), 18, FontStyle.Bold, TextAnchor.UpperRight);
+            goldText.rectTransform.anchorMin = new Vector2(1f, 1f);
+            goldText.rectTransform.anchorMax = new Vector2(1f, 1f);
+            goldText.rectTransform.pivot = new Vector2(1f, 1f);
+            goldText.rectTransform.anchoredPosition = new Vector2(-310f, -18f);
+            goldText.color = new Color(0.95f, 0.84f, 0.44f, 1f);
+            relicsText = CreateText("RelicsText", topBar.transform, new Vector2(-170f, -18f), new Vector2(150f, 24f), 18, FontStyle.Bold, TextAnchor.UpperRight);
+            relicsText.rectTransform.anchorMin = new Vector2(1f, 1f);
+            relicsText.rectTransform.anchorMax = new Vector2(1f, 1f);
+            relicsText.rectTransform.pivot = new Vector2(1f, 1f);
+            relicsText.rectTransform.anchoredPosition = new Vector2(-170f, -18f);
+            relicsText.color = new Color(0.78f, 0.64f, 0.92f, 1f);
+            debugToggleButton = CreateButton("DebugToggleButton", topBar.transform, "Debug");
+            RectTransform debugToggleRect = debugToggleButton.GetComponent<RectTransform>();
+            debugToggleRect.anchorMin = new Vector2(1f, 1f);
+            debugToggleRect.anchorMax = new Vector2(1f, 1f);
+            debugToggleRect.pivot = new Vector2(1f, 1f);
+            debugToggleRect.anchoredPosition = new Vector2(-20f, -16f);
+            debugToggleRect.sizeDelta = new Vector2(120f, 42f);
+            debugToggleText = debugToggleButton.GetComponentInChildren<Text>();
+
+            turnText = CreateText("TurnText", root.transform, new Vector2(24f, -108f), new Vector2(240f, 28f), 20, FontStyle.Bold, TextAnchor.UpperLeft);
+            turnText.color = new Color(0.96f, 0.94f, 0.89f, 1f);
 
             GameObject fieldArea = CreateUiObject("FieldArea", root.transform, Vector2.zero);
             RectTransform fieldRect = fieldArea.GetComponent<RectTransform>();
             fieldRect.anchorMin = new Vector2(0f, 0f);
             fieldRect.anchorMax = new Vector2(1f, 1f);
-            fieldRect.offsetMin = new Vector2(20f, 290f);
-            fieldRect.offsetMax = new Vector2(-240f, -120f);
+            fieldRect.offsetMin = new Vector2(22f, 296f);
+            fieldRect.offsetMax = new Vector2(-22f, -118f);
 
-            GameObject heroPanel = CreatePanel("HeroPanel", fieldArea.transform, new Color(0.85f, 0.91f, 0.84f, 1f));
+            GameObject heroPanel = CreatePanel("HeroPanel", fieldArea.transform, new Color(0.94f, 0.90f, 0.82f, 0.96f));
             RectTransform heroPanelRect = heroPanel.GetComponent<RectTransform>();
             heroPanelRect.anchorMin = new Vector2(0f, 0f);
-            heroPanelRect.anchorMax = new Vector2(0.48f, 1f);
+            heroPanelRect.anchorMax = new Vector2(0.29f, 1f);
             heroPanelRect.offsetMin = Vector2.zero;
-            heroPanelRect.offsetMax = new Vector2(-10f, 0f);
-            CreateText("HeroesLabel", heroPanel.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft).text = "Heroes";
+            heroPanelRect.offsetMax = new Vector2(-14f, 0f);
+            Text heroesLabel = CreateText("HeroesLabel", heroPanel.transform, new Vector2(14f, -12f), new Vector2(240f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
+            heroesLabel.text = "Active Heroes";
             heroContainer = CreateLayoutContainer("HeroContainer", heroPanel.transform, true, new Vector2(12f, 12f), new Vector2(-12f, -48f));
 
-            GameObject enemyPanel = CreatePanel("EnemyPanel", fieldArea.transform, new Color(0.94f, 0.85f, 0.85f, 1f));
+            Text versusText = CreateText("VersusText", fieldArea.transform, new Vector2(0f, -120f), new Vector2(120f, 44f), 30, FontStyle.Bold, TextAnchor.MiddleCenter);
+            versusText.rectTransform.anchorMin = new Vector2(0.5f, 1f);
+            versusText.rectTransform.anchorMax = new Vector2(0.5f, 1f);
+            versusText.rectTransform.pivot = new Vector2(0.5f, 1f);
+            versusText.rectTransform.anchoredPosition = new Vector2(0f, -120f);
+            versusText.text = "VS";
+            versusText.color = new Color(0.87f, 0.75f, 0.45f, 0.75f);
+
+            GameObject enemyPanel = CreatePanel("EnemyPanel", fieldArea.transform, new Color(0.21f, 0.17f, 0.15f, 0.96f));
             RectTransform enemyPanelRect = enemyPanel.GetComponent<RectTransform>();
-            enemyPanelRect.anchorMin = new Vector2(0.52f, 0f);
+            enemyPanelRect.anchorMin = new Vector2(0.71f, 0f);
             enemyPanelRect.anchorMax = new Vector2(1f, 1f);
-            enemyPanelRect.offsetMin = new Vector2(10f, 0f);
+            enemyPanelRect.offsetMin = new Vector2(14f, 0f);
             enemyPanelRect.offsetMax = Vector2.zero;
-            CreateText("EnemiesLabel", enemyPanel.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft).text = "Enemies";
+            Text enemiesLabel = CreateText("EnemiesLabel", enemyPanel.transform, new Vector2(14f, -12f), new Vector2(240f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
+            enemiesLabel.text = "Enemies";
+            enemiesLabel.color = new Color(0.98f, 0.95f, 0.86f, 1f);
             enemyContainer = CreateLayoutContainer("EnemyContainer", enemyPanel.transform, true, new Vector2(12f, 12f), new Vector2(-12f, -48f));
 
-            GameObject handPanel = CreatePanel("HandPanel", root.transform, new Color(0.95f, 0.93f, 0.87f, 1f));
+            GameObject bottomBar = CreatePanel("BottomBar", root.transform, new Color(0.20f, 0.17f, 0.13f, 0.92f));
+            RectTransform bottomBarRect = bottomBar.GetComponent<RectTransform>();
+            bottomBarRect.anchorMin = new Vector2(0f, 0f);
+            bottomBarRect.anchorMax = new Vector2(1f, 0f);
+            bottomBarRect.pivot = new Vector2(0.5f, 0f);
+            bottomBarRect.anchoredPosition = Vector2.zero;
+            bottomBarRect.sizeDelta = new Vector2(0f, 262f);
+
+            energyText = CreateText("EnergyText", bottomBar.transform, new Vector2(20f, -18f), new Vector2(160f, 34f), 26, FontStyle.Bold, TextAnchor.UpperLeft);
+            energyText.color = new Color(0.60f, 0.84f, 1f, 1f);
+            drawPileText = CreateText("DrawPileText", bottomBar.transform, new Vector2(20f, -58f), new Vector2(120f, 22f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            drawPileText.color = new Color(0.93f, 0.93f, 0.98f, 1f);
+            discardPileText = CreateText("DiscardPileText", bottomBar.transform, new Vector2(20f, -82f), new Vector2(120f, 22f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            discardPileText.color = new Color(0.93f, 0.93f, 0.98f, 1f);
+
+            endTurnButton = CreateButton("EndTurnButton", bottomBar.transform, "End Turn");
+            RectTransform endTurnRect = endTurnButton.GetComponent<RectTransform>();
+            endTurnRect.anchorMin = new Vector2(0f, 0f);
+            endTurnRect.anchorMax = new Vector2(0f, 0f);
+            endTurnRect.pivot = new Vector2(0f, 0f);
+            endTurnRect.anchoredPosition = new Vector2(20f, 18f);
+            endTurnRect.sizeDelta = new Vector2(180f, 50f);
+
+            GameObject handPanel = CreatePanel("HandPanel", bottomBar.transform, new Color(0.95f, 0.93f, 0.87f, 0.98f));
             RectTransform handPanelRect = handPanel.GetComponent<RectTransform>();
             handPanelRect.anchorMin = new Vector2(0f, 0f);
-            handPanelRect.anchorMax = new Vector2(1f, 0f);
-            handPanelRect.pivot = new Vector2(0.5f, 0f);
-            handPanelRect.offsetMin = new Vector2(20f, 20f);
-            handPanelRect.offsetMax = new Vector2(-20f, 260f);
-            CreateText("HandLabel", handPanel.transform, new Vector2(12f, -12f), new Vector2(200f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft).text = "Hand";
-            handContainer = CreateLayoutContainer("HandContainer", handPanel.transform, false, new Vector2(12f, 12f), new Vector2(-12f, -48f));
+            handPanelRect.anchorMax = new Vector2(1f, 1f);
+            handPanelRect.offsetMin = new Vector2(220f, 18f);
+            handPanelRect.offsetMax = new Vector2(-360f, -18f);
+            CreateText("HandLabel", handPanel.transform, new Vector2(14f, -12f), new Vector2(200f, 26f), 22, FontStyle.Bold, TextAnchor.UpperLeft).text = "Hand";
+            handContainer = CreateLayoutContainer("HandContainer", handPanel.transform, false, new Vector2(10f, 12f), new Vector2(-10f, -44f));
 
-            GameObject logPanel = CreatePanel("LogPanel", root.transform, new Color(0.85f, 0.89f, 0.94f, 1f));
+            GameObject logPanel = CreatePanel("LogPanel", bottomBar.transform, new Color(0.16f, 0.20f, 0.24f, 0.96f));
             RectTransform logRect = logPanel.GetComponent<RectTransform>();
-            logRect.anchorMin = new Vector2(0f, 0f);
-            logRect.anchorMax = new Vector2(0f, 0f);
-            logRect.pivot = new Vector2(0f, 0f);
-            logRect.anchoredPosition = new Vector2(20f, 260f);
-            logRect.sizeDelta = new Vector2(520f, 130f);
-            battleLogText = CreateText("BattleLog", logPanel.transform, new Vector2(12f, -12f), new Vector2(496f, 106f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            logRect.anchorMin = new Vector2(1f, 0f);
+            logRect.anchorMax = new Vector2(1f, 1f);
+            logRect.pivot = new Vector2(1f, 0.5f);
+            logRect.anchoredPosition = new Vector2(-20f, 0f);
+            logRect.sizeDelta = new Vector2(320f, -36f);
+            combatLogTitleText = CreateText("CombatLogTitle", logPanel.transform, new Vector2(14f, -12f), new Vector2(180f, 24f), 20, FontStyle.Bold, TextAnchor.UpperLeft);
+            combatLogTitleText.text = "Combat Log";
+            combatLogTitleText.color = new Color(0.98f, 0.95f, 0.86f, 1f);
+            battleLogText = CreateText("BattleLog", logPanel.transform, new Vector2(14f, -42f), new Vector2(292f, 180f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
+            battleLogText.color = new Color(0.92f, 0.94f, 0.97f, 1f);
 
-            GameObject debugPanel = CreatePanel("DebugPanel", root.transform, new Color(0.82f, 0.82f, 0.82f, 1f));
+            debugPanelRoot = CreatePanel("DebugPanel", root.transform, new Color(0.17f, 0.20f, 0.18f, 0.98f));
+            GameObject debugPanel = debugPanelRoot;
             RectTransform debugRect = debugPanel.GetComponent<RectTransform>();
-            debugRect.anchorMin = new Vector2(1f, 0.5f);
-            debugRect.anchorMax = new Vector2(1f, 0.5f);
-            debugRect.pivot = new Vector2(1f, 0.5f);
-            debugRect.anchoredPosition = new Vector2(-20f, 0f);
-            debugRect.sizeDelta = new Vector2(200f, 420f);
-            CreateText("DebugLabel", debugPanel.transform, new Vector2(12f, -12f), new Vector2(180f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft).text = "Debug";
+            debugRect.anchorMin = new Vector2(1f, 1f);
+            debugRect.anchorMax = new Vector2(1f, 1f);
+            debugRect.pivot = new Vector2(1f, 1f);
+            debugRect.anchoredPosition = new Vector2(-20f, -92f);
+            debugRect.sizeDelta = new Vector2(220f, 430f);
+            Text debugLabel = CreateText("DebugLabel", debugPanel.transform, new Vector2(12f, -12f), new Vector2(180f, 28f), 20, FontStyle.Bold, TextAnchor.UpperLeft);
+            debugLabel.text = "Debug Tools";
+            debugLabel.color = new Color(0.98f, 0.95f, 0.86f, 1f);
 
-            Transform debugButtons = CreateLayoutContainer("DebugButtons", debugPanel.transform, true, new Vector2(12f, 12f), new Vector2(-12f, -48f));
-            drawButton = CreateButton("DrawButton", debugButtons, "Draw Card");
-            endTurnButton = CreateButton("EndTurnButton", debugButtons, "End Turn");
-            killHero1Button = CreateButton("KillHero1Button", debugButtons, "Kill Hero 1");
-            killHero2Button = CreateButton("KillHero2Button", debugButtons, "Kill Hero 2");
-            killHero3Button = CreateButton("KillHero3Button", debugButtons, "Kill Hero 3");
-            healAllButton = CreateButton("HealAllButton", debugButtons, "Heal All");
-            winBattleButton = CreateButton("WinBattleButton", debugButtons, "Win Battle");
+            debugButtonsContainer = CreateLayoutContainer("DebugButtons", debugPanel.transform, true, new Vector2(12f, 12f), new Vector2(-12f, -48f));
+            Transform debugButtons = debugButtonsContainer;
+            drawButton = CreateDebugActionButton("DrawButton", debugButtons, "Draw Card", DrawOneCard);
+            killHero1Button = CreateDebugActionButton("KillHero1Button", debugButtons, "Kill Hero 1", () => MarkHeroDownByIndex(0));
+            killHero2Button = CreateDebugActionButton("KillHero2Button", debugButtons, "Kill Hero 2", () => MarkHeroDownByIndex(1));
+            killHero3Button = CreateDebugActionButton("KillHero3Button", debugButtons, "Kill Hero 3", () => MarkHeroDownByIndex(2));
+            healAllButton = CreateDebugActionButton("HealAllButton", debugButtons, "Heal All", HealAllHeroes);
+            winBattleButton = CreateDebugActionButton("WinBattleButton", debugButtons, "Win Battle", WinBattle);
+            debugPanelRoot.SetActive(false);
 
             if (rewardCardManager == null)
             {
@@ -2349,6 +2510,118 @@ namespace PawSlayers
             returnToSelectionButton.gameObject.SetActive(false);
         }
 
+        private void EnsureBattleScenePolish(Transform canvasTransform)
+        {
+            if (canvasTransform == null)
+            {
+                return;
+            }
+
+            if (titleText != null)
+            {
+                titleText.text = "Paw Slayers";
+                titleText.color = new Color(0.98f, 0.95f, 0.86f, 1f);
+            }
+
+            if (turnText != null)
+            {
+                turnText.color = new Color(0.96f, 0.94f, 0.89f, 1f);
+            }
+
+            if (runProgressText != null)
+            {
+                runProgressText.color = new Color(0.98f, 0.92f, 0.75f, 1f);
+            }
+
+            if (relicsText != null)
+            {
+                relicsText.color = new Color(0.78f, 0.64f, 0.92f, 1f);
+            }
+
+            if (goldText == null && titleText != null)
+            {
+                goldText = CreateText("GoldText", titleText.transform.parent, new Vector2(-310f, -18f), new Vector2(130f, 24f), 18, FontStyle.Bold, TextAnchor.UpperRight);
+                goldText.rectTransform.anchorMin = new Vector2(1f, 1f);
+                goldText.rectTransform.anchorMax = new Vector2(1f, 1f);
+                goldText.rectTransform.pivot = new Vector2(1f, 1f);
+                goldText.rectTransform.anchoredPosition = new Vector2(-310f, -18f);
+                goldText.color = new Color(0.95f, 0.84f, 0.44f, 1f);
+            }
+
+            if (drawPileText == null && energyText != null)
+            {
+                drawPileText = CreateText("DrawPileText", energyText.transform.parent, new Vector2(20f, -58f), new Vector2(120f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+                drawPileText.color = new Color(0.93f, 0.93f, 0.98f, 1f);
+            }
+
+            if (discardPileText == null && energyText != null)
+            {
+                discardPileText = CreateText("DiscardPileText", energyText.transform.parent, new Vector2(20f, -82f), new Vector2(120f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+                discardPileText.color = new Color(0.93f, 0.93f, 0.98f, 1f);
+            }
+
+            if (combatLogTitleText == null && battleLogText != null)
+            {
+                combatLogTitleText = CreateText("CombatLogTitle", battleLogText.transform.parent, new Vector2(12f, -12f), new Vector2(180f, 24f), 20, FontStyle.Bold, TextAnchor.UpperLeft);
+                combatLogTitleText.text = "Combat Log";
+            }
+
+            if (debugPanelRoot == null)
+            {
+                Transform debugTransform = canvasTransform.GetComponentsInChildren<Transform>(true).FirstOrDefault(t => t.name == "DebugPanel");
+                if (debugTransform != null)
+                {
+                    debugPanelRoot = debugTransform.gameObject;
+                    debugPanelRoot.SetActive(false);
+                }
+            }
+
+            if (debugToggleButton == null && titleText != null)
+            {
+                debugToggleButton = CreateButton("DebugToggleButton", titleText.transform.parent, "Debug");
+                RectTransform debugToggleRect = debugToggleButton.GetComponent<RectTransform>();
+                debugToggleRect.anchorMin = new Vector2(1f, 1f);
+                debugToggleRect.anchorMax = new Vector2(1f, 1f);
+                debugToggleRect.pivot = new Vector2(1f, 1f);
+                debugToggleRect.anchoredPosition = new Vector2(-20f, -16f);
+                debugToggleRect.sizeDelta = new Vector2(120f, 42f);
+                debugToggleText = debugToggleButton.GetComponentInChildren<Text>();
+            }
+
+            if (battleLogText != null)
+            {
+                battleLogText.color = new Color(0.92f, 0.94f, 0.97f, 1f);
+            }
+
+            if (heroContainer != null)
+            {
+                VerticalLayoutGroup heroLayout = heroContainer.GetComponent<VerticalLayoutGroup>();
+                if (heroLayout != null)
+                {
+                    heroLayout.spacing = 12f;
+                }
+            }
+
+            if (enemyContainer != null)
+            {
+                VerticalLayoutGroup enemyLayout = enemyContainer.GetComponent<VerticalLayoutGroup>();
+                if (enemyLayout != null)
+                {
+                    enemyLayout.spacing = 12f;
+                }
+            }
+
+            if (handContainer != null)
+            {
+                HorizontalLayoutGroup handLayout = handContainer.GetComponent<HorizontalLayoutGroup>();
+                if (handLayout != null)
+                {
+                    handLayout.spacing = 12f;
+                    handLayout.childAlignment = TextAnchor.LowerCenter;
+                }
+            }
+        }
+
         private void EnsureHeroViewInteractive(BattleHeroView view)
         {
             if (view.button == null)
@@ -2384,19 +2657,28 @@ namespace PawSlayers
             LayoutElement layout = view.GetComponent<LayoutElement>();
             if (layout != null)
             {
-                layout.preferredHeight = Mathf.Max(layout.preferredHeight, 178f);
+                layout.preferredHeight = Mathf.Max(layout.preferredHeight, 192f);
             }
 
             RectTransform rect = view.GetComponent<RectTransform>();
-            if (rect != null && rect.sizeDelta.y < 178f)
+            if (rect != null && rect.sizeDelta.y < 192f)
             {
-                rect.sizeDelta = new Vector2(rect.sizeDelta.x, 178f);
+                rect.sizeDelta = new Vector2(rect.sizeDelta.x, 192f);
             }
 
             if (view.statusText == null)
             {
                 view.statusText = CreateText("StatusText", view.transform, new Vector2(12f, -144f), new Vector2(230f, 34f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
             }
+
+            if (view.tauntText == null)
+            {
+                view.tauntText = CreateText("TauntText", view.transform, new Vector2(150f, -98f), new Vector2(90f, 20f), 14, FontStyle.Bold, TextAnchor.UpperRight);
+                view.tauntText.color = new Color(0.66f, 0.42f, 0.12f, 1f);
+            }
+
+            EnsureBarVisuals(view.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(12f, -72f), new Vector2(170f, 12f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
+            EnsureDimOverlay(view.transform, ref view.dimOverlayImage, "DimOverlay");
         }
 
         private void EnsureEnemyViewInteractive(EnemyView view)
@@ -2434,13 +2716,13 @@ namespace PawSlayers
             LayoutElement layout = view.GetComponent<LayoutElement>();
             if (layout != null)
             {
-                layout.preferredHeight = Mathf.Max(layout.preferredHeight, 206f);
+                layout.preferredHeight = Mathf.Max(layout.preferredHeight, 224f);
             }
 
             RectTransform rect = view.GetComponent<RectTransform>();
-            if (rect != null && rect.sizeDelta.y < 206f)
+            if (rect != null && rect.sizeDelta.y < 224f)
             {
-                rect.sizeDelta = new Vector2(rect.sizeDelta.x, 206f);
+                rect.sizeDelta = new Vector2(rect.sizeDelta.x, 224f);
             }
 
             if (view.blockText == null)
@@ -2462,6 +2744,9 @@ namespace PawSlayers
             {
                 view.statusText = CreateText("StatusText", view.transform, new Vector2(12f, -172f), new Vector2(220f, 32f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
             }
+
+            EnsureBarVisuals(view.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(12f, -42f), new Vector2(180f, 12f), new Color(0.82f, 0.22f, 0.22f, 1f), new Color(0.20f, 0.12f, 0.12f, 1f));
+            EnsureDimOverlay(view.transform, ref view.dimOverlayImage, "DimOverlay");
         }
 
         private void EnsureCardViewInteractive(CardView view)
@@ -2496,13 +2781,130 @@ namespace PawSlayers
                 view.selectionOutline.effectDistance = new Vector2(4f, -4f);
                 view.selectionOutline.enabled = false;
             }
+
+            EnsureCardVisuals(view);
+        }
+
+        private void EnsureCardVisuals(CardView view)
+        {
+            if (view == null)
+            {
+                return;
+            }
+
+            LayoutElement layout = view.GetComponent<LayoutElement>();
+            if (layout != null)
+            {
+                layout.preferredWidth = 220f;
+                layout.preferredHeight = 318f;
+            }
+
+            RectTransform rect = view.GetComponent<RectTransform>();
+            if (rect != null)
+            {
+                rect.sizeDelta = new Vector2(220f, 318f);
+            }
+
+            if (view.backgroundImage != null)
+            {
+                view.backgroundImage.color = new Color(0.96f, 0.93f, 0.84f, 1f);
+            }
+
+            if (view.costBadgeImage == null)
+            {
+                GameObject badge = CreatePanel("CostBadge", view.transform, new Color(0.23f, 0.42f, 0.72f, 1f));
+                RectTransform badgeRect = badge.GetComponent<RectTransform>();
+                badgeRect.anchorMin = new Vector2(0f, 1f);
+                badgeRect.anchorMax = new Vector2(0f, 1f);
+                badgeRect.pivot = new Vector2(0f, 1f);
+                badgeRect.anchoredPosition = new Vector2(10f, -10f);
+                badgeRect.sizeDelta = new Vector2(42f, 42f);
+                view.costBadgeImage = badge.GetComponent<Image>();
+
+                if (view.costText != null)
+                {
+                    view.costText.transform.SetParent(badge.transform, false);
+                    RectTransform costRect = view.costText.rectTransform;
+                    StretchFull(costRect, 0f);
+                    view.costText.alignment = TextAnchor.MiddleCenter;
+                    view.costText.color = Color.white;
+                }
+            }
+
+            if (view.upgradedLabelText == null)
+            {
+                view.upgradedLabelText = CreateText("UpgradedLabel", view.transform, new Vector2(126f, -12f), new Vector2(84f, 22f), 12, FontStyle.Bold, TextAnchor.UpperRight);
+                view.upgradedLabelText.color = new Color(0.64f, 0.45f, 0.08f, 1f);
+            }
+
+            if (view.disabledOverlayImage == null)
+            {
+                GameObject overlay = CreatePanel("DisabledOverlay", view.transform, new Color(0.12f, 0.12f, 0.14f, 0.35f));
+                StretchFull(overlay.GetComponent<RectTransform>(), 0f);
+                overlay.transform.SetAsLastSibling();
+                view.disabledOverlayImage = overlay.GetComponent<Image>();
+                view.disabledOverlayImage.enabled = false;
+
+                if (view.disabledReasonText != null)
+                {
+                    view.disabledReasonText.transform.SetParent(overlay.transform, false);
+                    RectTransform reasonRect = view.disabledReasonText.rectTransform;
+                    reasonRect.anchorMin = new Vector2(0f, 0f);
+                    reasonRect.anchorMax = new Vector2(1f, 0f);
+                    reasonRect.pivot = new Vector2(0.5f, 0f);
+                    reasonRect.anchoredPosition = new Vector2(0f, 14f);
+                    reasonRect.sizeDelta = new Vector2(-16f, 36f);
+                    view.disabledReasonText.color = new Color(1f, 0.95f, 0.95f, 1f);
+                }
+            }
+        }
+
+        private void EnsureBarVisuals(Transform parent, ref Image fillImage, string name, Vector2 anchoredPosition, Vector2 size, Color fillColor, Color backgroundColor)
+        {
+            if (fillImage != null)
+            {
+                fillImage.type = Image.Type.Filled;
+                fillImage.fillMethod = Image.FillMethod.Horizontal;
+                return;
+            }
+
+            GameObject barRoot = CreatePanel(name + "Root", parent, backgroundColor);
+            RectTransform bgRect = barRoot.GetComponent<RectTransform>();
+            bgRect.anchorMin = new Vector2(0f, 1f);
+            bgRect.anchorMax = new Vector2(0f, 1f);
+            bgRect.pivot = new Vector2(0f, 1f);
+            bgRect.anchoredPosition = anchoredPosition;
+            bgRect.sizeDelta = size;
+
+            GameObject fill = CreatePanel(name, barRoot.transform, fillColor);
+            RectTransform fillRect = fill.GetComponent<RectTransform>();
+            StretchFull(fillRect, 0f);
+            fillImage = fill.GetComponent<Image>();
+            fillImage.type = Image.Type.Filled;
+            fillImage.fillMethod = Image.FillMethod.Horizontal;
+            fillImage.fillOrigin = 0;
+            fillImage.fillAmount = 1f;
+        }
+
+        private void EnsureDimOverlay(Transform parent, ref Image overlayImage, string name)
+        {
+            if (overlayImage != null)
+            {
+                return;
+            }
+
+            GameObject overlay = CreatePanel(name, parent, new Color(0f, 0f, 0f, 0.32f));
+            StretchFull(overlay.GetComponent<RectTransform>(), 0f);
+            overlay.transform.SetAsLastSibling();
+            overlayImage = overlay.GetComponent<Image>();
+            overlayImage.enabled = false;
         }
 
         private BattleHeroView CreateRuntimeHeroView(Transform parent)
         {
-            GameObject root = CreatePanel("BattleHeroView", parent, new Color(0.86f, 0.93f, 0.86f, 1f));
+            GameObject root = CreatePanel("BattleHeroView", parent, new Color(0.92f, 0.88f, 0.78f, 1f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
-            layout.preferredHeight = 178f;
+            layout.preferredHeight = 192f;
             Button button = root.AddComponent<Button>();
             Outline outline = root.AddComponent<Outline>();
             outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
@@ -2513,29 +2915,33 @@ namespace PawSlayers
             view.backgroundImage = root.GetComponent<Image>();
             view.button = button;
             view.highlightOutline = outline;
-            view.heroNameText = CreateText("HeroName", root.transform, new Vector2(12f, -12f), new Vector2(220f, 24f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.heroClassText = CreateText("HeroClass", root.transform, new Vector2(12f, -38f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.hpText = CreateText("HpText", root.transform, new Vector2(12f, -72f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.blockText = CreateText("BlockText", root.transform, new Vector2(12f, -98f), new Vector2(120f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.stateText = CreateText("StateText", root.transform, new Vector2(12f, -120f), new Vector2(160f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.statusText = CreateText("StatusText", root.transform, new Vector2(12f, -144f), new Vector2(230f, 34f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.heroNameText = CreateText("HeroName", root.transform, new Vector2(14f, -14f), new Vector2(190f, 26f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.heroClassText = CreateText("HeroClass", root.transform, new Vector2(14f, -40f), new Vector2(190f, 20f), 17, FontStyle.Italic, TextAnchor.UpperLeft);
+            view.hpText = CreateText("HpText", root.transform, new Vector2(14f, -90f), new Vector2(180f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.blockText = CreateText("BlockText", root.transform, new Vector2(14f, -114f), new Vector2(120f, 20f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.tauntText = CreateText("TauntText", root.transform, new Vector2(146f, -114f), new Vector2(90f, 20f), 14, FontStyle.Bold, TextAnchor.UpperRight);
+            view.tauntText.color = new Color(0.66f, 0.42f, 0.12f, 1f);
+            view.stateText = CreateText("StateText", root.transform, new Vector2(14f, -136f), new Vector2(160f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.statusText = CreateText("StatusText", root.transform, new Vector2(14f, -158f), new Vector2(228f, 28f), 13, FontStyle.Normal, TextAnchor.UpperLeft);
 
             GameObject portrait = CreatePanel("Portrait", root.transform, new Color(0.75f, 0.75f, 0.75f, 1f));
             RectTransform portraitRect = portrait.GetComponent<RectTransform>();
             portraitRect.anchorMin = new Vector2(1f, 1f);
             portraitRect.anchorMax = new Vector2(1f, 1f);
             portraitRect.pivot = new Vector2(1f, 1f);
-            portraitRect.anchoredPosition = new Vector2(-12f, -12f);
-            portraitRect.sizeDelta = new Vector2(60f, 60f);
+            portraitRect.anchoredPosition = new Vector2(-14f, -14f);
+            portraitRect.sizeDelta = new Vector2(62f, 62f);
             view.portraitImage = portrait.GetComponent<Image>();
+            EnsureBarVisuals(root.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(14f, -66f), new Vector2(160f, 12f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
+            EnsureDimOverlay(root.transform, ref view.dimOverlayImage, "DimOverlay");
             return view;
         }
 
         private EnemyView CreateRuntimeEnemyView(Transform parent)
         {
-            GameObject root = CreatePanel("EnemyView", parent, new Color(0.93f, 0.84f, 0.84f, 1f));
+            GameObject root = CreatePanel("EnemyView", parent, new Color(0.48f, 0.37f, 0.30f, 1f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
-            layout.preferredHeight = 206f;
+            layout.preferredHeight = 224f;
             Button button = root.AddComponent<Button>();
             Outline outline = root.AddComponent<Outline>();
             outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
@@ -2546,22 +2952,31 @@ namespace PawSlayers
             view.backgroundImage = root.GetComponent<Image>();
             view.button = button;
             view.highlightOutline = outline;
-            view.enemyNameText = CreateText("EnemyName", root.transform, new Vector2(12f, -12f), new Vector2(220f, 24f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.hpText = CreateText("HpText", root.transform, new Vector2(12f, -42f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.blockText = CreateText("BlockText", root.transform, new Vector2(12f, -66f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.phaseText = CreateText("PhaseText", root.transform, new Vector2(12f, -90f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.intentText = CreateText("IntentText", root.transform, new Vector2(12f, -114f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.intentDescriptionText = CreateText("IntentDescriptionText", root.transform, new Vector2(12f, -138f), new Vector2(220f, 32f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.statusText = CreateText("StatusText", root.transform, new Vector2(12f, -172f), new Vector2(220f, 32f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.enemyNameText = CreateText("EnemyName", root.transform, new Vector2(14f, -14f), new Vector2(220f, 24f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.enemyNameText.color = new Color(0.98f, 0.95f, 0.88f, 1f);
+            view.hpText = CreateText("HpText", root.transform, new Vector2(14f, -90f), new Vector2(220f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.hpText.color = new Color(0.98f, 0.95f, 0.88f, 1f);
+            view.blockText = CreateText("BlockText", root.transform, new Vector2(14f, -114f), new Vector2(220f, 20f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.blockText.color = new Color(0.90f, 0.92f, 0.98f, 1f);
+            view.phaseText = CreateText("PhaseText", root.transform, new Vector2(14f, -136f), new Vector2(220f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.phaseText.color = new Color(0.98f, 0.83f, 0.60f, 1f);
+            view.intentText = CreateText("IntentText", root.transform, new Vector2(14f, -160f), new Vector2(220f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.intentText.color = new Color(1f, 0.92f, 0.74f, 1f);
+            view.intentDescriptionText = CreateText("IntentDescriptionText", root.transform, new Vector2(14f, -184f), new Vector2(220f, 24f), 13, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.intentDescriptionText.color = new Color(0.96f, 0.94f, 0.89f, 1f);
+            view.statusText = CreateText("StatusText", root.transform, new Vector2(14f, -206f), new Vector2(220f, 18f), 12, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.statusText.color = new Color(0.88f, 0.90f, 0.95f, 1f);
+            EnsureBarVisuals(root.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(14f, -66f), new Vector2(170f, 12f), new Color(0.82f, 0.22f, 0.22f, 1f), new Color(0.20f, 0.12f, 0.12f, 1f));
+            EnsureDimOverlay(root.transform, ref view.dimOverlayImage, "DimOverlay");
             return view;
         }
 
         private CardView CreateRuntimeCardView(Transform parent)
         {
-            GameObject root = CreatePanel("CardView", parent, Color.white);
+            GameObject root = CreatePanel("CardView", parent, new Color(0.96f, 0.93f, 0.84f, 1f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
-            layout.preferredWidth = 250f;
-            layout.preferredHeight = 320f;
+            layout.preferredWidth = 220f;
+            layout.preferredHeight = 318f;
 
             Button button = root.AddComponent<Button>();
             CanvasGroup canvasGroup = root.AddComponent<CanvasGroup>();
@@ -2575,23 +2990,49 @@ namespace PawSlayers
             view.button = button;
             view.canvasGroup = canvasGroup;
             view.selectionOutline = outline;
-            view.cardNameText = CreateText("CardName", root.transform, new Vector2(10f, -10f), new Vector2(180f, 40f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.costText = CreateText("CostText", root.transform, new Vector2(198f, -10f), new Vector2(40f, 28f), 22, FontStyle.Bold, TextAnchor.UpperRight);
-            view.ownerText = CreateText("OwnerText", root.transform, new Vector2(10f, -54f), new Vector2(220f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
-            view.typeText = CreateText("TypeText", root.transform, new Vector2(10f, -78f), new Vector2(220f, 22f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.cardNameText = CreateText("CardName", root.transform, new Vector2(60f, -10f), new Vector2(148f, 34f), 20, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.costText = CreateText("CostText", root.transform, Vector2.zero, new Vector2(42f, 42f), 22, FontStyle.Bold, TextAnchor.MiddleCenter);
+            view.ownerText = CreateText("OwnerText", root.transform, new Vector2(12f, -48f), new Vector2(196f, 20f), 14, FontStyle.Italic, TextAnchor.UpperLeft);
+            view.typeText = CreateText("TypeText", root.transform, new Vector2(12f, -68f), new Vector2(196f, 20f), 14, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.upgradedLabelText = CreateText("UpgradedLabel", root.transform, new Vector2(130f, -12f), new Vector2(74f, 18f), 11, FontStyle.Bold, TextAnchor.UpperRight);
+            view.upgradedLabelText.color = new Color(0.64f, 0.45f, 0.08f, 1f);
 
             GameObject art = CreatePanel("Art", root.transform, new Color(0.82f, 0.82f, 0.82f, 1f));
             RectTransform artRect = art.GetComponent<RectTransform>();
             artRect.anchorMin = new Vector2(0f, 1f);
             artRect.anchorMax = new Vector2(0f, 1f);
             artRect.pivot = new Vector2(0f, 1f);
-            artRect.anchoredPosition = new Vector2(20f, -108f);
-            artRect.sizeDelta = new Vector2(210f, 90f);
+            artRect.anchoredPosition = new Vector2(16f, -94f);
+            artRect.sizeDelta = new Vector2(188f, 92f);
             view.artImage = art.GetComponent<Image>();
 
-            view.descriptionText = CreateText("Description", root.transform, new Vector2(10f, -208f), new Vector2(230f, 74f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.disabledReasonText = CreateText("DisabledReason", root.transform, new Vector2(10f, -286f), new Vector2(230f, 28f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
+            GameObject costBadge = CreatePanel("CostBadge", root.transform, new Color(0.23f, 0.42f, 0.72f, 1f));
+            RectTransform badgeRect = costBadge.GetComponent<RectTransform>();
+            badgeRect.anchorMin = new Vector2(0f, 1f);
+            badgeRect.anchorMax = new Vector2(0f, 1f);
+            badgeRect.pivot = new Vector2(0f, 1f);
+            badgeRect.anchoredPosition = new Vector2(10f, -10f);
+            badgeRect.sizeDelta = new Vector2(42f, 42f);
+            view.costBadgeImage = costBadge.GetComponent<Image>();
+            view.costText.transform.SetParent(costBadge.transform, false);
+            StretchFull(view.costText.rectTransform, 0f);
+            view.costText.color = Color.white;
+
+            view.descriptionText = CreateText("Description", root.transform, new Vector2(12f, -194f), new Vector2(196f, 80f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.disabledReasonText = CreateText("DisabledReason", root.transform, new Vector2(10f, -286f), new Vector2(196f, 24f), 14, FontStyle.Bold, TextAnchor.MiddleCenter);
             view.disabledReasonText.color = new Color(0.7f, 0.1f, 0.1f, 1f);
+            GameObject overlay = CreatePanel("DisabledOverlay", root.transform, new Color(0.12f, 0.12f, 0.14f, 0.35f));
+            StretchFull(overlay.GetComponent<RectTransform>(), 0f);
+            overlay.transform.SetAsLastSibling();
+            view.disabledOverlayImage = overlay.GetComponent<Image>();
+            view.disabledOverlayImage.enabled = false;
+            view.disabledReasonText.transform.SetParent(overlay.transform, false);
+            RectTransform reasonRect = view.disabledReasonText.rectTransform;
+            reasonRect.anchorMin = new Vector2(0f, 0f);
+            reasonRect.anchorMax = new Vector2(1f, 0f);
+            reasonRect.pivot = new Vector2(0.5f, 0f);
+            reasonRect.anchoredPosition = new Vector2(0f, 16f);
+            reasonRect.sizeDelta = new Vector2(-16f, 32f);
             return view;
         }
 
@@ -2628,7 +3069,7 @@ namespace PawSlayers
 
         private Button CreateButton(string name, Transform parent, string label)
         {
-            GameObject buttonObject = CreatePanel(name, parent, new Color(0.36f, 0.55f, 0.31f, 1f));
+            GameObject buttonObject = CreatePanel(name, parent, new Color(0.39f, 0.30f, 0.16f, 1f));
             RectTransform rect = buttonObject.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(180f, 48f);
             LayoutElement layout = buttonObject.AddComponent<LayoutElement>();
@@ -2636,7 +3077,16 @@ namespace PawSlayers
             layout.preferredHeight = 48f;
 
             Button button = buttonObject.AddComponent<Button>();
-            CreateText("Label", buttonObject.transform, new Vector2(20f, -10f), new Vector2(140f, 24f), 18, FontStyle.Bold, TextAnchor.MiddleCenter).text = label;
+            ColorBlock colors = button.colors;
+            colors.normalColor = new Color(0.39f, 0.30f, 0.16f, 1f);
+            colors.highlightedColor = new Color(0.51f, 0.39f, 0.20f, 1f);
+            colors.pressedColor = new Color(0.29f, 0.22f, 0.12f, 1f);
+            colors.disabledColor = new Color(0.28f, 0.28f, 0.28f, 0.9f);
+            button.colors = colors;
+
+            Text labelText = CreateText("Label", buttonObject.transform, new Vector2(20f, -10f), new Vector2(140f, 24f), 18, FontStyle.Bold, TextAnchor.MiddleCenter);
+            labelText.text = label;
+            labelText.color = new Color(0.99f, 0.96f, 0.89f, 1f);
             return button;
         }
 

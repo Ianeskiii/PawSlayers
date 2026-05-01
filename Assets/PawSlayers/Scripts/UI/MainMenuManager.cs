@@ -118,6 +118,7 @@ namespace PawSlayers
 
         public void CloseSettings()
         {
+            Debug.Log("Back clicked.");
             SetPanelActive(settingsPanel, false);
         }
 
@@ -175,11 +176,16 @@ namespace PawSlayers
             if (saveSummaryText != null)
             {
                 saveSummaryText.text = hasSavedRun ? BuildSaveSummary() : "No saved run.";
-                saveSummaryText.color = hasSavedRun ? Color.black : new Color(0.35f, 0.35f, 0.35f, 1f);
+                saveSummaryText.color = hasSavedRun ? new Color(0.98f, 0.95f, 0.86f, 1f) : new Color(0.72f, 0.74f, 0.76f, 1f);
             }
 
             SetPanelActive(newRunConfirmPanel, false);
             SetPanelActive(settingsPanel, false);
+            StyleButton(newRunButton, new Color(0.76f, 0.57f, 0.18f, 1f), false);
+            StyleButton(continueRunButton, new Color(0.47f, 0.35f, 0.18f, 1f), false);
+            StyleButton(heroProgressionButton, new Color(0.41f, 0.31f, 0.16f, 1f), false);
+            StyleButton(settingsButton, new Color(0.35f, 0.31f, 0.27f, 1f), false);
+            StyleButton(quitButton, new Color(0.46f, 0.20f, 0.18f, 1f), true);
         }
 
         private string BuildSaveSummary()
@@ -236,30 +242,35 @@ namespace PawSlayers
             }
 
             menuRoot = root;
+            EnsureMenuBackground(root);
 
             if (titleText == null)
             {
-                titleText = CreateText("Title", root, new Vector2(0f, -120f), new Vector2(800f, 64f), 48, FontStyle.Bold, TextAnchor.MiddleCenter);
+                titleText = CreateText("Title", root, new Vector2(0f, -118f), new Vector2(800f, 64f), 54, FontStyle.Bold, TextAnchor.MiddleCenter);
                 SetCenteredRect(titleText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -120f), new Vector2(800f, 64f));
                 titleText.text = "Paw Slayers";
+                titleText.color = new Color(0.98f, 0.95f, 0.86f, 1f);
             }
 
             if (subtitleText == null)
             {
                 subtitleText = CreateText("Subtitle", root, new Vector2(0f, -182f), new Vector2(800f, 36f), 24, FontStyle.Italic, TextAnchor.MiddleCenter);
                 SetCenteredRect(subtitleText.rectTransform, new Vector2(0.5f, 1f), new Vector2(0f, -182f), new Vector2(800f, 36f));
-                subtitleText.text = "Roguelite Deckbuilder Prototype";
+                subtitleText.text = "A cozy roguelite deckbuilder";
+                subtitleText.color = new Color(0.84f, 0.86f, 0.80f, 1f);
             }
+
+            EnsureMainPanel(root);
 
             RectTransform buttonStack = FindChildRect(root, "ButtonStack");
             if (buttonStack == null)
             {
-                GameObject stackObject = CreateUiObject("ButtonStack", root, new Vector2(360f, 420f));
+                GameObject stackObject = CreateUiObject("ButtonStack", root, new Vector2(380f, 420f));
                 buttonStack = stackObject.GetComponent<RectTransform>();
-                SetCenteredRect(buttonStack, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(360f, 420f));
+                SetCenteredRect(buttonStack, new Vector2(0.5f, 0.5f), new Vector2(0f, -10f), new Vector2(380f, 420f));
 
                 VerticalLayoutGroup layout = stackObject.AddComponent<VerticalLayoutGroup>();
-                layout.spacing = 14f;
+                layout.spacing = 16f;
                 layout.childAlignment = TextAnchor.UpperCenter;
                 layout.childControlWidth = true;
                 layout.childControlHeight = false;
@@ -294,7 +305,7 @@ namespace PawSlayers
 
             if (saveSummaryText == null)
             {
-                saveSummaryText = CreateText("SaveSummaryText", root, new Vector2(0f, 210f), new Vector2(560f, 52f), 18, FontStyle.Normal, TextAnchor.MiddleCenter);
+                saveSummaryText = CreateText("SaveSummaryText", root, new Vector2(0f, 232f), new Vector2(560f, 52f), 18, FontStyle.Normal, TextAnchor.MiddleCenter);
                 SetCenteredRect(saveSummaryText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, 210f), new Vector2(560f, 52f));
             }
 
@@ -302,7 +313,7 @@ namespace PawSlayers
             {
                 infoMessageText = CreateText("InfoMessageText", root, new Vector2(0f, -320f), new Vector2(760f, 44f), 18, FontStyle.Normal, TextAnchor.MiddleCenter);
                 SetCenteredRect(infoMessageText.rectTransform, new Vector2(0.5f, 0.5f), new Vector2(0f, -320f), new Vector2(760f, 44f));
-                infoMessageText.color = new Color(0.55f, 0.16f, 0.16f, 1f);
+                infoMessageText.color = new Color(0.86f, 0.56f, 0.46f, 1f);
             }
 
             if (versionText == null)
@@ -313,7 +324,12 @@ namespace PawSlayers
                 versionText.rectTransform.pivot = new Vector2(1f, 0f);
                 versionText.rectTransform.anchoredPosition = new Vector2(-24f, 24f);
                 versionText.text = "Prototype v0.1";
+                versionText.color = new Color(0.74f, 0.77f, 0.78f, 1f);
             }
+
+            titleText.color = new Color(0.98f, 0.95f, 0.86f, 1f);
+            subtitleText.color = new Color(0.84f, 0.86f, 0.80f, 1f);
+            versionText.color = new Color(0.74f, 0.77f, 0.78f, 1f);
 
             EnsureConfirmationPanel(root);
             EnsureSettingsPanel(root);
@@ -329,12 +345,13 @@ namespace PawSlayers
             GameObject overlay = CreatePanel("NewRunConfirmPanel", root, new Color(0f, 0f, 0f, 0.5f));
             StretchFull(overlay.GetComponent<RectTransform>(), 0f);
 
-            GameObject box = CreatePanel("ConfirmBox", overlay.transform as RectTransform, new Color(0.96f, 0.94f, 0.88f, 1f));
+            GameObject box = CreatePanel("ConfirmBox", overlay.transform as RectTransform, new Color(0.96f, 0.92f, 0.84f, 1f));
             RectTransform boxRect = box.GetComponent<RectTransform>();
             SetCenteredRect(boxRect, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(680f, 240f));
 
             Text prompt = CreateText("Prompt", boxRect, new Vector2(30f, -36f), new Vector2(620f, 80f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
             prompt.text = "Starting a new run will overwrite your current saved run. Continue?";
+            prompt.color = new Color(0.18f, 0.15f, 0.12f, 1f);
 
             confirmNewRunButton = CreateButton("ConfirmNewRunButton", boxRect, "Yes, Start New Run", new Vector2(260f, 52f));
             confirmNewRunButton.GetComponent<RectTransform>().anchoredPosition = new Vector2(-140f, 34f);
@@ -350,6 +367,8 @@ namespace PawSlayers
 
             newRunConfirmPanel = overlay;
             newRunConfirmPanel.SetActive(false);
+            StyleButton(confirmNewRunButton, new Color(0.76f, 0.57f, 0.18f, 1f), false);
+            StyleButton(cancelNewRunButton, new Color(0.40f, 0.33f, 0.27f, 1f), false);
         }
 
         private void EnsureSettingsPanel(RectTransform root)
@@ -362,12 +381,17 @@ namespace PawSlayers
             GameObject overlay = CreatePanel("SettingsPanel", root, new Color(0f, 0f, 0f, 0.45f));
             StretchFull(overlay.GetComponent<RectTransform>(), 0f);
 
-            GameObject box = CreatePanel("SettingsBox", overlay.transform as RectTransform, new Color(0.92f, 0.95f, 0.96f, 1f));
+            GameObject box = CreatePanel("SettingsBox", overlay.transform as RectTransform, new Color(0.96f, 0.92f, 0.84f, 1f));
             RectTransform boxRect = box.GetComponent<RectTransform>();
             SetCenteredRect(boxRect, new Vector2(0.5f, 0.5f), Vector2.zero, new Vector2(560f, 260f));
 
-            CreateText("SettingsTitle", boxRect, new Vector2(24f, -24f), new Vector2(260f, 36f), 30, FontStyle.Bold, TextAnchor.UpperLeft).text = "Settings";
-            CreateText("SettingsBody", boxRect, new Vector2(24f, -84f), new Vector2(500f, 56f), 22, FontStyle.Normal, TextAnchor.UpperLeft).text = "Audio settings coming soon";
+            Text title = CreateText("SettingsTitle", boxRect, new Vector2(24f, -24f), new Vector2(260f, 36f), 30, FontStyle.Bold, TextAnchor.UpperLeft);
+            title.text = "Settings";
+            Text body = CreateText("SettingsBody", boxRect, new Vector2(24f, -72f), new Vector2(500f, 32f), 20, FontStyle.Normal, TextAnchor.UpperLeft);
+            body.text = "Audio and gameplay settings coming soon.";
+            CreateText("SettingsRow1", boxRect, new Vector2(24f, -118f), new Vector2(500f, 24f), 18, FontStyle.Normal, TextAnchor.UpperLeft).text = "Music Volume  -  Coming soon";
+            CreateText("SettingsRow2", boxRect, new Vector2(24f, -146f), new Vector2(500f, 24f), 18, FontStyle.Normal, TextAnchor.UpperLeft).text = "SFX Volume  -  Coming soon";
+            CreateText("SettingsRow3", boxRect, new Vector2(24f, -174f), new Vector2(500f, 24f), 18, FontStyle.Normal, TextAnchor.UpperLeft).text = "Screen Shake  -  Coming soon";
 
             settingsBackButton = CreateButton("SettingsBackButton", boxRect, "Back", new Vector2(180f, 52f));
             RectTransform backRect = settingsBackButton.GetComponent<RectTransform>();
@@ -378,6 +402,32 @@ namespace PawSlayers
 
             settingsPanel = overlay;
             settingsPanel.SetActive(false);
+            StyleButton(settingsBackButton, new Color(0.47f, 0.35f, 0.18f, 1f), false);
+        }
+
+        private void EnsureMenuBackground(RectTransform root)
+        {
+            Image rootImage = root.GetComponent<Image>();
+            if (rootImage == null)
+            {
+                rootImage = root.gameObject.AddComponent<Image>();
+            }
+
+            rootImage.color = new Color(0.10f, 0.15f, 0.12f, 1f);
+        }
+
+        private void EnsureMainPanel(RectTransform root)
+        {
+            RectTransform panel = FindChildRect(root, "MainPanel");
+            if (panel != null)
+            {
+                return;
+            }
+
+            GameObject panelObject = CreatePanel("MainPanel", root, new Color(0.26f, 0.22f, 0.17f, 0.84f));
+            RectTransform panelRect = panelObject.GetComponent<RectTransform>();
+            SetCenteredRect(panelRect, new Vector2(0.5f, 0.5f), new Vector2(0f, -12f), new Vector2(520f, 580f));
+            panelObject.transform.SetAsFirstSibling();
         }
 
         private void BindButton(Button button, UnityEngine.Events.UnityAction action)
@@ -426,7 +476,7 @@ namespace PawSlayers
         {
             GameObject buttonObject = CreateUiObject(objectName, parent, sizeOverride ?? new Vector2(320f, 56f));
             Image image = buttonObject.AddComponent<Image>();
-            image.color = new Color(0.36f, 0.55f, 0.31f, 1f);
+            image.color = new Color(0.47f, 0.35f, 0.18f, 1f);
 
             LayoutElement layoutElement = buttonObject.AddComponent<LayoutElement>();
             layoutElement.preferredWidth = buttonObject.GetComponent<RectTransform>().sizeDelta.x;
@@ -443,7 +493,37 @@ namespace PawSlayers
             Text labelText = CreateText("Label", buttonObject.GetComponent<RectTransform>(), Vector2.zero, buttonObject.GetComponent<RectTransform>().sizeDelta, 22, FontStyle.Bold, TextAnchor.MiddleCenter);
             StretchFull(labelText.rectTransform, 0f);
             labelText.text = label;
+            labelText.color = new Color(0.98f, 0.95f, 0.86f, 1f);
             return button;
+        }
+
+        private void StyleButton(Button button, Color normalColor, bool isDanger)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            Image image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = normalColor;
+            }
+
+            ColorBlock colors = button.colors;
+            colors.normalColor = normalColor;
+            colors.highlightedColor = normalColor * 1.12f;
+            colors.pressedColor = normalColor * 0.9f;
+            colors.disabledColor = new Color(0.40f, 0.40f, 0.40f, 0.85f);
+            button.colors = colors;
+
+            Text label = button.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.color = isDanger
+                    ? new Color(1f, 0.93f, 0.90f, 1f)
+                    : new Color(0.98f, 0.95f, 0.86f, 1f);
+            }
         }
 
         private Text CreateText(string objectName, RectTransform parent, Vector2 anchoredPosition, Vector2 size, int fontSize, FontStyle fontStyle, TextAnchor alignment)

@@ -14,6 +14,8 @@ namespace PawSlayers
         public Text intentDescriptionText;
         public Text statusText;
         public Image backgroundImage;
+        public Image hpBarFillImage;
+        public Image dimOverlayImage;
         public Button button;
         public Outline highlightOutline;
 
@@ -86,12 +88,59 @@ namespace PawSlayers
                 }
                 else if (enemy.isBoss)
                 {
-                    backgroundImage.color = new Color(0.77f, 0.9f, 0.79f, 1f);
+                    backgroundImage.color = new Color(0.48f, 0.23f, 0.23f, 1f);
                 }
                 else
                 {
-                    backgroundImage.color = new Color(0.93f, 0.84f, 0.84f, 1f);
+                    backgroundImage.color = new Color(0.48f, 0.37f, 0.30f, 1f);
                 }
+            }
+
+            if (hpBarFillImage != null)
+            {
+                hpBarFillImage.fillAmount = enemy.maxHp <= 0 ? 0f : Mathf.Clamp01((float)enemy.currentHp / enemy.maxHp);
+            }
+
+            if (dimOverlayImage != null)
+            {
+                dimOverlayImage.enabled = !enemy.IsAlive;
+            }
+
+            if (enemyNameText != null)
+            {
+                enemyNameText.color = new Color(0.98f, 0.95f, 0.88f, 1f);
+            }
+
+            if (hpText != null)
+            {
+                hpText.color = new Color(1f, 0.86f, 0.86f, 1f);
+            }
+
+            if (blockText != null)
+            {
+                blockText.color = new Color(0.86f, 0.90f, 0.98f, 1f);
+            }
+
+            if (phaseText != null)
+            {
+                phaseText.color = enemy.isBoss
+                    ? new Color(1f, 0.80f, 0.60f, 1f)
+                    : new Color(0.90f, 0.88f, 0.82f, 1f);
+            }
+
+            if (intentText != null)
+            {
+                intentText.color = new Color(1f, 0.92f, 0.74f, 1f);
+            }
+
+            if (intentDescriptionText != null)
+            {
+                intentDescriptionText.color = new Color(0.96f, 0.94f, 0.89f, 1f);
+            }
+
+            if (statusText != null)
+            {
+                statusText.color = new Color(0.88f, 0.90f, 0.95f, 1f);
             }
         }
 

@@ -217,15 +217,48 @@ namespace PawSlayers
             return "Unlocked Cards: " + string.Join(", ", hero.unlockedCardIds.Select(GetCardName));
         }
 
+        public string GetLevelThreeUnlockSummary(HeroId heroId)
+        {
+            if (!level3UnlockCardIds.TryGetValue(heroId, out string cardId))
+            {
+                return "Unlocked Card: None";
+            }
+
+            HeroProgressionState hero = GetProgress(heroId);
+            bool unlocked = hero != null && hero.unlockedCardIds.Contains(cardId);
+            return unlocked
+                ? "Unlocked Card: " + GetCardName(cardId)
+                : "Unlocked Card: Locked until Level 3";
+        }
+
         public string GetPerkSummary(HeroId heroId)
         {
             HeroProgressionState hero = GetProgress(heroId);
             if (hero == null || hero.level < 5 || hero.unlockedPerkIds == null || hero.unlockedPerkIds.Count == 0)
             {
-                return "Perk: Locked until Level 5";
+                return "Level 5 Perk: Locked until Level 5";
             }
 
-            return "Perk: Unlocked";
+            return "Level 5 Perk: " + GetLevelFivePerkDescription(heroId);
+        }
+
+        public string GetLevelFivePerkDescription(HeroId heroId)
+        {
+            switch (heroId)
+            {
+                case HeroId.Capybara:
+                    return "First Swordsman Attack each battle deals +2 damage.";
+                case HeroId.Koala:
+                    return "First Thief Skill each battle costs 0.";
+                case HeroId.Sloth:
+                    return "First heal each battle heals +3 extra.";
+                case HeroId.Panda:
+                    return "Panda starts each battle with +5 block.";
+                case HeroId.Kangaroo:
+                    return "After Kangaroo plays 2 Attack cards in a turn, gain +1 Strength.";
+                default:
+                    return "Perk placeholder.";
+            }
         }
 
         public List<HeroXpGainResult> AddXpToHeroes(IEnumerable<HeroId> heroIds, int xpAmount)

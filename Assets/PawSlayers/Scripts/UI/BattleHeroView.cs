@@ -12,8 +12,11 @@ namespace PawSlayers
         public Text blockText;
         public Text stateText;
         public Text statusText;
+        public Text tauntText;
         public Image portraitImage;
         public Image backgroundImage;
+        public Image hpBarFillImage;
+        public Image dimOverlayImage;
         public Button button;
         public Outline highlightOutline;
 
@@ -47,6 +50,10 @@ namespace PawSlayers
             hpText.text = $"HP: {heroState.currentHp}/{heroState.MaxHp}";
             blockText.text = $"Block: {heroState.block}";
             stateText.text = $"Status: {(heroState.IsAlive ? "Alive" : "Down")}";
+            if (tauntText != null)
+            {
+                tauntText.text = heroState.statuses.taunt > 0 ? $"Taunt {heroState.statuses.taunt}" : string.Empty;
+            }
 
             if (statusText != null)
             {
@@ -61,7 +68,49 @@ namespace PawSlayers
 
             if (backgroundImage != null)
             {
-                backgroundImage.color = heroState.IsAlive ? new Color(0.86f, 0.93f, 0.86f, 1f) : new Color(0.55f, 0.55f, 0.55f, 1f);
+                backgroundImage.color = heroState.IsAlive ? new Color(0.92f, 0.88f, 0.78f, 1f) : new Color(0.42f, 0.42f, 0.42f, 1f);
+            }
+
+            if (hpBarFillImage != null)
+            {
+                hpBarFillImage.fillAmount = heroState.MaxHp <= 0 ? 0f : Mathf.Clamp01((float)heroState.currentHp / heroState.MaxHp);
+            }
+
+            if (dimOverlayImage != null)
+            {
+                dimOverlayImage.enabled = !heroState.IsAlive;
+            }
+
+            if (heroNameText != null)
+            {
+                heroNameText.color = new Color(0.17f, 0.14f, 0.11f, 1f);
+            }
+
+            if (heroClassText != null)
+            {
+                heroClassText.color = new Color(0.36f, 0.28f, 0.20f, 1f);
+            }
+
+            if (hpText != null)
+            {
+                hpText.color = new Color(0.68f, 0.14f, 0.14f, 1f);
+            }
+
+            if (blockText != null)
+            {
+                blockText.color = new Color(0.25f, 0.38f, 0.57f, 1f);
+            }
+
+            if (stateText != null)
+            {
+                stateText.color = heroState.IsAlive
+                    ? new Color(0.18f, 0.46f, 0.21f, 1f)
+                    : new Color(0.45f, 0.15f, 0.15f, 1f);
+            }
+
+            if (statusText != null)
+            {
+                statusText.color = new Color(0.24f, 0.22f, 0.20f, 1f);
             }
         }
 
