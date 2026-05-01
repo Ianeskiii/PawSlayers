@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/PawSlayers/Scenes/MainMenu.unity
+    guid: 8917e026524d2bf4fa944531313c7e1c
+  - enabled: 1
     path: Assets/PawSlayers/Scenes/HeroSelection.unity
     guid: 3ea9ec8e661c51049b5c148235628011
   - enabled: 1
@@ -14,5 +17,8 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/PawSlayers/Scenes/Map.unity
     guid: 12b49c8220fcf3c49ba768f74aba8c25
+  - enabled: 1
+    path: Assets/PawSlayers/Scenes/HeroProgression.unity
+    guid: 0aa66137ae0af234182e4df6c7db6fde
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

@@ -80,10 +80,21 @@ namespace PawSlayers
 
             ApplySaveDataToRunState(data);
             string sceneToLoad = string.IsNullOrWhiteSpace(data.currentSceneName) ? runManager.mapSceneName : data.currentSceneName;
+            bool looksLikeLegacyBattleStartSave =
+                sceneToLoad == runManager.mapSceneName &&
+                !data.pendingBetweenBattleRecovery &&
+                (string.Equals(data.currentNodeType, MapNodeType.Battle.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(data.currentNodeType, MapNodeType.Boss.ToString(), StringComparison.OrdinalIgnoreCase));
+
+            if (looksLikeLegacyBattleStartSave)
+            {
+                sceneToLoad = runManager.battleSceneName;
+                Debug.Log("Recovered legacy run save at battle start.");
+            }
+
             if (sceneToLoad == runManager.battleSceneName)
             {
-                Debug.Log("Saved battle run restored to MapScene for prototype safety.");
-                sceneToLoad = runManager.mapSceneName;
+                Debug.Log("Loaded saved run at battle start.");
             }
 
             Debug.Log("Continued saved run.");

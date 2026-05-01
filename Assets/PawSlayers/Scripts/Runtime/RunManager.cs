@@ -41,9 +41,11 @@ namespace PawSlayers
         public RunSaveManager runSaveManager;
 
         [Header("Scenes")]
+        public string mainMenuSceneName = "MainMenu";
         public string heroSelectionSceneName = "HeroSelection";
         public string battleSceneName = "Battle";
         public string mapSceneName = "Map";
+        public string heroProgressionSceneName = "HeroProgression";
 
         [Header("Run State")]
         [SerializeField] private List<HeroId> selectedHeroIds = new List<HeroId>();
@@ -133,10 +135,22 @@ namespace PawSlayers
             pendingBetweenBattleRecovery = false;
             InitializeRelicPool();
             PrepareEncounterDeck();
-            AutoSaveCurrentRun(mapSceneName);
+            AutoSaveCurrentRun(battleSceneName);
 
             Debug.Log("Loading BattleScene with selected heroes: " + string.Join(", ", selectedHeroIds));
             LoadConfiguredScene(battleSceneName);
+        }
+
+        public void PrepareForNewRun()
+        {
+            EnsurePrototypeData();
+            ResetRunState();
+            Debug.Log("Run state reset for new run.");
+        }
+
+        public void ReturnToMainMenu()
+        {
+            LoadConfiguredScene(mainMenuSceneName);
         }
 
         public void ResetRunAndReturnToSelection()
@@ -713,7 +727,7 @@ namespace PawSlayers
             supportNodeUsedThisStage = false;
             currentBattleIndex = Mathf.Clamp(currentBattleIndex + 1, 1, totalNormalBattlesBeforeBoss);
             bossBattleStarted = false;
-            AutoSaveCurrentRun(mapSceneName);
+            AutoSaveCurrentRun(battleSceneName);
             LoadConfiguredScene(battleSceneName);
         }
 
@@ -729,7 +743,7 @@ namespace PawSlayers
 
             supportNodeUsedThisStage = false;
             bossBattleStarted = true;
-            AutoSaveCurrentRun(mapSceneName);
+            AutoSaveCurrentRun(battleSceneName);
             LoadConfiguredScene(battleSceneName);
         }
 

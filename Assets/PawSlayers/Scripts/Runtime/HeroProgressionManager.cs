@@ -190,6 +190,44 @@ namespace PawSlayers
             return $"Level {hero.level} - {hero.xp}/{nextThreshold} XP";
         }
 
+        public int GetNextLevelXpTarget(HeroId heroId)
+        {
+            HeroProgressionState hero = GetProgress(heroId);
+            if (hero == null)
+            {
+                return LevelThresholds[1];
+            }
+
+            if (hero.level >= 5)
+            {
+                return LevelThresholds[LevelThresholds.Length - 1];
+            }
+
+            return LevelThresholds[Mathf.Clamp(hero.level, 1, LevelThresholds.Length - 1)];
+        }
+
+        public string GetUnlockedCardsSummary(HeroId heroId)
+        {
+            HeroProgressionState hero = GetProgress(heroId);
+            if (hero == null || hero.unlockedCardIds == null || hero.unlockedCardIds.Count == 0)
+            {
+                return "Unlocked Cards: None yet";
+            }
+
+            return "Unlocked Cards: " + string.Join(", ", hero.unlockedCardIds.Select(GetCardName));
+        }
+
+        public string GetPerkSummary(HeroId heroId)
+        {
+            HeroProgressionState hero = GetProgress(heroId);
+            if (hero == null || hero.level < 5 || hero.unlockedPerkIds == null || hero.unlockedPerkIds.Count == 0)
+            {
+                return "Perk: Locked until Level 5";
+            }
+
+            return "Perk: Unlocked";
+        }
+
         public List<HeroXpGainResult> AddXpToHeroes(IEnumerable<HeroId> heroIds, int xpAmount)
         {
             EnsureRosterEntries();

@@ -32,14 +32,16 @@ namespace PawSlayers.EditorTools
             EnemyView enemyViewPrefab = CreateEnemyViewPrefab();
             CardView cardViewPrefab = CreateCardViewPrefab();
 
+            CreateMainMenuScene(heroDatabase, cardDatabase);
             CreateHeroSelectionScene(heroDatabase, cardDatabase, heroCardPrefab);
             CreateBattleScene(cardViewPrefab, heroViewPrefab, enemyViewPrefab);
             CreateMapScene(cardViewPrefab);
+            CreateHeroProgressionScene(heroDatabase, cardDatabase);
             AddScenesToBuildSettings();
 
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            EditorUtility.DisplayDialog("Paw Slayers", "Prototype setup generated.\n\nScenes:\n- HeroSelection\n- Battle\n- Map", "Nice");
+            EditorUtility.DisplayDialog("Paw Slayers", "Prototype setup generated.\n\nScenes:\n- MainMenu\n- HeroSelection\n- Battle\n- Map\n- HeroProgression", "Nice");
         }
 
         private static void EnsureFolders()
@@ -367,9 +369,11 @@ namespace PawSlayers.EditorTools
             runManagerObject.AddComponent<DeckManager>();
             runManager.heroDatabase = heroDatabase;
             runManager.cardDatabase = cardDatabase;
+            runManager.mainMenuSceneName = "MainMenu";
             runManager.heroSelectionSceneName = "HeroSelection";
             runManager.battleSceneName = "Battle";
             runManager.mapSceneName = "Map";
+            runManager.heroProgressionSceneName = "HeroProgression";
 
             GameObject rootPanel = CreatePanel("SelectionRoot", canvas.transform, new Color(0.95f, 0.92f, 0.84f, 1f));
             StretchFull(rootPanel.GetComponent<RectTransform>(), 20f);
@@ -404,6 +408,34 @@ namespace PawSlayers.EditorTools
             selectionManager.startRunButton = startButton;
 
             EditorSceneManager.SaveScene(scene, SceneFolder + "/HeroSelection.unity");
+        }
+
+        private static void CreateMainMenuScene(HeroDatabase heroDatabase, CardDatabase cardDatabase)
+        {
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            scene.name = "MainMenu";
+
+            Canvas canvas = CreateCanvas();
+            CreateEventSystem();
+
+            GameObject runManagerObject = new GameObject("RunManager");
+            RunManager runManager = runManagerObject.AddComponent<RunManager>();
+            runManagerObject.AddComponent<DeckManager>();
+            runManager.heroDatabase = heroDatabase;
+            runManager.cardDatabase = cardDatabase;
+            runManager.mainMenuSceneName = "MainMenu";
+            runManager.heroSelectionSceneName = "HeroSelection";
+            runManager.battleSceneName = "Battle";
+            runManager.mapSceneName = "Map";
+            runManager.heroProgressionSceneName = "HeroProgression";
+
+            GameObject rootPanel = CreatePanel("MainMenuRoot", canvas.transform, new Color(0.92f, 0.95f, 0.88f, 1f));
+            StretchFull(rootPanel.GetComponent<RectTransform>(), 20f);
+
+            MainMenuManager menuManager = rootPanel.AddComponent<MainMenuManager>();
+            menuManager.runManager = runManager;
+
+            EditorSceneManager.SaveScene(scene, SceneFolder + "/MainMenu.unity");
         }
 
         private static void CreateBattleScene(CardView cardViewPrefab, BattleHeroView heroViewPrefab, EnemyView enemyViewPrefab)
@@ -617,15 +649,51 @@ namespace PawSlayers.EditorTools
             EditorSceneManager.SaveScene(scene, SceneFolder + "/Map.unity");
         }
 
+        private static void CreateHeroProgressionScene(HeroDatabase heroDatabase, CardDatabase cardDatabase)
+        {
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+            scene.name = "HeroProgression";
+
+            Canvas canvas = CreateCanvas();
+            CreateEventSystem();
+
+            GameObject runManagerObject = new GameObject("RunManager");
+            RunManager runManager = runManagerObject.AddComponent<RunManager>();
+            runManagerObject.AddComponent<DeckManager>();
+            runManager.heroDatabase = heroDatabase;
+            runManager.cardDatabase = cardDatabase;
+            runManager.mainMenuSceneName = "MainMenu";
+            runManager.heroSelectionSceneName = "HeroSelection";
+            runManager.battleSceneName = "Battle";
+            runManager.mapSceneName = "Map";
+            runManager.heroProgressionSceneName = "HeroProgression";
+
+            GameObject rootPanel = CreatePanel("HeroProgressionRoot", canvas.transform, new Color(0.94f, 0.93f, 0.88f, 1f));
+            StretchFull(rootPanel.GetComponent<RectTransform>(), 20f);
+
+            HeroProgressionScreenManager progressionManager = rootPanel.AddComponent<HeroProgressionScreenManager>();
+            progressionManager.runManager = runManager;
+
+            EditorSceneManager.SaveScene(scene, SceneFolder + "/HeroProgression.unity");
+        }
+
         private static void AddScenesToBuildSettings()
         {
+            string mainMenuPath = SceneFolder + "/MainMenu.unity";
             string heroSelectionPath = SceneFolder + "/HeroSelection.unity";
             string battlePath = SceneFolder + "/Battle.unity";
             string mapPath = SceneFolder + "/Map.unity";
-            List<EditorBuildSettingsScene> scenes = new List<EditorBuildSettingsScene>(EditorBuildSettings.scenes);
-            UpsertScene(scenes, heroSelectionPath);
-            UpsertScene(scenes, battlePath);
-            UpsertScene(scenes, mapPath);
+            string heroProgressionPath = SceneFolder + "/HeroProgression.unity";
+
+            List<EditorBuildSettingsScene> scenes = new List<EditorBuildSettingsScene>
+            {
+                new EditorBuildSettingsScene(mainMenuPath, true),
+                new EditorBuildSettingsScene(heroSelectionPath, true),
+                new EditorBuildSettingsScene(battlePath, true),
+                new EditorBuildSettingsScene(mapPath, true),
+                new EditorBuildSettingsScene(heroProgressionPath, true)
+            };
+
             EditorBuildSettings.scenes = scenes.ToArray();
         }
 
