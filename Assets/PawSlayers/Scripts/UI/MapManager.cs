@@ -7,6 +7,19 @@ namespace PawSlayers
 {
     public class MapManager : MonoBehaviour
     {
+        private static readonly Color BackgroundColor = new Color(0.10f, 0.15f, 0.12f, 1f);
+        private static readonly Color ParchmentColor = new Color(0.96f, 0.92f, 0.84f, 1f);
+        private static readonly Color DarkPanelColor = new Color(0.20f, 0.17f, 0.13f, 0.88f);
+        private static readonly Color TextLightColor = new Color(0.98f, 0.95f, 0.86f, 1f);
+        private static readonly Color TextMutedColor = new Color(0.82f, 0.84f, 0.80f, 1f);
+        private static readonly Color TextDarkColor = new Color(0.18f, 0.15f, 0.12f, 1f);
+        private static readonly Color GoldColor = new Color(0.88f, 0.73f, 0.26f, 1f);
+        private static readonly Color HealColor = new Color(0.43f, 0.68f, 0.46f, 1f);
+        private static readonly Color UpgradeColor = new Color(0.33f, 0.55f, 0.78f, 1f);
+        private static readonly Color RelicColor = new Color(0.55f, 0.39f, 0.68f, 1f);
+        private static readonly Color DangerColor = new Color(0.55f, 0.24f, 0.22f, 1f);
+        private static readonly Color DisabledColor = new Color(0.46f, 0.46f, 0.46f, 0.9f);
+
         [Header("Dependencies")]
         public RunManager runManager;
         public TreasureManager treasureManager;
@@ -18,7 +31,10 @@ namespace PawSlayers
         public Text titleText;
         public Text progressText;
         public Text infoText;
+        public Text goldText;
         public Text relicsText;
+        public Text partySummaryTitleText;
+        public Text partySummaryText;
         public Button battleNodeButton;
         public Button treasureNodeButton;
         public Button campfireNodeButton;
@@ -82,11 +98,31 @@ namespace PawSlayers
             if (progressText != null)
             {
                 progressText.text = GetProgressText();
+                progressText.color = TextMutedColor;
+            }
+
+            if (goldText != null)
+            {
+                goldText.text = $"Gold: {runManager.Gold}";
+                goldText.color = GoldColor;
             }
 
             if (relicsText != null)
             {
-                relicsText.text = runManager.GetResourceSummaryText();
+                relicsText.text = $"Relics: {runManager.OwnedRelics.Count}";
+                relicsText.color = RelicColor;
+            }
+
+            if (partySummaryTitleText != null)
+            {
+                partySummaryTitleText.text = "Party";
+                partySummaryTitleText.color = TextLightColor;
+            }
+
+            if (partySummaryText != null)
+            {
+                partySummaryText.text = BuildPartySummary();
+                partySummaryText.color = TextMutedColor;
             }
 
             if (treasurePanel != null)
@@ -115,6 +151,7 @@ namespace PawSlayers
             SetButtonState(campfireNodeButton, availableNodes.Contains(MapNodeType.Campfire));
             SetButtonState(shopNodeButton, availableNodes.Contains(MapNodeType.Shop));
             SetButtonState(bossNodeButton, availableNodes.Contains(MapNodeType.Boss));
+            RefreshNodeLabels();
 
             if (infoText != null && string.IsNullOrWhiteSpace(infoText.text))
             {
@@ -331,7 +368,7 @@ namespace PawSlayers
 
             if (campfireInfoText != null)
             {
-                campfireInfoText.text = "Choose Rest or Upgrade Card.";
+                campfireInfoText.text = "Rest or improve your deck.";
             }
 
             ClearChildren(campfireUpgradeContainer);
@@ -427,7 +464,7 @@ namespace PawSlayers
 
             if (treasureTitleText != null)
             {
-                treasureTitleText.text = "Choose 1 Treasure Reward";
+                treasureTitleText.text = "Treasure Found";
             }
 
             if (treasureInfoText != null)
@@ -504,7 +541,7 @@ namespace PawSlayers
 
             if (treasureTitleText != null)
             {
-                treasureTitleText.text = "Ancient Relic";
+                treasureTitleText.text = "Treasure Found";
             }
 
             if (treasureInfoText != null)
@@ -540,7 +577,7 @@ namespace PawSlayers
 
             if (treasureTitleText != null)
             {
-                treasureTitleText.text = "Card Stash";
+                treasureTitleText.text = "Treasure Found";
             }
 
             if (treasureInfoText != null)
@@ -586,7 +623,7 @@ namespace PawSlayers
 
             if (treasureTitleText != null)
             {
-                treasureTitleText.text = "Upgrade Scroll";
+                treasureTitleText.text = "Treasure Found";
             }
 
             if (treasureInfoText != null)
@@ -686,7 +723,7 @@ namespace PawSlayers
 
             if (shopInfoText != null)
             {
-                shopInfoText.text = "Choose an offer or leave shop.";
+                shopInfoText.text = "Spend gold on cards, relics, and services.";
             }
 
             if (infoText != null)
@@ -715,9 +752,16 @@ namespace PawSlayers
             layout.minWidth = 280f;
             layout.minHeight = 200f;
 
-            CreateText("OfferTitle", root.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft).text = offer.title;
-            CreateText("OfferDescription", root.transform, new Vector2(12f, -46f), new Vector2(248f, 76f), 15, FontStyle.Normal, TextAnchor.UpperLeft).text = offer.description;
-            CreateText("OfferCost", root.transform, new Vector2(12f, -128f), new Vector2(120f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft).text = "Cost: " + offer.cost;
+            Color accent = GetShopOfferColor(offer.offerType);
+            Text title = CreateText("OfferTitle", root.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            title.text = offer.title;
+            title.color = TextDarkColor;
+            Text description = CreateText("OfferDescription", root.transform, new Vector2(12f, -46f), new Vector2(248f, 76f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            description.text = offer.description;
+            description.color = new Color(0.28f, 0.24f, 0.20f, 1f);
+            Text cost = CreateText("OfferCost", root.transform, new Vector2(12f, -128f), new Vector2(140f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            cost.text = "Cost: " + offer.cost;
+            cost.color = GoldColor;
 
             Button buyButton = CreateButton("BuyButton", root.transform, "Buy");
             RectTransform buyRect = buyButton.GetComponent<RectTransform>();
@@ -729,8 +773,10 @@ namespace PawSlayers
 
             Text soldText = CreateText("SoldText", root.transform, new Vector2(12f, -160f), new Vector2(120f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
             soldText.text = offer.isPurchased ? "Sold" : string.Empty;
+            soldText.color = offer.isPurchased ? DisabledColor : accent;
 
             buyButton.interactable = !offer.isPurchased && runManager.Gold >= offer.cost;
+            StyleButton(buyButton, accent, false);
             buyButton.onClick.RemoveAllListeners();
             buyButton.onClick.AddListener(() => TryBuyShopOffer(offer));
         }
@@ -923,6 +969,91 @@ namespace PawSlayers
             }
         }
 
+        private string BuildPartySummary()
+        {
+            if (runManager == null || runManager.ActiveHeroesRuntime == null || runManager.ActiveHeroesRuntime.Count == 0)
+            {
+                return "No party data available.";
+            }
+
+            List<string> lines = new List<string>();
+            foreach (RuntimeHeroState hero in runManager.ActiveHeroesRuntime)
+            {
+                if (hero == null || hero.heroData == null)
+                {
+                    continue;
+                }
+
+                string state = hero.IsAlive ? "Alive" : "Down";
+                string heroName = hero.heroData != null && !string.IsNullOrWhiteSpace(hero.heroData.heroName)
+                                ? hero.heroData.heroName
+                                : hero.heroData != null
+                                    ? hero.heroData.heroId.ToString()
+                                    : "Hero";
+
+                            lines.Add($"{heroName}\nHP {hero.currentHp}/{hero.MaxHp}  -  {state}");
+            }
+
+            return lines.Count > 0 ? string.Join("\n\n", lines) : "No party data available.";
+        }
+
+        private void RefreshNodeLabels()
+        {
+            RefreshNodeButton(battleNodeButton, "Battle", "Fight enemies and earn rewards.");
+            RefreshNodeButton(treasureNodeButton, "Treasure", "Find gold, cards, or relics.");
+            RefreshNodeButton(campfireNodeButton, "Campfire", "Rest or upgrade a card.");
+            RefreshNodeButton(shopNodeButton, "Shop", "Spend gold on cards, relics, and services.");
+            RefreshNodeButton(bossNodeButton, "Boss", "Face the Briar King.");
+        }
+
+        private void RefreshNodeButton(Button button, string title, string description)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            Text[] texts = button.GetComponentsInChildren<Text>(true);
+            foreach (Text text in texts)
+            {
+                if (text.name == "Title")
+                {
+                    text.text = title;
+                    text.color = TextLightColor;
+                }
+                else if (text.name == "Description")
+                {
+                    text.text = description;
+                    text.color = new Color(0.93f, 0.89f, 0.79f, 1f);
+                }
+            }
+        }
+
+        private Color GetNodeColor(Button button)
+        {
+            if (button == bossNodeButton)
+            {
+                return DangerColor;
+            }
+
+            if (button == treasureNodeButton)
+            {
+                return GoldColor;
+            }
+
+            if (button == campfireNodeButton)
+            {
+                return HealColor;
+            }
+
+            if (button == shopNodeButton)
+            {
+                return new Color(0.49f, 0.37f, 0.20f, 1f);
+            }
+
+            return new Color(0.34f, 0.47f, 0.35f, 1f);
+        }
+
         private string GetProgressText()
         {
             if (runManager.RunWon)
@@ -930,24 +1061,179 @@ namespace PawSlayers
                 return "Run won!";
             }
 
-            if (runManager.CurrentBattleIndex >= runManager.TotalNormalBattlesBeforeBoss)
+            if (runManager.IsBossBattle)
             {
                 return "Boss Battle";
             }
 
+            if (runManager.CurrentBattleIndex >= runManager.TotalNormalBattlesBeforeBoss)
+            {
+                return "Boss Available";
+            }
+
             int nextBattle = Mathf.Clamp(runManager.CurrentBattleIndex + 1, 1, runManager.TotalNormalBattlesBeforeBoss);
-            return $"Next: Battle {nextBattle}/{runManager.TotalNormalBattlesBeforeBoss}";
+            return $"Battle {nextBattle}/{runManager.TotalNormalBattlesBeforeBoss}";
         }
 
-        private void SetButtonState(Button button, bool isVisible)
+        private void ApplyScenePolish()
+        {
+            RectTransform topBar = titleText != null && titleText.transform.parent != null
+                ? titleText.transform.parent as RectTransform
+                : null;
+            RectTransform mapRoot = topBar != null && topBar.parent != null
+                ? topBar.parent as RectTransform
+                : null;
+
+            if (mapRoot == null)
+            {
+                return;
+            }
+
+            Image rootImage = mapRoot.GetComponent<Image>();
+            if (rootImage != null)
+            {
+                rootImage.color = BackgroundColor;
+            }
+
+            if (goldText == null && topBar != null)
+            {
+                goldText = CreateText("GoldText", topBar, new Vector2(-250f, -24f), new Vector2(220f, 24f), 20, FontStyle.Bold, TextAnchor.UpperRight);
+                goldText.rectTransform.anchorMin = new Vector2(1f, 1f);
+                goldText.rectTransform.anchorMax = new Vector2(1f, 1f);
+                goldText.rectTransform.pivot = new Vector2(1f, 1f);
+            }
+
+            if (relicsText == null && topBar != null)
+            {
+                relicsText = CreateText("RelicsText", topBar, new Vector2(-24f, -24f), new Vector2(200f, 24f), 20, FontStyle.Bold, TextAnchor.UpperRight);
+                relicsText.rectTransform.anchorMin = new Vector2(1f, 1f);
+                relicsText.rectTransform.anchorMax = new Vector2(1f, 1f);
+                relicsText.rectTransform.pivot = new Vector2(1f, 1f);
+            }
+
+            if ((partySummaryText == null || partySummaryTitleText == null) && mapRoot.Find("PartyPanel") == null)
+            {
+                GameObject partyPanel = CreatePanel("PartyPanel", mapRoot, DarkPanelColor);
+                RectTransform partyRect = partyPanel.GetComponent<RectTransform>();
+                partyRect.anchorMin = new Vector2(0f, 0f);
+                partyRect.anchorMax = new Vector2(0f, 1f);
+                partyRect.pivot = new Vector2(0f, 1f);
+                partyRect.anchoredPosition = new Vector2(0f, -140f);
+                partyRect.sizeDelta = new Vector2(320f, 0f);
+                partyRect.offsetMin = new Vector2(0f, 20f);
+                partySummaryTitleText = CreateText("PartyTitle", partyPanel.transform, new Vector2(20f, -18f), new Vector2(220f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
+                partySummaryText = CreateText("PartySummary", partyPanel.transform, new Vector2(20f, -56f), new Vector2(280f, 520f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            }
+            else if (partySummaryTitleText == null || partySummaryText == null)
+            {
+                Transform partyPanel = mapRoot.Find("PartyPanel");
+                if (partyPanel != null)
+                {
+                    if (partySummaryTitleText == null)
+                    {
+                        partySummaryTitleText = partyPanel.Find("PartyTitle")?.GetComponent<Text>();
+                    }
+
+                    if (partySummaryText == null)
+                    {
+                        partySummaryText = partyPanel.Find("PartySummary")?.GetComponent<Text>();
+                    }
+                }
+            }
+
+            if (titleText != null)
+            {
+                titleText.color = TextLightColor;
+                titleText.text = "Dungeon Map";
+            }
+
+            if (infoText != null)
+            {
+                infoText.color = TextMutedColor;
+            }
+
+            StyleNodeButton(battleNodeButton, GetNodeColor(battleNodeButton), battleNodeButton != null && battleNodeButton.interactable);
+            StyleNodeButton(treasureNodeButton, GetNodeColor(treasureNodeButton), treasureNodeButton != null && treasureNodeButton.interactable);
+            StyleNodeButton(campfireNodeButton, GetNodeColor(campfireNodeButton), campfireNodeButton != null && campfireNodeButton.interactable);
+            StyleNodeButton(shopNodeButton, GetNodeColor(shopNodeButton), shopNodeButton != null && shopNodeButton.interactable);
+            StyleNodeButton(bossNodeButton, GetNodeColor(bossNodeButton), bossNodeButton != null && bossNodeButton.interactable);
+
+            StyleButton(treasureContinueButton, GoldColor, false);
+            StyleButton(shopLeaveButton, new Color(0.40f, 0.33f, 0.27f, 1f), false);
+            StyleButton(restButton, HealColor, false);
+            StyleButton(upgradeButton, UpgradeColor, false);
+            StyleButton(campfireContinueButton, GoldColor, false);
+
+            StyleOverlayPanel(treasurePanel, "Treasure Found", treasureTitleText, treasureInfoText);
+            StyleOverlayPanel(shopPanel, "Shop", shopTitleText, shopInfoText);
+            StyleOverlayPanel(campfirePanel, "Campfire", campfireTitleText, campfireInfoText);
+        }
+
+        private void StyleOverlayPanel(GameObject overlay, string fallbackTitle, Text title, Text info)
+        {
+            if (overlay == null)
+            {
+                return;
+            }
+
+            Image overlayImage = overlay.GetComponent<Image>();
+            if (overlayImage != null)
+            {
+                overlayImage.color = new Color(0f, 0f, 0f, 0.74f);
+            }
+
+            if (overlay.transform.childCount > 0)
+            {
+                Image boxImage = overlay.transform.GetChild(0).GetComponent<Image>();
+                if (boxImage != null)
+                {
+                    boxImage.color = ParchmentColor;
+                }
+            }
+
+            if (title != null)
+            {
+                title.text = string.IsNullOrWhiteSpace(title.text) ? fallbackTitle : title.text;
+                title.color = TextDarkColor;
+            }
+
+            if (info != null)
+            {
+                info.color = new Color(0.36f, 0.30f, 0.24f, 1f);
+            }
+        }
+
+        private void StyleNodeButton(Button button, Color baseColor, bool isAvailable)
         {
             if (button == null)
             {
                 return;
             }
 
-            button.gameObject.SetActive(isVisible);
-            button.interactable = isVisible;
+            Image image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = isAvailable ? baseColor : DisabledColor;
+            }
+
+            ColorBlock colors = button.colors;
+            colors.normalColor = isAvailable ? baseColor : DisabledColor;
+            colors.highlightedColor = isAvailable ? baseColor * 1.08f : DisabledColor;
+            colors.pressedColor = isAvailable ? baseColor * 0.9f : DisabledColor;
+            colors.disabledColor = DisabledColor;
+            button.colors = colors;
+        }
+
+        private void SetButtonState(Button button, bool isAvailable)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            button.gameObject.SetActive(true);
+            button.interactable = isAvailable;
+            StyleNodeButton(button, GetNodeColor(button), isAvailable);
         }
 
         private void BindButton(Button button, UnityEngine.Events.UnityAction action)
@@ -988,6 +1274,7 @@ namespace PawSlayers
 
             if (titleText != null && battleNodeButton != null && shopNodeButton != null && treasurePanel != null && treasureContinueButton != null && shopPanel != null && shopLeaveButton != null && campfirePanel != null && relicsText != null)
             {
+                ApplyScenePolish();
                 return;
             }
 
@@ -1005,30 +1292,57 @@ namespace PawSlayers
                 scaler.matchWidthOrHeight = 0.5f;
             }
 
-            GameObject root = CreatePanel("MapRoot", canvas.transform, new Color(0.92f, 0.90f, 0.82f, 1f));
+            GameObject root = CreatePanel("MapRoot", canvas.transform, BackgroundColor);
             StretchFull(root.GetComponent<RectTransform>(), 20f);
 
-            titleText = CreateText("Title", root.transform, new Vector2(20f, -20f), new Vector2(420f, 40f), 32, FontStyle.Bold, TextAnchor.UpperLeft);
-            progressText = CreateText("ProgressText", root.transform, new Vector2(20f, -68f), new Vector2(420f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            infoText = CreateText("InfoText", root.transform, new Vector2(20f, -102f), new Vector2(900f, 32f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
-            relicsText = CreateText("RelicsText", root.transform, new Vector2(980f, -20f), new Vector2(700f, 90f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            GameObject topBar = CreatePanel("TopBar", root.transform, DarkPanelColor);
+            RectTransform topBarRect = topBar.GetComponent<RectTransform>();
+            topBarRect.anchorMin = new Vector2(0f, 1f);
+            topBarRect.anchorMax = new Vector2(1f, 1f);
+            topBarRect.pivot = new Vector2(0.5f, 1f);
+            topBarRect.sizeDelta = new Vector2(0f, 120f);
+            topBarRect.anchoredPosition = Vector2.zero;
 
-            GameObject nodePanel = CreatePanel("NodePanel", root.transform, new Color(0.98f, 0.96f, 0.88f, 1f));
+            titleText = CreateText("Title", topBar.transform, new Vector2(24f, -18f), new Vector2(420f, 40f), 34, FontStyle.Bold, TextAnchor.UpperLeft);
+            progressText = CreateText("ProgressText", topBar.transform, new Vector2(24f, -60f), new Vector2(420f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            infoText = CreateText("InfoText", topBar.transform, new Vector2(24f, -90f), new Vector2(720f, 24f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            goldText = CreateText("GoldText", topBar.transform, new Vector2(-250f, -24f), new Vector2(220f, 24f), 20, FontStyle.Bold, TextAnchor.UpperRight);
+            goldText.rectTransform.anchorMin = new Vector2(1f, 1f);
+            goldText.rectTransform.anchorMax = new Vector2(1f, 1f);
+            goldText.rectTransform.pivot = new Vector2(1f, 1f);
+            relicsText = CreateText("RelicsText", topBar.transform, new Vector2(-24f, -24f), new Vector2(200f, 24f), 20, FontStyle.Bold, TextAnchor.UpperRight);
+            relicsText.rectTransform.anchorMin = new Vector2(1f, 1f);
+            relicsText.rectTransform.anchorMax = new Vector2(1f, 1f);
+            relicsText.rectTransform.pivot = new Vector2(1f, 1f);
+
+            GameObject partyPanel = CreatePanel("PartyPanel", root.transform, DarkPanelColor);
+            RectTransform partyRect = partyPanel.GetComponent<RectTransform>();
+            partyRect.anchorMin = new Vector2(0f, 0f);
+            partyRect.anchorMax = new Vector2(0f, 1f);
+            partyRect.pivot = new Vector2(0f, 1f);
+            partyRect.anchoredPosition = new Vector2(0f, -140f);
+            partyRect.sizeDelta = new Vector2(320f, 0f);
+            partyRect.offsetMin = new Vector2(0f, 20f);
+            partySummaryTitleText = CreateText("PartyTitle", partyPanel.transform, new Vector2(20f, -18f), new Vector2(220f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
+            partySummaryText = CreateText("PartySummary", partyPanel.transform, new Vector2(20f, -56f), new Vector2(280f, 520f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+
+            GameObject nodePanel = CreatePanel("NodePanel", root.transform, ParchmentColor);
             RectTransform nodeRect = nodePanel.GetComponent<RectTransform>();
-            nodeRect.anchorMin = new Vector2(0.5f, 0.5f);
-            nodeRect.anchorMax = new Vector2(0.5f, 0.5f);
-            nodeRect.pivot = new Vector2(0.5f, 0.5f);
-            nodeRect.sizeDelta = new Vector2(920f, 360f);
-            nodeRect.anchoredPosition = new Vector2(0f, -20f);
+            nodeRect.anchorMin = new Vector2(0f, 0f);
+            nodeRect.anchorMax = new Vector2(1f, 1f);
+            nodeRect.offsetMin = new Vector2(340f, 20f);
+            nodeRect.offsetMax = new Vector2(-20f, -140f);
 
-            CreateText("NodeLabel", nodePanel.transform, new Vector2(20f, -20f), new Vector2(320f, 32f), 28, FontStyle.Bold, TextAnchor.UpperLeft).text = "Choose your path";
+            Text nodeLabel = CreateText("NodeLabel", nodePanel.transform, new Vector2(24f, -20f), new Vector2(420f, 32f), 30, FontStyle.Bold, TextAnchor.UpperLeft);
+            nodeLabel.text = "Choose your path";
+            nodeLabel.color = TextDarkColor;
 
-            Transform buttonRow = CreateLayoutContainer("NodeButtons", nodePanel.transform, false, new Vector2(20f, 30f), new Vector2(-20f, -80f));
-            battleNodeButton = CreateButton("BattleButton", buttonRow, "Battle");
-            treasureNodeButton = CreateButton("TreasureButton", buttonRow, "Treasure");
-            campfireNodeButton = CreateButton("CampfireButton", buttonRow, "Campfire");
-            shopNodeButton = CreateButton("ShopButton", buttonRow, "Shop");
-            bossNodeButton = CreateButton("BossButton", buttonRow, "Boss");
+            Transform buttonRow = CreateGridContainer("NodeButtons", nodePanel.transform, new Vector2(24f, 24f), new Vector2(-24f, -72f), new Vector2(260f, 180f), new Vector2(20f, 20f), 3);
+            battleNodeButton = CreateNodeButton("BattleButton", buttonRow, "Battle", "Fight enemies and earn rewards.");
+            treasureNodeButton = CreateNodeButton("TreasureButton", buttonRow, "Treasure", "Find gold, cards, or relics.");
+            campfireNodeButton = CreateNodeButton("CampfireButton", buttonRow, "Campfire", "Rest or upgrade a card.");
+            shopNodeButton = CreateNodeButton("ShopButton", buttonRow, "Shop", "Spend gold on cards, relics, and services.");
+            bossNodeButton = CreateNodeButton("BossButton", buttonRow, "Boss", "Face the Briar King.");
 
             treasurePanel = CreateOverlayPanel(root.transform, "TreasurePanel", "TreasureBox", out GameObject treasureBox);
             treasureTitleText = CreateText("TreasureTitle", treasureBox.transform, new Vector2(20f, -20f), new Vector2(300f, 32f), 28, FontStyle.Bold, TextAnchor.UpperLeft);
@@ -1072,6 +1386,8 @@ namespace PawSlayers
             continueRect.anchoredPosition = new Vector2(-20f, 20f);
             continueRect.sizeDelta = new Vector2(180f, 48f);
             campfireContinueButton.gameObject.SetActive(false);
+
+            ApplyScenePolish();
         }
 
         private void EnsureTreasureContinueButton()
@@ -1127,7 +1443,7 @@ namespace PawSlayers
 
         private CardView CreateRuntimeRewardCardView(Transform parent)
         {
-            GameObject root = CreatePanel("RewardCardView", parent, Color.white);
+            GameObject root = CreatePanel("RewardCardView", parent, new Color(0.96f, 0.93f, 0.84f, 1f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
             layout.preferredWidth = 250f;
             layout.preferredHeight = 320f;
@@ -1161,7 +1477,7 @@ namespace PawSlayers
 
         private void CreateRelicChoiceButton(Transform parent, RelicData relic, System.Action<RelicData> onClick)
         {
-            GameObject root = CreatePanel("RelicChoice", parent, new Color(0.95f, 0.93f, 0.85f, 1f));
+            GameObject root = CreatePanel("RelicChoice", parent, new Color(0.93f, 0.88f, 0.80f, 1f));
             RectTransform rect = root.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(280f, 180f);
             LayoutElement layout = root.AddComponent<LayoutElement>();
@@ -1172,10 +1488,25 @@ namespace PawSlayers
 
             Button button = root.AddComponent<Button>();
             button.onClick.AddListener(() => onClick?.Invoke(relic));
+            StyleButton(button, RelicColor, false);
 
-            CreateText("RelicName", root.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft).text = relic.relicName;
-            CreateText("RelicRarity", root.transform, new Vector2(12f, -42f), new Vector2(240f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft).text = "Rarity: " + relic.rarity;
-            CreateText("RelicDescription", root.transform, new Vector2(12f, -70f), new Vector2(250f, 88f), 15, FontStyle.Normal, TextAnchor.UpperLeft).text = relic.description;
+            CreatePanel("Icon", root.transform, new Color(0.58f, 0.43f, 0.70f, 1f)).GetComponent<RectTransform>().SetInsetAndSizeFromParentEdge(RectTransform.Edge.Left, 12f, 54f);
+            RectTransform iconRect = root.transform.Find("Icon").GetComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0f, 1f);
+            iconRect.anchorMax = new Vector2(0f, 1f);
+            iconRect.pivot = new Vector2(0f, 1f);
+            iconRect.anchoredPosition = new Vector2(12f, -12f);
+            iconRect.sizeDelta = new Vector2(54f, 54f);
+
+            Text nameText = CreateText("RelicName", root.transform, new Vector2(78f, -12f), new Vector2(180f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            nameText.text = relic.relicName;
+            nameText.color = TextDarkColor;
+            Text rarityText = CreateText("RelicRarity", root.transform, new Vector2(78f, -42f), new Vector2(180f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
+            rarityText.text = "Relic";
+            rarityText.color = RelicColor;
+            Text descText = CreateText("RelicDescription", root.transform, new Vector2(12f, -78f), new Vector2(250f, 88f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            descText.text = relic.description;
+            descText.color = new Color(0.28f, 0.24f, 0.20f, 1f);
         }
 
         private void CreateTreasureChoiceButton(Transform parent, TreasureRewardChoice choice, System.Action<TreasureRewardChoice> onClick)
@@ -1191,10 +1522,26 @@ namespace PawSlayers
 
             Button button = root.AddComponent<Button>();
             button.onClick.AddListener(() => onClick?.Invoke(choice));
+            Color accent = GetTreasureTypeColor(choice.rewardType);
+            StyleButton(button, accent, false);
 
-            CreateText("ChoiceTitle", root.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft).text = choice.title;
-            CreateText("ChoiceType", root.transform, new Vector2(12f, -42f), new Vector2(240f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft).text = choice.rewardType.ToString();
-            CreateText("ChoiceDescription", root.transform, new Vector2(12f, -70f), new Vector2(250f, 88f), 15, FontStyle.Normal, TextAnchor.UpperLeft).text = choice.description;
+            GameObject icon = CreatePanel("Icon", root.transform, accent);
+            RectTransform iconRect = icon.GetComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0f, 1f);
+            iconRect.anchorMax = new Vector2(0f, 1f);
+            iconRect.pivot = new Vector2(0f, 1f);
+            iconRect.anchoredPosition = new Vector2(12f, -12f);
+            iconRect.sizeDelta = new Vector2(54f, 54f);
+
+            Text title = CreateText("ChoiceTitle", root.transform, new Vector2(78f, -12f), new Vector2(180f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            title.text = choice.title;
+            title.color = TextDarkColor;
+            Text type = CreateText("ChoiceType", root.transform, new Vector2(78f, -42f), new Vector2(180f, 22f), 16, FontStyle.Italic, TextAnchor.UpperLeft);
+            type.text = choice.rewardType.ToString();
+            type.color = accent;
+            Text desc = CreateText("ChoiceDescription", root.transform, new Vector2(12f, -78f), new Vector2(250f, 88f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            desc.text = choice.description;
+            desc.color = new Color(0.28f, 0.24f, 0.20f, 1f);
         }
 
         private Transform CreateLayoutContainer(string name, Transform parent, bool vertical, Vector2 offsetMin, Vector2 offsetMax)
@@ -1230,7 +1577,7 @@ namespace PawSlayers
 
         private Button CreateButton(string name, Transform parent, string label)
         {
-            GameObject buttonObject = CreatePanel(name, parent, new Color(0.38f, 0.55f, 0.33f, 1f));
+            GameObject buttonObject = CreatePanel(name, parent, new Color(0.47f, 0.35f, 0.18f, 1f));
             RectTransform rect = buttonObject.GetComponent<RectTransform>();
             rect.sizeDelta = new Vector2(200f, 80f);
             LayoutElement layout = buttonObject.AddComponent<LayoutElement>();
@@ -1238,8 +1585,122 @@ namespace PawSlayers
             layout.preferredHeight = 80f;
 
             Button button = buttonObject.AddComponent<Button>();
-            CreateText("Label", buttonObject.transform, new Vector2(20f, -14f), new Vector2(160f, 40f), 24, FontStyle.Bold, TextAnchor.MiddleCenter).text = label;
+            Text labelText = CreateText("Label", buttonObject.transform, new Vector2(20f, -14f), new Vector2(160f, 40f), 24, FontStyle.Bold, TextAnchor.MiddleCenter);
+            labelText.text = label;
+            labelText.color = TextLightColor;
+            StyleButton(button, new Color(0.47f, 0.35f, 0.18f, 1f), false);
             return button;
+        }
+
+        private Button CreateNodeButton(string name, Transform parent, string title, string description)
+        {
+            GameObject buttonObject = CreatePanel(name, parent, new Color(0.34f, 0.47f, 0.35f, 1f));
+            RectTransform rect = buttonObject.GetComponent<RectTransform>();
+            rect.sizeDelta = new Vector2(260f, 180f);
+            LayoutElement layout = buttonObject.AddComponent<LayoutElement>();
+            layout.preferredWidth = 260f;
+            layout.preferredHeight = 180f;
+
+            Button button = buttonObject.AddComponent<Button>();
+            StyleNodeButton(button, new Color(0.34f, 0.47f, 0.35f, 1f), true);
+
+            GameObject icon = CreatePanel("Icon", buttonObject.transform, new Color(1f, 1f, 1f, 0.16f));
+            RectTransform iconRect = icon.GetComponent<RectTransform>();
+            iconRect.anchorMin = new Vector2(0f, 1f);
+            iconRect.anchorMax = new Vector2(0f, 1f);
+            iconRect.pivot = new Vector2(0f, 1f);
+            iconRect.anchoredPosition = new Vector2(16f, -16f);
+            iconRect.sizeDelta = new Vector2(56f, 56f);
+
+            Text titleText = CreateText("Title", buttonObject.transform, new Vector2(86f, -18f), new Vector2(150f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
+            titleText.text = title;
+            titleText.color = TextLightColor;
+            Text descriptionText = CreateText("Description", buttonObject.transform, new Vector2(16f, -86f), new Vector2(228f, 62f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            descriptionText.text = description;
+            descriptionText.color = new Color(0.93f, 0.89f, 0.79f, 1f);
+
+            return button;
+        }
+
+        private Transform CreateGridContainer(string name, Transform parent, Vector2 offsetMin, Vector2 offsetMax, Vector2 cellSize, Vector2 spacing, int columns)
+        {
+            GameObject container = CreateUiObject(name, parent, Vector2.zero);
+            RectTransform rect = container.GetComponent<RectTransform>();
+            rect.anchorMin = new Vector2(0f, 0f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.offsetMin = offsetMin;
+            rect.offsetMax = offsetMax;
+
+            GridLayoutGroup grid = container.AddComponent<GridLayoutGroup>();
+            grid.cellSize = cellSize;
+            grid.spacing = spacing;
+            grid.constraint = GridLayoutGroup.Constraint.FixedColumnCount;
+            grid.constraintCount = columns;
+            grid.childAlignment = TextAnchor.UpperLeft;
+            return container.transform;
+        }
+
+        private void StyleButton(Button button, Color normalColor, bool isDanger)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            Image image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = normalColor;
+            }
+
+            ColorBlock colors = button.colors;
+            colors.normalColor = normalColor;
+            colors.highlightedColor = normalColor * 1.08f;
+            colors.pressedColor = normalColor * 0.9f;
+            colors.disabledColor = DisabledColor;
+            button.colors = colors;
+
+            Text label = button.GetComponentInChildren<Text>();
+            if (label != null)
+            {
+                label.color = isDanger ? new Color(1f, 0.93f, 0.90f, 1f) : TextLightColor;
+            }
+        }
+
+        private Color GetTreasureTypeColor(TreasureRewardType rewardType)
+        {
+            switch (rewardType)
+            {
+                case TreasureRewardType.Gold:
+                    return GoldColor;
+                case TreasureRewardType.Relic:
+                    return RelicColor;
+                case TreasureRewardType.Upgrade:
+                    return UpgradeColor;
+                case TreasureRewardType.Heal:
+                    return HealColor;
+                default:
+                    return new Color(0.49f, 0.37f, 0.20f, 1f);
+            }
+        }
+
+        private Color GetShopOfferColor(ShopOfferType offerType)
+        {
+            switch (offerType)
+            {
+                case ShopOfferType.Card:
+                    return new Color(0.49f, 0.37f, 0.20f, 1f);
+                case ShopOfferType.Relic:
+                    return RelicColor;
+                case ShopOfferType.RemoveCard:
+                    return DangerColor;
+                case ShopOfferType.Heal:
+                    return HealColor;
+                case ShopOfferType.UpgradeCard:
+                    return UpgradeColor;
+                default:
+                    return new Color(0.47f, 0.35f, 0.18f, 1f);
+            }
         }
 
         private Text CreateText(string name, Transform parent, Vector2 anchoredPosition, Vector2 size, int fontSize, FontStyle fontStyle, TextAnchor alignment)

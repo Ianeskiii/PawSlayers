@@ -7,6 +7,11 @@ namespace PawSlayers
 {
     public class RewardCardManager : MonoBehaviour
     {
+        private static readonly Color RewardOverlayColor = new Color(0f, 0f, 0f, 0.74f);
+        private static readonly Color RewardPanelColor = new Color(0.96f, 0.92f, 0.84f, 1f);
+        private static readonly Color RewardInfoColor = new Color(0.33f, 0.28f, 0.22f, 1f);
+        private static readonly Color RewardAccentColor = new Color(0.74f, 0.56f, 0.18f, 1f);
+
         public RunManager runManager;
         public BattleUIManager battleUiManager;
         public CardDatabase cardDatabase;
@@ -21,6 +26,8 @@ namespace PawSlayers
 
         public void ShowRewards()
         {
+            EnsureRuntimeUi();
+
             if (runManager == null)
             {
                 runManager = RunManager.Instance;
@@ -36,6 +43,7 @@ namespace PawSlayers
                 return;
             }
 
+            StyleRewardPanel();
             rewardChosen = false;
             ConfigureContinueButton();
             runManager.EnsurePrototypeData();
@@ -61,7 +69,7 @@ namespace PawSlayers
             {
                 if (rewardTitleText != null)
                 {
-                    rewardTitleText.text = "Choose 1 reward card";
+                    rewardTitleText.text = "Choose 1 Reward Card";
                 }
 
                 if (rewardInfoText != null)
@@ -90,11 +98,11 @@ namespace PawSlayers
                 view.SetDisabled(false, string.Empty);
             }
 
-            rewardTitleText.text = "Choose 1 reward card";
+            rewardTitleText.text = "Choose 1 Reward Card";
 
             if (rewardInfoText != null)
             {
-                rewardInfoText.text = "Choose one card to add to your run deck.";
+                rewardInfoText.text = "Add one card to your deck.";
             }
 
             if (continueButton != null)
@@ -118,8 +126,10 @@ namespace PawSlayers
 
             if (rewardInfoText != null)
             {
-                rewardInfoText.text = $"Selected: {selectedCard.cardName}";
+                rewardInfoText.text = $"Added {selectedCard.cardName} to deck.";
             }
+
+            LockRewardChoices(selectedCard);
 
             if (continueButton != null)
             {
@@ -150,6 +160,117 @@ namespace PawSlayers
 
             continueButton.onClick.RemoveAllListeners();
             continueButton.onClick.AddListener(ContinueAfterReward);
+            StyleButton(continueButton, RewardAccentColor);
+        }
+
+        private void EnsureRuntimeUi()
+        {
+            if (rewardPanel == null)
+            {
+                return;
+            }
+
+            Transform rewardBox = rewardPanel.transform.childCount > 0 ? rewardPanel.transform.GetChild(0) : null;
+            if (rewardBox == null)
+            {
+                return;
+            }
+
+            if (rewardTitleText == null)
+            {
+                rewardTitleText = FindOrCreateText(rewardBox, "RewardTitle", new Vector2(20f, -20f), new Vector2(420f, 34f), 30, FontStyle.Bold, TextAnchor.UpperLeft);
+            }
+
+            if (rewardInfoText == null)
+            {
+                rewardInfoText = FindOrCreateText(rewardBox, "RewardInfo", new Vector2(20f, -58f), new Vector2(560f, 28f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+            }
+
+            if (rewardContainer == null)
+            {
+                Transform existing = rewardBox.Find("RewardContainer");
+                rewardContainer = existing;
+            }
+
+            if (continueButton == null)
+            {
+                Transform existing = rewardBox.Find("ContinueButton");
+                if (existing != null)
+                {
+                    continueButton = existing.GetComponent<Button>();
+                }
+                else
+                {
+                    continueButton = CreateButton("ContinueButton", rewardBox, "Continue", new Vector2(180f, 48f));
+                    RectTransform continueRect = continueButton.GetComponent<RectTransform>();
+                    continueRect.anchorMin = new Vector2(1f, 0f);
+                    continueRect.anchorMax = new Vector2(1f, 0f);
+                    continueRect.pivot = new Vector2(1f, 0f);
+                    continueRect.anchoredPosition = new Vector2(-20f, 20f);
+                    continueRect.sizeDelta = new Vector2(180f, 48f);
+                }
+            }
+        }
+
+        private void StyleRewardPanel()
+        {
+            if (rewardPanel != null)
+            {
+                Image overlay = rewardPanel.GetComponent<Image>();
+                if (overlay != null)
+                {
+                    overlay.color = RewardOverlayColor;
+                }
+            }
+
+            Transform rewardBox = rewardPanel != null && rewardPanel.transform.childCount > 0 ? rewardPanel.transform.GetChild(0) : null;
+            if (rewardBox != null)
+            {
+                Image boxImage = rewardBox.GetComponent<Image>();
+                if (boxImage != null)
+                {
+                    boxImage.color = RewardPanelColor;
+                }
+            }
+
+            if (rewardTitleText != null)
+            {
+                rewardTitleText.color = new Color(0.18f, 0.15f, 0.12f, 1f);
+            }
+
+            if (rewardInfoText != null)
+            {
+                rewardInfoText.color = RewardInfoColor;
+            }
+
+            if (continueButton != null)
+            {
+                StyleButton(continueButton, RewardAccentColor);
+            }
+        }
+
+        private void LockRewardChoices(CardData selectedCard)
+        {
+            if (rewardContainer == null)
+            {
+                return;
+            }
+
+            foreach (Transform child in rewardContainer)
+            {
+                CardView view = child.GetComponent<CardView>();
+                if (view == null)
+                {
+                    continue;
+                }
+
+                bool isSelected = view.CardData == selectedCard;
+                view.SetSelected(isSelected);
+                if (!isSelected)
+                {
+                    view.SetDisabled(true, string.Empty);
+                }
+            }
         }
 
         private CardView CreateRuntimeRewardCardView(Transform parent)
@@ -161,7 +282,7 @@ namespace PawSlayers
             layout.preferredHeight = 320f;
 
             Image background = root.AddComponent<Image>();
-            background.color = Color.white;
+            background.color = new Color(0.96f, 0.93f, 0.84f, 1f);
             Button button = root.AddComponent<Button>();
             CanvasGroup canvasGroup = root.AddComponent<CanvasGroup>();
 
@@ -190,6 +311,70 @@ namespace PawSlayers
             view.disabledReasonText = CreateText("DisabledReason", root.transform, new Vector2(10f, -286f), new Vector2(230f, 28f), 16, FontStyle.Bold, TextAnchor.MiddleCenter);
             view.disabledReasonText.color = new Color(0.7f, 0.1f, 0.1f, 1f);
             return view;
+        }
+
+        private Text FindOrCreateText(Transform parent, string name, Vector2 anchoredPosition, Vector2 size, int fontSize, FontStyle fontStyle, TextAnchor alignment)
+        {
+            Transform existing = parent.Find(name);
+            if (existing != null)
+            {
+                Text existingText = existing.GetComponent<Text>();
+                if (existingText != null)
+                {
+                    return existingText;
+                }
+            }
+
+            return CreateText(name, parent, anchoredPosition, size, fontSize, fontStyle, alignment);
+        }
+
+        private Button CreateButton(string name, Transform parent, string label, Vector2 size)
+        {
+            GameObject buttonObject = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
+            buttonObject.transform.SetParent(parent, false);
+            RectTransform rect = buttonObject.GetComponent<RectTransform>();
+            rect.sizeDelta = size;
+
+            Image image = buttonObject.GetComponent<Image>();
+            image.color = RewardAccentColor;
+
+            Button button = buttonObject.GetComponent<Button>();
+            StyleButton(button, RewardAccentColor);
+
+            Text labelText = CreateText("Label", buttonObject.transform, Vector2.zero, size, 18, FontStyle.Bold, TextAnchor.MiddleCenter);
+            StretchFull(labelText.rectTransform, 0f);
+            labelText.text = label;
+            labelText.color = new Color(0.98f, 0.95f, 0.86f, 1f);
+            return button;
+        }
+
+        private void StyleButton(Button button, Color normalColor)
+        {
+            if (button == null)
+            {
+                return;
+            }
+
+            Image image = button.GetComponent<Image>();
+            if (image != null)
+            {
+                image.color = normalColor;
+            }
+
+            ColorBlock colors = button.colors;
+            colors.normalColor = normalColor;
+            colors.highlightedColor = normalColor * 1.08f;
+            colors.pressedColor = normalColor * 0.9f;
+            colors.disabledColor = new Color(0.42f, 0.42f, 0.42f, 0.85f);
+            button.colors = colors;
+        }
+
+        private void StretchFull(RectTransform rectTransform, float padding)
+        {
+            rectTransform.anchorMin = Vector2.zero;
+            rectTransform.anchorMax = Vector2.one;
+            rectTransform.offsetMin = new Vector2(padding, padding);
+            rectTransform.offsetMax = new Vector2(-padding, -padding);
         }
 
         private Text CreateText(string name, Transform parent, Vector2 anchoredPosition, Vector2 size, int fontSize, FontStyle fontStyle, TextAnchor alignment)

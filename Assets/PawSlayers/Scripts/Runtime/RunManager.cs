@@ -516,6 +516,12 @@ namespace PawSlayers
         {
             StringBuilder summary = new StringBuilder();
             summary.AppendLine(wasRunWon ? "Run Won!" : "Run Lost!");
+            summary.AppendLine("Your party's journey has ended.");
+            summary.AppendLine();
+            summary.AppendLine($"Gold Collected: {gold}");
+            summary.AppendLine($"Relics Found: {ownedRelics.Count}");
+            summary.AppendLine();
+            summary.AppendLine("Party Progress:");
 
             foreach (HeroId heroId in selectedHeroIds)
             {
@@ -523,21 +529,21 @@ namespace PawSlayers
                 {
                     HeroProgressionState progress = progressionManager != null ? progressionManager.GetProgress(heroId) : null;
                     string heroName = progress != null ? progress.heroName : heroId.ToString();
-                    summary.AppendLine($"{heroName} gained 0 XP.");
+                    summary.AppendLine($"{heroName} - +0 XP");
                     continue;
                 }
 
-                string line = $"{heroSummary.heroName} gained {heroSummary.totalXpGained} XP.";
+                string line = $"{heroSummary.heroName} - +{heroSummary.totalXpGained} XP";
                 if (heroSummary.endLevel > heroSummary.startLevel)
                 {
-                    line += $" Level {heroSummary.endLevel} reached!";
+                    line += $" - Level {heroSummary.endLevel} reached!";
                 }
 
                 summary.AppendLine(line);
 
                 foreach (string unlockedMessage in heroSummary.unlockedMessages)
                 {
-                    summary.AppendLine(unlockedMessage);
+                    summary.AppendLine("  " + unlockedMessage);
                 }
             }
 
