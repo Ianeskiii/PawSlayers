@@ -12,11 +12,11 @@ namespace PawSlayers
         [Header("Idle")]
         public Sprite idleSprite;
         public Sprite[] idleFrames;
-        public float idleFps = 12f;
+        public float idleFps = 18;
 
         [Header("Swift Slash")]
         public Sprite[] swiftSlashFrames;
-        public float swiftSlashFps = 24;
+        public float swiftSlashFps = 18;
 
         public bool IsPlaying => spriteAnimator != null && spriteAnimator.IsPlaying;
 
