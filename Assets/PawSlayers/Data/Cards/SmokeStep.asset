@@ -18,6 +18,7 @@ MonoBehaviour:
   isStarterCard: 1
   ownerHeroId: 2
   cardType: 1
+  animationType: 0
   targetType: 2
   cost: 1
   damage: 0

@@ -1024,7 +1024,7 @@ namespace PawSlayers
         {
             return new List<CardData>
             {
-                CreateCard("swift_slash", "Swift Slash", "Deal 8 damage.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 8, upgradedDamage: 11),
+                CreateCard("swift_slash", "Swift Slash", "Deal 8 damage.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 8, upgradedDamage: 11, animationType: CardAnimationType.SwiftSlash),
                 CreateCard("guard_stance", "Guard Stance", "Gain 8 block.", HeroId.Capybara, CardType.Skill, TargetType.Self, 1, block: 8, upgradedBlock: 12),
                 CreateCard("pommel_tap", "Pommel Tap", "Deal 5 damage. Apply 1 Stun.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 5, stunAmount: 1, upgradedDamage: 7, upgradedStunAmount: 1),
                 CreateCard("rally_cut", "Rally Cut", "Deal 10 damage. Gain 1 Strength.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 2, damage: 10, upgradedDamage: 14, isStarterCard: false),
@@ -1115,7 +1115,8 @@ namespace PawSlayers
             int upgradedTauntAmount = 0,
             int upgradedStunAmount = 0,
             int upgradedSilenceAmount = 0,
-            bool isStarterCard = true)
+            bool isStarterCard = true,
+            CardAnimationType animationType = CardAnimationType.None)
         {
             CardData card = ScriptableObject.CreateInstance<CardData>();
             card.cardId = cardId;
@@ -1124,6 +1125,7 @@ namespace PawSlayers
             card.isStarterCard = isStarterCard;
             card.ownerHeroId = ownerHeroId;
             card.cardType = cardType;
+            card.animationType = animationType;
             card.targetType = targetType;
             card.cost = cost;
             card.damage = damage;
@@ -1237,6 +1239,11 @@ namespace PawSlayers
                 if (PrototypeStarterCardIds.Contains(card.cardId))
                 {
                     card.isStarterCard = true;
+                }
+
+                if (card.cardId == "swift_slash")
+                {
+                    card.animationType = CardAnimationType.SwiftSlash;
                 }
             }
         }

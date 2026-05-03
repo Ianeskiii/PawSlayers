@@ -292,6 +292,9 @@ namespace PawSlayers
             AddLog(GetEncounterStartLog());
             StartPlayerTurn(true);
             Debug.Log($"Starting hand: {runManager.Hand.Count}");
+            Debug.Log("Starting hand cards: " + string.Join(", ", runManager.Hand.Where(card => card != null).Select(card => card.DisplayName)));
+            EnsureHandUiIsVisible();
+            LogHandState();
         }
 
         private string GetEncounterStartLog()
@@ -569,6 +572,53 @@ namespace PawSlayers
             }
         }
 
+        private void EnsureHandUiIsVisible()
+        {
+            if (runManager == null)
+            {
+                return;
+            }
+
+            if (runManager.Hand.Count == 0)
+            {
+                return;
+            }
+
+            if (handContainer == null)
+            {
+                Debug.LogWarning("Hand UI container was missing at encounter start. Rebuilding runtime UI.");
+                EnsureRuntimeUi();
+                RefreshHandViews();
+                return;
+            }
+
+            if (handViews.Count == 0)
+            {
+                Debug.LogWarning("Hand contains cards but no CardView instances were created. Refreshing hand UI again.");
+                RefreshHandViews();
+            }
+        }
+
+        private void LogHandState()
+        {
+            if (runManager == null)
+            {
+                return;
+            }
+
+            foreach (RuntimeCardState card in runManager.Hand)
+            {
+                if (card == null)
+                {
+                    continue;
+                }
+
+                bool isDisabled = IsCardDisabled(card, out string disabledReason);
+                string costState = GetModifiedCardCost(card, false) > currentEnergy ? "not enough energy" : "affordable";
+                Debug.Log($"Hand card: {card.DisplayName} | disabled={isDisabled} | reason={(string.IsNullOrWhiteSpace(disabledReason) ? "none" : disabledReason)} | costState={costState}");
+            }
+        }
+
         private void OnCardClicked(RuntimeCardState card)
         {
             if (battleEnded || card == null)
@@ -665,6 +715,7 @@ namespace PawSlayers
             EnemyRuntimeState enemyTarget = ResolveEnemyTarget(card, chosenEnemyTarget);
 
             currentEnergy -= modifiedCost;
+            TryPlayOwnerHeroAnimation(ownerHero, card);
 
             string sourceName = ownerHero != null ? ownerHero.heroData.heroName : "Neutral";
             string targetName = enemyTarget != null
@@ -1133,6 +1184,23 @@ namespace PawSlayers
             }
 
             return runManager.GetHeroState(card.OwnerHeroId);
+        }
+
+        private void TryPlayOwnerHeroAnimation(RuntimeHeroState ownerHero, RuntimeCardState card)
+        {
+            if (ownerHero == null || card == null || card.AnimationType == CardAnimationType.None)
+            {
+                return;
+            }
+
+            BattleHeroView heroView = heroViews.FirstOrDefault(view => view != null && view.HeroState == ownerHero);
+            if (heroView == null)
+            {
+                Debug.LogWarning("Could not find BattleHeroView for animation on " + ownerHero.heroData.heroName + ".");
+                return;
+            }
+
+            heroView.PlayCardAnimation(card.AnimationType);
         }
 
         private void ClearCardSelection()
@@ -2747,6 +2815,28 @@ namespace PawSlayers
                 view.portraitImage.preserveAspect = true;
             }
 
+            if (view.portraitImage != null && view.heroAnimationController == null)
+            {
+                UISpriteSheetAnimator spriteAnimator = view.portraitImage.GetComponent<UISpriteSheetAnimator>();
+                if (spriteAnimator == null)
+                {
+                    spriteAnimator = view.portraitImage.gameObject.AddComponent<UISpriteSheetAnimator>();
+                }
+
+                HeroAnimationController controller = view.portraitImage.GetComponent<HeroAnimationController>();
+                if (controller == null)
+                {
+                    controller = view.portraitImage.gameObject.AddComponent<HeroAnimationController>();
+                }
+
+                spriteAnimator.targetImage = view.portraitImage;
+                spriteAnimator.playOnAwake = false;
+                spriteAnimator.loop = false;
+                controller.heroImage = view.portraitImage;
+                controller.spriteAnimator = spriteAnimator;
+                view.heroAnimationController = controller;
+            }
+
             EnsureBarVisuals(view.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(12f, -72f), new Vector2(170f, 12f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
             EnsureDimOverlay(view.transform, ref view.dimOverlayImage, "DimOverlay");
         }
@@ -3026,6 +3116,14 @@ namespace PawSlayers
             portraitRect.sizeDelta = new Vector2(78f, 78f);
             view.portraitImage = portrait.GetComponent<Image>();
             view.portraitImage.preserveAspect = true;
+            UISpriteSheetAnimator spriteAnimator = portrait.AddComponent<UISpriteSheetAnimator>();
+            spriteAnimator.targetImage = view.portraitImage;
+            spriteAnimator.playOnAwake = false;
+            spriteAnimator.loop = false;
+            HeroAnimationController animationController = portrait.AddComponent<HeroAnimationController>();
+            animationController.heroImage = view.portraitImage;
+            animationController.spriteAnimator = spriteAnimator;
+            view.heroAnimationController = animationController;
             EnsureBarVisuals(root.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(14f, -66f), new Vector2(160f, 12f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
             EnsureDimOverlay(root.transform, ref view.dimOverlayImage, "DimOverlay");
             return view;

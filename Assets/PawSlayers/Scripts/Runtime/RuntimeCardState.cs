@@ -14,6 +14,7 @@ namespace PawSlayers
         public string Description => baseCard == null ? string.Empty : baseCard.BuildDescription(isUpgraded);
         public HeroId OwnerHeroId => baseCard == null ? HeroId.Neutral : baseCard.ownerHeroId;
         public CardType CardType => baseCard == null ? CardType.Skill : baseCard.cardType;
+        public CardAnimationType AnimationType => baseCard == null ? CardAnimationType.None : baseCard.animationType;
         public TargetType TargetType => baseCard == null ? TargetType.None : baseCard.targetType;
         public int Cost => baseCard == null ? 0 : baseCard.cost;
         public int Damage => baseCard == null ? 0 : baseCard.GetDamage(isUpgraded);

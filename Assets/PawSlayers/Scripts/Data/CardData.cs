@@ -13,6 +13,7 @@ namespace PawSlayers
         public bool isStarterCard = true;
         public HeroId ownerHeroId;
         public CardType cardType;
+        public CardAnimationType animationType;
         public TargetType targetType;
         public int cost;
         public int damage;

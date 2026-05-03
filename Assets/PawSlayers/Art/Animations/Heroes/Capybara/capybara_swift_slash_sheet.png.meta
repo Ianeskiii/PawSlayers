@@ -1,0 +1,945 @@
+fileFormatVersion: 2
+guid: cac27b8bc9a275f4086fa3862f5d695f
+TextureImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 0
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 0
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 100
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_0
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 3050
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2a6cf8e62886d214d8071f14cd02c890
+      internalID: 1785781389
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_1
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 3050
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f43e454c8c4af3f4eba2fd104063b27e
+      internalID: -1014178119
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_2
+      rect:
+        serializedVersion: 2
+        x: 1280
+        y: 3050
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: be4a2619e05b7fc4e86d42fc84ed9eeb
+      internalID: 704947023
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_3
+      rect:
+        serializedVersion: 2
+        x: 1920
+        y: 3050
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f52ee5d45f910ac469e7d3bd7e0aaa89
+      internalID: -1463378049
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_4
+      rect:
+        serializedVersion: 2
+        x: 2560
+        y: 3050
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 7f6205907cf8c1f44893c95db571f9e6
+      internalID: 422119075
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_5
+      rect:
+        serializedVersion: 2
+        x: 3200
+        y: 3050
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 74ea1d7020b06f24b86fa8aa1f5b8ba5
+      internalID: 79724039
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_6
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 2440
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5715171b069c04c4ba5cf9f45a954c43
+      internalID: -1814998821
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_7
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 2440
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 44c51c0637f98e74e9e5ac440f726508
+      internalID: 1715057393
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_8
+      rect:
+        serializedVersion: 2
+        x: 1280
+        y: 2440
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 804dc5d54cc10fa4dbef5b0e3fc66df8
+      internalID: 1913247102
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_9
+      rect:
+        serializedVersion: 2
+        x: 1920
+        y: 2440
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 89692e78c477bb0408d1a095a815bea5
+      internalID: -1361876194
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_10
+      rect:
+        serializedVersion: 2
+        x: 2560
+        y: 2440
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 11ab5ac5fe4748e409c37f72ceaf887c
+      internalID: -677788610
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_11
+      rect:
+        serializedVersion: 2
+        x: 3200
+        y: 2440
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dc15b54d01750c44a8880878413852eb
+      internalID: 1999328631
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_12
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1830
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 88317eeb4c5c1d348ae05967a6f0432d
+      internalID: -254053138
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_13
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 1830
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 50d9e320ac77c324f97c917d3f5a797a
+      internalID: -1930503261
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_14
+      rect:
+        serializedVersion: 2
+        x: 1280
+        y: 1830
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 18563e6ebd8a1584984dc9704277ec92
+      internalID: 1296897487
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_15
+      rect:
+        serializedVersion: 2
+        x: 1920
+        y: 1830
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: dea625b77944eec4389fb97c84213b4c
+      internalID: -2025519223
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_16
+      rect:
+        serializedVersion: 2
+        x: 2560
+        y: 1830
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 38b267f32fa69544abd215c3465bd968
+      internalID: -1721761269
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_17
+      rect:
+        serializedVersion: 2
+        x: 3200
+        y: 1830
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 727ea5f43827eba4c9c1dfbe4d93b6bc
+      internalID: -1181153568
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_18
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f66a45064fdc5ad4489e653761bbe3de
+      internalID: 337163445
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_19
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: d666121d31649834299956bc57a1a731
+      internalID: 818089909
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_20
+      rect:
+        serializedVersion: 2
+        x: 1280
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b6c1f5eae559d324cbd7878ec84e2e4d
+      internalID: -1365979455
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_21
+      rect:
+        serializedVersion: 2
+        x: 1920
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 47ca519952077054e840e8b2ab44e33a
+      internalID: 970941661
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_22
+      rect:
+        serializedVersion: 2
+        x: 2560
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0db63906198dbf64fbb48ecd17763849
+      internalID: 1713644027
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_23
+      rect:
+        serializedVersion: 2
+        x: 3200
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f7211a943ace59946b1210a887d6f121
+      internalID: -857186026
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_24
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 068a00ada79bd714f97a2662f906cb37
+      internalID: 1466949622
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_25
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 79bc50ff5c5cec84994ca26b2f96f79c
+      internalID: 123136817
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_26
+      rect:
+        serializedVersion: 2
+        x: 1280
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 003623d08b470ed449e57b41d9062201
+      internalID: -1462649151
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_27
+      rect:
+        serializedVersion: 2
+        x: 1920
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 0601b37f6ee8ef2459c19f8aed7394a5
+      internalID: 1822714177
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_28
+      rect:
+        serializedVersion: 2
+        x: 2560
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5ff275a7df45bb14ba4606aabb7d9cfa
+      internalID: 790385392
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_29
+      rect:
+        serializedVersion: 2
+        x: 3200
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 44acffce0917d7c428aa77ea948ef1a3
+      internalID: 221531991
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_30
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 93d2db00d01483c48a014477f62aebbf
+      internalID: -1034380785
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_31
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 0
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: ff1b0e3e51742064abc06c77b1198768
+      internalID: -855556193
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_32
+      rect:
+        serializedVersion: 2
+        x: 1280
+        y: 0
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 51f0264a147bf214782cde1cfc0fc7c8
+      internalID: 1876289380
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_33
+      rect:
+        serializedVersion: 2
+        x: 1920
+        y: 0
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fcca4924dd9d9bf49b4c51859be08d6e
+      internalID: 859528650
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_34
+      rect:
+        serializedVersion: 2
+        x: 2560
+        y: 0
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 6adbd822cc3185245a60e891c0baa0bd
+      internalID: 574873503
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: capybara_swift_slash_sheet_35
+      rect:
+        serializedVersion: 2
+        x: 3200
+        y: 0
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: c31852b71419c3e4981955db3fc45e5f
+      internalID: -1916691821
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: fb6084d27b046614eb3f851ad019da22
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries: []
+    nameFileIdTable:
+      capybara_swift_slash_sheet_0: 1785781389
+      capybara_swift_slash_sheet_1: -1014178119
+      capybara_swift_slash_sheet_10: -677788610
+      capybara_swift_slash_sheet_11: 1999328631
+      capybara_swift_slash_sheet_12: -254053138
+      capybara_swift_slash_sheet_13: -1930503261
+      capybara_swift_slash_sheet_14: 1296897487
+      capybara_swift_slash_sheet_15: -2025519223
+      capybara_swift_slash_sheet_16: -1721761269
+      capybara_swift_slash_sheet_17: -1181153568
+      capybara_swift_slash_sheet_18: 337163445
+      capybara_swift_slash_sheet_19: 818089909
+      capybara_swift_slash_sheet_2: 704947023
+      capybara_swift_slash_sheet_20: -1365979455
+      capybara_swift_slash_sheet_21: 970941661
+      capybara_swift_slash_sheet_22: 1713644027
+      capybara_swift_slash_sheet_23: -857186026
+      capybara_swift_slash_sheet_24: 1466949622
+      capybara_swift_slash_sheet_25: 123136817
+      capybara_swift_slash_sheet_26: -1462649151
+      capybara_swift_slash_sheet_27: 1822714177
+      capybara_swift_slash_sheet_28: 790385392
+      capybara_swift_slash_sheet_29: 221531991
+      capybara_swift_slash_sheet_3: -1463378049
+      capybara_swift_slash_sheet_30: -1034380785
+      capybara_swift_slash_sheet_31: -855556193
+      capybara_swift_slash_sheet_32: 1876289380
+      capybara_swift_slash_sheet_33: 859528650
+      capybara_swift_slash_sheet_34: 574873503
+      capybara_swift_slash_sheet_35: -1916691821
+      capybara_swift_slash_sheet_4: 422119075
+      capybara_swift_slash_sheet_5: 79724039
+      capybara_swift_slash_sheet_6: -1814998821
+      capybara_swift_slash_sheet_7: 1715057393
+      capybara_swift_slash_sheet_8: 1913247102
+      capybara_swift_slash_sheet_9: -1361876194
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

@@ -29,6 +29,16 @@ namespace PawSlayers
         Status = 2
     }
 
+    public enum CardAnimationType
+    {
+        None = 0,
+        SwiftSlash = 1,
+        GenericAttack = 2,
+        GenericSkill = 3,
+        GenericDefend = 4,
+        GenericHeal = 5
+    }
+
     public enum TargetType
     {
         Enemy = 0,

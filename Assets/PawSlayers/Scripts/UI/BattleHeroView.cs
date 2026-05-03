@@ -19,6 +19,7 @@ namespace PawSlayers
         public Image dimOverlayImage;
         public Button button;
         public Outline highlightOutline;
+        public HeroAnimationController heroAnimationController;
 
         private RuntimeHeroState heroState;
         private Action<RuntimeHeroState> onClicked;
@@ -65,10 +66,19 @@ namespace PawSlayers
             if (portraitImage != null)
             {
                 Sprite heroSprite = PawSlayersArtResolver.GetHeroBattleSprite(heroState.heroData);
-                portraitImage.sprite = heroSprite;
                 portraitImage.enabled = true;
                 portraitImage.preserveAspect = true;
                 portraitImage.color = heroSprite != null ? Color.white : new Color(0.75f, 0.75f, 0.75f, 1f);
+
+                if (heroAnimationController != null)
+                {
+                    heroAnimationController.heroImage = portraitImage;
+                    heroAnimationController.SetIdleSprite(heroSprite);
+                }
+                else
+                {
+                    portraitImage.sprite = heroSprite;
+                }
             }
 
             if (backgroundImage != null)
@@ -125,6 +135,16 @@ namespace PawSlayers
             {
                 highlightOutline.enabled = isHighlighted;
             }
+        }
+
+        public bool PlayCardAnimation(CardAnimationType animationType)
+        {
+            if (heroAnimationController == null)
+            {
+                return false;
+            }
+
+            return heroAnimationController.PlayCardAnimation(animationType);
         }
 
         private void HandleClick()

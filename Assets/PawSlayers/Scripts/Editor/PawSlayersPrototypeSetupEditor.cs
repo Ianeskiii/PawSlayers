@@ -27,6 +27,9 @@ namespace PawSlayers.EditorTools
         private const string EnemyArtFolder = ArtFolder + "/Enemies";
         private const string BossArtFolder = ArtFolder + "/Bosses";
         private const string PlaceholderArtFolder = ArtFolder + "/Placeholders";
+        private const string BattleHeroViewPrefabPath = PrefabFolder + "/BattleHeroView.prefab";
+        private const string CapybaraSwiftSlashClipPath = RootFolder + "/Art/Animations/Heroes/Capybara/Capybara_SwiftSlash.anim";
+        private const string CapybaraSwiftSlashSheetPath = RootFolder + "/Art/Animations/Heroes/Capybara/capybara_swift_slash_sheet.png";
 
         [MenuItem("Tools/Paw Slayers/Generate Prototype Setup")]
         public static void GeneratePrototypeSetup()
@@ -41,6 +44,7 @@ namespace PawSlayers.EditorTools
             BattleHeroView heroViewPrefab = CreateBattleHeroViewPrefab();
             EnemyView enemyViewPrefab = CreateEnemyViewPrefab();
             CardView cardViewPrefab = CreateCardViewPrefab();
+            AssignHeroAnimationAssets();
 
             CreateMainMenuScene(heroDatabase, cardDatabase);
             CreateHeroSelectionScene(heroDatabase, cardDatabase, heroCardPrefab);
@@ -61,6 +65,7 @@ namespace PawSlayers.EditorTools
 
             EnemyArtDatabase enemyArtDatabase = CreateEnemyArtDatabase();
             AssignHeroSpritesFromProjectFolders();
+            AssignHeroAnimationAssets();
 
             AssignEnemyResourceSprite(enemyArtDatabase, "sporeling", "Assets/PawSlayers/Resources/Art/Enemies/sporeling_battle.png");
             AssignEnemyResourceSprite(enemyArtDatabase, "fungus_brute", "Assets/PawSlayers/Resources/Art/Enemies/fungus_brute_battle.png");
@@ -77,6 +82,80 @@ namespace PawSlayers.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("Art assignment pass finished.");
+        }
+
+        [MenuItem("Tools/Paw Slayers/Assign Hero Animation Assets")]
+        public static void AssignHeroAnimationAssets()
+        {
+            GameObject heroViewPrefabAsset = AssetDatabase.LoadAssetAtPath<GameObject>(BattleHeroViewPrefabPath);
+            if (heroViewPrefabAsset == null)
+            {
+                Debug.LogWarning("Assign Hero Animation Assets: BattleHeroView prefab not found at " + BattleHeroViewPrefabPath);
+                return;
+            }
+
+            AnimationClip swiftSlashClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(CapybaraSwiftSlashClipPath);
+            Sprite[] swiftSlashFrames = ExtractSpriteFramesFromClip(swiftSlashClip);
+
+            if (swiftSlashFrames == null || swiftSlashFrames.Length == 0)
+            {
+                swiftSlashFrames = LoadSlicedSpritesFromSheet(CapybaraSwiftSlashSheetPath);
+            }
+
+            if (swiftSlashFrames == null || swiftSlashFrames.Length == 0)
+            {
+                Debug.LogWarning("Assign Hero Animation Assets: no Swift Slash frames were found from clip or sheet.");
+                return;
+            }
+
+            GameObject prefabRoot = PrefabUtility.LoadPrefabContents(BattleHeroViewPrefabPath);
+            if (prefabRoot == null)
+            {
+                Debug.LogWarning("Assign Hero Animation Assets: failed to load prefab contents for " + BattleHeroViewPrefabPath);
+                return;
+            }
+
+            try
+            {
+                HeroAnimationController animationController = EnsureHeroAnimationComponentsOnPrefabRoot(prefabRoot);
+                if (animationController == null)
+                {
+                    Debug.LogWarning("Assign Hero Animation Assets: failed to create or find HeroAnimationController in BattleHeroView prefab.");
+                    return;
+                }
+
+                animationController.swiftSlashFrames = swiftSlashFrames;
+                animationController.swiftSlashFps = swiftSlashClip != null && swiftSlashClip.frameRate > 0f
+                    ? swiftSlashClip.frameRate
+                    : 30f;
+
+                BattleHeroView heroView = prefabRoot.GetComponent<BattleHeroView>();
+                if (heroView != null)
+                {
+                    heroView.heroAnimationController = animationController;
+                    if (heroView.portraitImage != null && animationController.heroImage == null)
+                    {
+                        animationController.heroImage = heroView.portraitImage;
+                    }
+                }
+
+                EditorUtility.SetDirty(prefabRoot);
+                EditorUtility.SetDirty(animationController);
+                if (heroView != null)
+                {
+                    EditorUtility.SetDirty(heroView);
+                }
+
+                PrefabUtility.SaveAsPrefabAsset(prefabRoot, BattleHeroViewPrefabPath);
+            }
+            finally
+            {
+                PrefabUtility.UnloadPrefabContents(prefabRoot);
+            }
+
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log("Assigned Swift Slash animation frames to BattleHeroView prefab. Frame count: " + swiftSlashFrames.Length);
         }
 
         [MenuItem("Tools/Paw Slayers/Validate Art Assignments")]
@@ -171,7 +250,7 @@ namespace PawSlayers.EditorTools
         {
             List<CardData> cardAssets = new List<CardData>
             {
-                CreateOrUpdateCard("swift_slash", "Swift Slash", "Deal 8 damage.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 8, upgradedDamage: 11),
+                CreateOrUpdateCard("swift_slash", "Swift Slash", "Deal 8 damage.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 8, upgradedDamage: 11, animationType: CardAnimationType.SwiftSlash),
                 CreateOrUpdateCard("guard_stance", "Guard Stance", "Gain 8 block.", HeroId.Capybara, CardType.Skill, TargetType.Self, 1, block: 8, upgradedBlock: 12),
                 CreateOrUpdateCard("pommel_tap", "Pommel Tap", "Deal 5 damage. Apply 1 Stun.", HeroId.Capybara, CardType.Attack, TargetType.Enemy, 1, damage: 5, stunAmount: 1, upgradedDamage: 7, upgradedStunAmount: 1),
                 CreateOrUpdateCard("shadow_strike", "Shadow Strike", "Deal 7 damage. Apply 1 Weak.", HeroId.Koala, CardType.Attack, TargetType.Enemy, 1, damage: 7, weakAmount: 1, upgradedDamage: 10, upgradedWeakAmount: 2),
@@ -247,7 +326,8 @@ namespace PawSlayers.EditorTools
             int upgradedPoisonAmount = 0,
             int upgradedTauntAmount = 0,
             int upgradedStunAmount = 0,
-            int upgradedSilenceAmount = 0)
+            int upgradedSilenceAmount = 0,
+            CardAnimationType animationType = CardAnimationType.None)
         {
             string path = $"{CardDataFolder}/{cardName.Replace(" ", string.Empty)}.asset";
             CardData card = LoadOrCreateAsset<CardData>(path);
@@ -256,6 +336,7 @@ namespace PawSlayers.EditorTools
             card.description = description;
             card.ownerHeroId = ownerHeroId;
             card.cardType = cardType;
+            card.animationType = animationType;
             card.targetType = targetType;
             card.cost = cost;
             card.damage = damage;
@@ -470,6 +551,126 @@ namespace PawSlayers.EditorTools
                 : "Missing enemy sprite: " + enemyId);
         }
 
+        private static Sprite[] ExtractSpriteFramesFromClip(AnimationClip clip)
+        {
+            if (clip == null)
+            {
+                return new Sprite[0];
+            }
+
+            List<Sprite> sprites = new List<Sprite>();
+            EditorCurveBinding[] bindings = AnimationUtility.GetObjectReferenceCurveBindings(clip);
+            foreach (EditorCurveBinding binding in bindings)
+            {
+                if (binding.propertyName != "m_Sprite")
+                {
+                    continue;
+                }
+
+                ObjectReferenceKeyframe[] frames = AnimationUtility.GetObjectReferenceCurve(clip, binding);
+                foreach (ObjectReferenceKeyframe frame in frames)
+                {
+                    if (frame.value is Sprite sprite && sprite != null)
+                    {
+                        sprites.Add(sprite);
+                    }
+                }
+            }
+
+            Debug.Log("Extracted Swift Slash frames from clip: " + sprites.Count);
+            return sprites.ToArray();
+        }
+
+        private static Sprite[] LoadSlicedSpritesFromSheet(string assetPath)
+        {
+            Object[] assets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
+            List<Sprite> sprites = new List<Sprite>();
+
+            foreach (Object asset in assets)
+            {
+                if (asset is Sprite sprite)
+                {
+                    sprites.Add(sprite);
+                }
+            }
+
+            sprites.Sort((left, right) => ExtractTrailingNumber(left.name).CompareTo(ExtractTrailingNumber(right.name)));
+            Debug.Log("Loaded Swift Slash frames from sheet: " + sprites.Count);
+            return sprites.ToArray();
+        }
+
+        private static HeroAnimationController EnsureHeroAnimationComponentsOnPrefabRoot(GameObject prefabRoot)
+        {
+            if (prefabRoot == null)
+            {
+                return null;
+            }
+
+            BattleHeroView heroView = prefabRoot.GetComponent<BattleHeroView>();
+            if (heroView == null)
+            {
+                Debug.LogWarning("Assign Hero Animation Assets: BattleHeroView component missing from prefab root.");
+                return null;
+            }
+
+            Image portraitImage = heroView.portraitImage;
+            if (portraitImage == null)
+            {
+                Transform portraitTransform = prefabRoot.transform.Find("Portrait");
+                if (portraitTransform != null)
+                {
+                    portraitImage = portraitTransform.GetComponent<Image>();
+                    heroView.portraitImage = portraitImage;
+                }
+            }
+
+            if (portraitImage == null)
+            {
+                Debug.LogWarning("Assign Hero Animation Assets: Portrait image missing from BattleHeroView prefab.");
+                return null;
+            }
+
+            portraitImage.preserveAspect = true;
+
+            UISpriteSheetAnimator spriteAnimator = portraitImage.GetComponent<UISpriteSheetAnimator>();
+            if (spriteAnimator == null)
+            {
+                spriteAnimator = portraitImage.gameObject.AddComponent<UISpriteSheetAnimator>();
+            }
+
+            spriteAnimator.targetImage = portraitImage;
+            spriteAnimator.playOnAwake = false;
+            spriteAnimator.loop = false;
+
+            HeroAnimationController animationController = portraitImage.GetComponent<HeroAnimationController>();
+            if (animationController == null)
+            {
+                animationController = portraitImage.gameObject.AddComponent<HeroAnimationController>();
+            }
+
+            animationController.heroImage = portraitImage;
+            animationController.spriteAnimator = spriteAnimator;
+            heroView.heroAnimationController = animationController;
+            return animationController;
+        }
+
+        private static int ExtractTrailingNumber(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return int.MaxValue;
+            }
+
+            int index = value.Length - 1;
+            while (index >= 0 && char.IsDigit(value[index]))
+            {
+                index--;
+            }
+
+            string numberText = value.Substring(index + 1);
+            return int.TryParse(numberText, out int parsed) ? parsed : int.MaxValue;
+        }
+
         private static HeroSelectionCardView CreateHeroSelectionCardPrefab()
         {
             string path = PrefabFolder + "/HeroSelectionCard.prefab";
@@ -523,6 +724,10 @@ namespace PawSlayers.EditorTools
             Image portraitImage = portraitObject.AddComponent<Image>();
             portraitImage.color = new Color(0.8f, 0.8f, 0.8f, 1f);
             portraitImage.preserveAspect = true;
+            UISpriteSheetAnimator spriteAnimator = portraitObject.AddComponent<UISpriteSheetAnimator>();
+            spriteAnimator.targetImage = portraitImage;
+            spriteAnimator.playOnAwake = false;
+            spriteAnimator.loop = false;
 
             Text heroName = CreateText("HeroName", root.transform, new Vector2(92f, -12f), new Vector2(150f, 26f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
             Text heroClass = CreateText("HeroClass", root.transform, new Vector2(92f, -38f), new Vector2(150f, 24f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
@@ -530,6 +735,9 @@ namespace PawSlayers.EditorTools
             Text blockText = CreateText("BlockText", root.transform, new Vector2(12f, -112f), new Vector2(120f, 20f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
             Text stateText = CreateText("StateText", root.transform, new Vector2(150f, -112f), new Vector2(90f, 20f), 16, FontStyle.Bold, TextAnchor.UpperRight);
             Text statusText = CreateText("StatusText", root.transform, new Vector2(12f, -136f), new Vector2(230f, 30f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
+            HeroAnimationController animationController = portraitObject.AddComponent<HeroAnimationController>();
+            animationController.heroImage = portraitImage;
+            animationController.spriteAnimator = spriteAnimator;
 
             BattleHeroView view = root.AddComponent<BattleHeroView>();
             view.heroNameText = heroName;
@@ -540,6 +748,7 @@ namespace PawSlayers.EditorTools
             view.statusText = statusText;
             view.portraitImage = portraitImage;
             view.backgroundImage = background;
+            view.heroAnimationController = animationController;
 
             BattleHeroView prefab = SavePrefab<BattleHeroView>(root, path);
             Object.DestroyImmediate(root);
