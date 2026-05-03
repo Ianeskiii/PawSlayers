@@ -73,6 +73,7 @@ namespace PawSlayers
                 if (heroAnimationController != null)
                 {
                     heroAnimationController.heroImage = portraitImage;
+                    heroAnimationController.SetHeroId(heroState.heroData.heroId);
                     heroAnimationController.SetIdleSprite(heroSprite);
                 }
                 else

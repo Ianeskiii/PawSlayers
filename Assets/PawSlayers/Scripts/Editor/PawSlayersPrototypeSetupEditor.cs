@@ -28,6 +28,8 @@ namespace PawSlayers.EditorTools
         private const string BossArtFolder = ArtFolder + "/Bosses";
         private const string PlaceholderArtFolder = ArtFolder + "/Placeholders";
         private const string BattleHeroViewPrefabPath = PrefabFolder + "/BattleHeroView.prefab";
+        private const string CapybaraIdleClipPath = RootFolder + "/Art/Animations/Heroes/Capybara/capybara_idle.anim";
+        private const string CapybaraIdleSheetPath = RootFolder + "/Art/Animations/Heroes/Capybara/capybara_idle.png";
         private const string CapybaraSwiftSlashClipPath = RootFolder + "/Art/Animations/Heroes/Capybara/Capybara_SwiftSlash.anim";
         private const string CapybaraSwiftSlashSheetPath = RootFolder + "/Art/Animations/Heroes/Capybara/capybara_swift_slash_sheet.png";
 
@@ -96,10 +98,17 @@ namespace PawSlayers.EditorTools
 
             AnimationClip swiftSlashClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(CapybaraSwiftSlashClipPath);
             Sprite[] swiftSlashFrames = ExtractSpriteFramesFromClip(swiftSlashClip);
+            AnimationClip idleClip = AssetDatabase.LoadAssetAtPath<AnimationClip>(CapybaraIdleClipPath);
+            Sprite[] idleFrames = ExtractSpriteFramesFromClip(idleClip);
 
             if (swiftSlashFrames == null || swiftSlashFrames.Length == 0)
             {
                 swiftSlashFrames = LoadSlicedSpritesFromSheet(CapybaraSwiftSlashSheetPath);
+            }
+
+            if (idleFrames == null || idleFrames.Length == 0)
+            {
+                idleFrames = LoadSlicedSpritesFromSheet(CapybaraIdleSheetPath);
             }
 
             if (swiftSlashFrames == null || swiftSlashFrames.Length == 0)
@@ -128,6 +137,10 @@ namespace PawSlayers.EditorTools
                 animationController.swiftSlashFps = swiftSlashClip != null && swiftSlashClip.frameRate > 0f
                     ? swiftSlashClip.frameRate
                     : 30f;
+                animationController.idleFrames = idleFrames ?? new Sprite[0];
+                animationController.idleFps = idleClip != null && idleClip.frameRate > 0f
+                    ? idleClip.frameRate
+                    : 12f;
 
                 BattleHeroView heroView = prefabRoot.GetComponent<BattleHeroView>();
                 if (heroView != null)
@@ -156,6 +169,7 @@ namespace PawSlayers.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log("Assigned Swift Slash animation frames to BattleHeroView prefab. Frame count: " + swiftSlashFrames.Length);
+            Debug.Log("Assigned Capybara idle animation frames to BattleHeroView prefab. Frame count: " + (idleFrames != null ? idleFrames.Length : 0));
         }
 
         [MenuItem("Tools/Paw Slayers/Validate Art Assignments")]

@@ -40,6 +40,25 @@ namespace PawSlayers
 
         public bool PlayOnce(Sprite[] overrideFrames = null, float overrideFps = -1f, Sprite overrideIdleSprite = null, Action onComplete = null)
         {
+            return PlayInternal(overrideFrames, overrideFps, overrideIdleSprite, false, onComplete);
+        }
+
+        public bool PlayLoop(Sprite[] overrideFrames = null, float overrideFps = -1f, Sprite overrideIdleSprite = null)
+        {
+            return PlayInternal(overrideFrames, overrideFps, overrideIdleSprite, true, null);
+        }
+
+        public void StopPlayback()
+        {
+            if (playRoutine != null)
+            {
+                StopCoroutine(playRoutine);
+                playRoutine = null;
+            }
+        }
+
+        private bool PlayInternal(Sprite[] overrideFrames, float overrideFps, Sprite overrideIdleSprite, bool shouldLoop, Action onComplete)
+        {
             if (targetImage == null)
             {
                 return false;
@@ -65,12 +84,9 @@ namespace PawSlayers
 
             float fps = overrideFps > 0f ? overrideFps : Mathf.Max(1f, framesPerSecond);
 
-            if (playRoutine != null)
-            {
-                StopCoroutine(playRoutine);
-            }
+            StopPlayback();
 
-            playRoutine = StartCoroutine(PlayRoutine(framesToPlay, fps, onComplete));
+            playRoutine = StartCoroutine(PlayRoutine(framesToPlay, fps, shouldLoop, onComplete));
             return true;
         }
 
@@ -87,7 +103,7 @@ namespace PawSlayers
             }
         }
 
-        private IEnumerator PlayRoutine(Sprite[] framesToPlay, float fps, Action onComplete)
+        private IEnumerator PlayRoutine(Sprite[] framesToPlay, float fps, bool shouldLoop, Action onComplete)
         {
             float frameDuration = 1f / Mathf.Max(1f, fps);
 
@@ -103,7 +119,7 @@ namespace PawSlayers
                     yield return new WaitForSeconds(frameDuration);
                 }
             }
-            while (loop);
+            while (shouldLoop || loop);
 
             playRoutine = null;
             RestoreIdle();

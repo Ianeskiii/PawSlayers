@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: cac27b8bc9a275f4086fa3862f5d695f
+guid: 619eeb41e9ede7949a866019e0d3aa1c
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -97,13 +97,13 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_0
+      name: 1_0
       rect:
         serializedVersion: 2
         x: 0
-        y: 2720
-        width: 736
-        height: 544
+        y: 3050
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -112,20 +112,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 2a6cf8e62886d214d8071f14cd02c890
-      internalID: 1785781389
+      spriteID: 4760c64d3b0e61e45b2141dacfde2acf
+      internalID: -405204166
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_1
+      name: 1_1
       rect:
         serializedVersion: 2
-        x: 736
-        y: 2720
-        width: 736
-        height: 544
+        x: 640
+        y: 3050
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -134,20 +134,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f43e454c8c4af3f4eba2fd104063b27e
-      internalID: -1014178119
+      spriteID: 65b1b2f485dfcb945a00710fde67ce85
+      internalID: 2052265090
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_2
+      name: 1_2
       rect:
         serializedVersion: 2
-        x: 1472
-        y: 2720
-        width: 736
-        height: 544
+        x: 1280
+        y: 3050
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -156,20 +156,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: be4a2619e05b7fc4e86d42fc84ed9eeb
-      internalID: 704947023
+      spriteID: 597e5fa174105504a8671678bd9cb591
+      internalID: 1746694943
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_3
+      name: 1_3
       rect:
         serializedVersion: 2
-        x: 2208
-        y: 2720
-        width: 736
-        height: 544
+        x: 1920
+        y: 3050
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -178,20 +178,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: f52ee5d45f910ac469e7d3bd7e0aaa89
-      internalID: -1463378049
+      spriteID: ca65cb68af9ac744c99b307f934af566
+      internalID: -729432109
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_4
+      name: 1_4
       rect:
         serializedVersion: 2
-        x: 2944
-        y: 2720
-        width: 736
-        height: 544
+        x: 2560
+        y: 3050
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -200,20 +200,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 7f6205907cf8c1f44893c95db571f9e6
-      internalID: 422119075
+      spriteID: 636fe06f2f3199c4989f6c471218a78b
+      internalID: -1938472720
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_5
+      name: 1_5
       rect:
         serializedVersion: 2
-        x: 3680
-        y: 2720
-        width: 736
-        height: 544
+        x: 3200
+        y: 3050
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -222,152 +222,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 74ea1d7020b06f24b86fa8aa1f5b8ba5
-      internalID: 79724039
+      spriteID: 5ef8719aabebbd541a38b1e69057dbbd
+      internalID: -317501969
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_6
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 2176
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 5715171b069c04c4ba5cf9f45a954c43
-      internalID: -1814998821
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_7
-      rect:
-        serializedVersion: 2
-        x: 736
-        y: 2176
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 44c51c0637f98e74e9e5ac440f726508
-      internalID: 1715057393
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_8
-      rect:
-        serializedVersion: 2
-        x: 1472
-        y: 2176
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 804dc5d54cc10fa4dbef5b0e3fc66df8
-      internalID: 1913247102
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_9
-      rect:
-        serializedVersion: 2
-        x: 2208
-        y: 2176
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 89692e78c477bb0408d1a095a815bea5
-      internalID: -1361876194
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_10
-      rect:
-        serializedVersion: 2
-        x: 2944
-        y: 2176
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 11ab5ac5fe4748e409c37f72ceaf887c
-      internalID: -677788610
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_11
-      rect:
-        serializedVersion: 2
-        x: 3680
-        y: 2176
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: dc15b54d01750c44a8880878413852eb
-      internalID: 1999328631
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_12
+      name: 1_6
       rect:
         serializedVersion: 2
         x: 0
-        y: 1632
-        width: 736
-        height: 544
+        y: 2440
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -376,20 +244,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 88317eeb4c5c1d348ae05967a6f0432d
-      internalID: -254053138
+      spriteID: bdb83902d6e43ad438bd30a9ac6019ae
+      internalID: -1721304705
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_13
+      name: 1_7
       rect:
         serializedVersion: 2
-        x: 736
-        y: 1632
-        width: 736
-        height: 544
+        x: 640
+        y: 2440
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -398,20 +266,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 50d9e320ac77c324f97c917d3f5a797a
-      internalID: -1930503261
+      spriteID: 23783331a96b0a74489b4e4bb284b40e
+      internalID: -1785875089
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_14
+      name: 1_8
       rect:
         serializedVersion: 2
-        x: 1472
-        y: 1632
-        width: 736
-        height: 544
+        x: 1280
+        y: 2440
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -420,20 +288,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 18563e6ebd8a1584984dc9704277ec92
-      internalID: 1296897487
+      spriteID: 45427946bd21d674784f2c43e2f03cde
+      internalID: -1884542422
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_15
+      name: 1_9
       rect:
         serializedVersion: 2
-        x: 2208
-        y: 1632
-        width: 736
-        height: 544
+        x: 1920
+        y: 2440
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -442,20 +310,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: dea625b77944eec4389fb97c84213b4c
-      internalID: -2025519223
+      spriteID: da2205cc88ee39846b888577a7394ba0
+      internalID: -779086011
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_16
+      name: 1_10
       rect:
         serializedVersion: 2
-        x: 2944
-        y: 1632
-        width: 736
-        height: 544
+        x: 2560
+        y: 2440
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -464,20 +332,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 38b267f32fa69544abd215c3465bd968
-      internalID: -1721761269
+      spriteID: 101bed845fbf38f43b2129ed9bd2d892
+      internalID: 961573782
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_17
+      name: 1_11
       rect:
         serializedVersion: 2
-        x: 3680
-        y: 1632
-        width: 736
-        height: 544
+        x: 3200
+        y: 2440
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -486,152 +354,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 727ea5f43827eba4c9c1dfbe4d93b6bc
-      internalID: -1181153568
+      spriteID: b7d9f6b955a65ed489ddbcfde0761236
+      internalID: 464864316
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_18
-      rect:
-        serializedVersion: 2
-        x: 0
-        y: 1088
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: f66a45064fdc5ad4489e653761bbe3de
-      internalID: 337163445
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_19
-      rect:
-        serializedVersion: 2
-        x: 736
-        y: 1088
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: d666121d31649834299956bc57a1a731
-      internalID: 818089909
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_20
-      rect:
-        serializedVersion: 2
-        x: 1472
-        y: 1088
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: b6c1f5eae559d324cbd7878ec84e2e4d
-      internalID: -1365979455
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_21
-      rect:
-        serializedVersion: 2
-        x: 2208
-        y: 1088
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 47ca519952077054e840e8b2ab44e33a
-      internalID: 970941661
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_22
-      rect:
-        serializedVersion: 2
-        x: 2944
-        y: 1088
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: 0db63906198dbf64fbb48ecd17763849
-      internalID: 1713644027
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_23
-      rect:
-        serializedVersion: 2
-        x: 3680
-        y: 1088
-        width: 736
-        height: 544
-      alignment: 0
-      pivot: {x: 0, y: 0}
-      border: {x: 0, y: 0, z: 0, w: 0}
-      customData: 
-      outline: []
-      physicsShape: []
-      tessellationDetail: 0
-      bones: []
-      spriteID: f7211a943ace59946b1210a887d6f121
-      internalID: -857186026
-      vertices: []
-      indices: 
-      edges: []
-      weights: []
-    - serializedVersion: 2
-      name: capybara_swift_slash_sheet_24
+      name: 1_12
       rect:
         serializedVersion: 2
         x: 0
-        y: 544
-        width: 736
-        height: 544
+        y: 1830
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -640,20 +376,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 068a00ada79bd714f97a2662f906cb37
-      internalID: 1466949622
+      spriteID: f8ea5ce46e537a340af0ab00e373a33a
+      internalID: -1036147597
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_25
+      name: 1_13
       rect:
         serializedVersion: 2
-        x: 736
-        y: 544
-        width: 736
-        height: 544
+        x: 640
+        y: 1830
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -662,20 +398,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 79bc50ff5c5cec84994ca26b2f96f79c
-      internalID: 123136817
+      spriteID: 386dfc0b8ad788f41adf060edd3ec923
+      internalID: -773873625
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_26
+      name: 1_14
       rect:
         serializedVersion: 2
-        x: 1472
-        y: 544
-        width: 736
-        height: 544
+        x: 1280
+        y: 1830
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -684,20 +420,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 003623d08b470ed449e57b41d9062201
-      internalID: -1462649151
+      spriteID: 71e97041d78ff004da964bb106c57cfd
+      internalID: 1417241399
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_27
+      name: 1_15
       rect:
         serializedVersion: 2
-        x: 2208
-        y: 544
-        width: 736
-        height: 544
+        x: 1920
+        y: 1830
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -706,20 +442,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 0601b37f6ee8ef2459c19f8aed7394a5
-      internalID: 1822714177
+      spriteID: 7895fbf64421fb14686ac64944e2c5f7
+      internalID: 1524936533
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_28
+      name: 1_16
       rect:
         serializedVersion: 2
-        x: 2944
-        y: 544
-        width: 736
-        height: 544
+        x: 2560
+        y: 1830
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -728,20 +464,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 5ff275a7df45bb14ba4606aabb7d9cfa
-      internalID: 790385392
+      spriteID: a61c94928c538854e819452e51c9cc53
+      internalID: -1632880087
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_29
+      name: 1_17
       rect:
         serializedVersion: 2
-        x: 3680
-        y: 544
-        width: 736
-        height: 544
+        x: 3200
+        y: 1830
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -750,20 +486,284 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 44acffce0917d7c428aa77ea948ef1a3
-      internalID: 221531991
+      spriteID: 0a724612ea4920848a20dac2333d20bd
+      internalID: -1329965771
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_30
+      name: 1_18
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: b65d25b28f83ddb4982f1a0c3b2775f2
+      internalID: 885018889
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_19
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 5d766ffc5c14b184db7648b66bcb35d4
+      internalID: -169753901
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_20
+      rect:
+        serializedVersion: 2
+        x: 1280
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: fe0ea6dee343bc1408be42c8f96c706c
+      internalID: -1900444998
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_21
+      rect:
+        serializedVersion: 2
+        x: 1920
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 36732dc9ecc65e94c90634f1ab737498
+      internalID: -306160465
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_22
+      rect:
+        serializedVersion: 2
+        x: 2560
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 2ad7ca4212a5d3c4fa87dde70631570a
+      internalID: -71943216
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_23
+      rect:
+        serializedVersion: 2
+        x: 3200
+        y: 1220
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 968375abe1a2bae41bfb6e78276be88b
+      internalID: 1370358292
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_24
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 372f0cd2e85016a47ac75be94928b4f8
+      internalID: 52013870
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_25
+      rect:
+        serializedVersion: 2
+        x: 640
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 172602a69f81d9d45bffc630dda90204
+      internalID: -98991856
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_26
+      rect:
+        serializedVersion: 2
+        x: 1280
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: f195dae383032b3489cdd6b42a8c1a68
+      internalID: 1479794921
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_27
+      rect:
+        serializedVersion: 2
+        x: 1920
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 393cea969dd41d9408bdae7fc3b1dcdf
+      internalID: -1792447518
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_28
+      rect:
+        serializedVersion: 2
+        x: 2560
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: 46942391d3e4ea74f8947f8adc173314
+      internalID: -465783393
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_29
+      rect:
+        serializedVersion: 2
+        x: 3200
+        y: 610
+        width: 640
+        height: 610
+      alignment: 0
+      pivot: {x: 0, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: 0
+      bones: []
+      spriteID: a524108db2792484d8e912187efedc22
+      internalID: 1446473903
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: 1_30
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 736
-        height: 544
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -772,20 +772,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 93d2db00d01483c48a014477f62aebbf
-      internalID: -1034380785
+      spriteID: b53f6b19e8ae0d943ae31e39fd16d16e
+      internalID: 402565817
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_31
+      name: 1_31
       rect:
         serializedVersion: 2
-        x: 736
+        x: 640
         y: 0
-        width: 736
-        height: 544
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -794,20 +794,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: ff1b0e3e51742064abc06c77b1198768
-      internalID: -855556193
+      spriteID: 8412765b54af41642ac33a6e637d1147
+      internalID: -1739442023
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_32
+      name: 1_32
       rect:
         serializedVersion: 2
-        x: 1472
+        x: 1280
         y: 0
-        width: 736
-        height: 544
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -816,20 +816,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 51f0264a147bf214782cde1cfc0fc7c8
-      internalID: 1876289380
+      spriteID: dbc8964f622adb34a9b46216691e518b
+      internalID: 1873241859
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_33
+      name: 1_33
       rect:
         serializedVersion: 2
-        x: 2208
+        x: 1920
         y: 0
-        width: 736
-        height: 544
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -838,20 +838,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: fcca4924dd9d9bf49b4c51859be08d6e
-      internalID: 859528650
+      spriteID: c4eaae6231d22394ca35b389f4ae3416
+      internalID: 1727787308
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_34
+      name: 1_34
       rect:
         serializedVersion: 2
-        x: 2944
+        x: 2560
         y: 0
-        width: 736
-        height: 544
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -860,20 +860,20 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 6adbd822cc3185245a60e891c0baa0bd
-      internalID: 574873503
+      spriteID: 65f01004689453d4f875e28b367c4b41
+      internalID: 1196397544
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: capybara_swift_slash_sheet_35
+      name: 1_35
       rect:
         serializedVersion: 2
-        x: 3680
+        x: 3200
         y: 0
-        width: 736
-        height: 544
+        width: 640
+        height: 610
       alignment: 0
       pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
@@ -882,8 +882,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: c31852b71419c3e4981955db3fc45e5f
-      internalID: -1916691821
+      spriteID: 001fecee67709f6408087ca4bdb87ffd
+      internalID: -409550659
       vertices: []
       indices: 
       edges: []
@@ -892,7 +892,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: fb6084d27b046614eb3f851ad019da22
+    spriteID: e96675df482ddab4387329b45dbb543a
     internalID: 0
     vertices: []
     indices: 
@@ -902,42 +902,42 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      capybara_swift_slash_sheet_0: 1785781389
-      capybara_swift_slash_sheet_1: -1014178119
-      capybara_swift_slash_sheet_10: -677788610
-      capybara_swift_slash_sheet_11: 1999328631
-      capybara_swift_slash_sheet_12: -254053138
-      capybara_swift_slash_sheet_13: -1930503261
-      capybara_swift_slash_sheet_14: 1296897487
-      capybara_swift_slash_sheet_15: -2025519223
-      capybara_swift_slash_sheet_16: -1721761269
-      capybara_swift_slash_sheet_17: -1181153568
-      capybara_swift_slash_sheet_18: 337163445
-      capybara_swift_slash_sheet_19: 818089909
-      capybara_swift_slash_sheet_2: 704947023
-      capybara_swift_slash_sheet_20: -1365979455
-      capybara_swift_slash_sheet_21: 970941661
-      capybara_swift_slash_sheet_22: 1713644027
-      capybara_swift_slash_sheet_23: -857186026
-      capybara_swift_slash_sheet_24: 1466949622
-      capybara_swift_slash_sheet_25: 123136817
-      capybara_swift_slash_sheet_26: -1462649151
-      capybara_swift_slash_sheet_27: 1822714177
-      capybara_swift_slash_sheet_28: 790385392
-      capybara_swift_slash_sheet_29: 221531991
-      capybara_swift_slash_sheet_3: -1463378049
-      capybara_swift_slash_sheet_30: -1034380785
-      capybara_swift_slash_sheet_31: -855556193
-      capybara_swift_slash_sheet_32: 1876289380
-      capybara_swift_slash_sheet_33: 859528650
-      capybara_swift_slash_sheet_34: 574873503
-      capybara_swift_slash_sheet_35: -1916691821
-      capybara_swift_slash_sheet_4: 422119075
-      capybara_swift_slash_sheet_5: 79724039
-      capybara_swift_slash_sheet_6: -1814998821
-      capybara_swift_slash_sheet_7: 1715057393
-      capybara_swift_slash_sheet_8: 1913247102
-      capybara_swift_slash_sheet_9: -1361876194
+      1_0: -405204166
+      1_1: 2052265090
+      1_10: 961573782
+      1_11: 464864316
+      1_12: -1036147597
+      1_13: -773873625
+      1_14: 1417241399
+      1_15: 1524936533
+      1_16: -1632880087
+      1_17: -1329965771
+      1_18: 885018889
+      1_19: -169753901
+      1_2: 1746694943
+      1_20: -1900444998
+      1_21: -306160465
+      1_22: -71943216
+      1_23: 1370358292
+      1_24: 52013870
+      1_25: -98991856
+      1_26: 1479794921
+      1_27: -1792447518
+      1_28: -465783393
+      1_29: 1446473903
+      1_3: -729432109
+      1_30: 402565817
+      1_31: -1739442023
+      1_32: 1873241859
+      1_33: 1727787308
+      1_34: 1196397544
+      1_35: -409550659
+      1_4: -1938472720
+      1_5: -317501969
+      1_6: -1721304705
+      1_7: -1785875089
+      1_8: -1884542422
+      1_9: -779086011
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 
