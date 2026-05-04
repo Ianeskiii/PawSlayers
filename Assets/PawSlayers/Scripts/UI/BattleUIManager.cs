@@ -486,6 +486,7 @@ namespace PawSlayers
                 EnsureHeroViewInteractive(heroView);
                 heroView.Setup(HandleHeroClicked);
                 heroView.Refresh(hero);
+                UpdateHeroSpriteVisibility(heroView);
                 heroViews.Add(heroView);
             }
         }
@@ -512,6 +513,7 @@ namespace PawSlayers
                 EnsureEnemyViewInteractive(enemyView);
                 enemyView.Setup(HandleEnemyClicked);
                 enemyView.Refresh(enemy);
+                UpdateEnemySpriteVisibility(enemyView);
                 enemyViews.Add(enemyView);
             }
         }
@@ -526,6 +528,7 @@ namespace PawSlayers
             for (int index = 0; index < heroViews.Count && index < runManager.ActiveHeroesRuntime.Count; index++)
             {
                 heroViews[index].Refresh(runManager.ActiveHeroesRuntime[index]);
+                UpdateHeroSpriteVisibility(heroViews[index]);
             }
         }
 
@@ -534,6 +537,51 @@ namespace PawSlayers
             for (int index = 0; index < enemyViews.Count && index < enemies.Count; index++)
             {
                 enemyViews[index].Refresh(enemies[index]);
+                UpdateEnemySpriteVisibility(enemyViews[index]);
+            }
+        }
+
+        private void UpdateHeroSpriteVisibility(BattleHeroView heroView)
+        {
+            if (heroView == null)
+            {
+                return;
+            }
+
+            RectTransform spriteHolder = heroView.transform.Find("SpriteHolder") as RectTransform;
+            bool hasSprite = heroView.portraitImage != null && heroView.portraitImage.sprite != null;
+
+            if (heroView.portraitImage != null)
+            {
+                heroView.portraitImage.enabled = hasSprite;
+                heroView.portraitImage.color = Color.white;
+            }
+
+            if (spriteHolder != null)
+            {
+                spriteHolder.gameObject.SetActive(hasSprite);
+            }
+        }
+
+        private void UpdateEnemySpriteVisibility(EnemyView enemyView)
+        {
+            if (enemyView == null)
+            {
+                return;
+            }
+
+            RectTransform spriteHolder = enemyView.transform.Find("SpriteHolder") as RectTransform;
+            bool hasSprite = enemyView.spriteImage != null && enemyView.spriteImage.sprite != null;
+
+            if (enemyView.spriteImage != null)
+            {
+                enemyView.spriteImage.enabled = hasSprite;
+                enemyView.spriteImage.color = Color.white;
+            }
+
+            if (spriteHolder != null)
+            {
+                spriteHolder.gameObject.SetActive(hasSprite);
             }
         }
 
@@ -2522,7 +2570,7 @@ namespace PawSlayers
             bottomHudRect.anchorMax = new Vector2(1f, 0f);
             bottomHudRect.pivot = new Vector2(0.5f, 0f);
             bottomHudRect.anchoredPosition = Vector2.zero;
-            bottomHudRect.sizeDelta = new Vector2(0f, 330f);
+            bottomHudRect.sizeDelta = new Vector2(0f, 390f);
 
             GameObject energyPanel = CreatePanel("EnergyPanel", bottomHud.transform, new Color(0.24f, 0.27f, 0.24f, 0.24f));
             RectTransform energyPanelRect = energyPanel.GetComponent<RectTransform>();
@@ -2546,8 +2594,8 @@ namespace PawSlayers
             handPanelRect.anchorMin = new Vector2(0f, 0f);
             handPanelRect.anchorMax = new Vector2(1f, 0f);
             handPanelRect.pivot = new Vector2(0.5f, 0f);
-            handPanelRect.offsetMin = new Vector2(260f, 25f);
-            handPanelRect.offsetMax = new Vector2(-260f, 310f);
+            handPanelRect.offsetMin = new Vector2(268f, 20f);
+            handPanelRect.offsetMax = new Vector2(-340f, 360f);
             handContainer = CreateLayoutContainer("HandContainer", handPanel.transform, false, new Vector2(0f, 0f), new Vector2(0f, 0f));
 
             GameObject endTurnPanel = CreatePanel("EndTurnPanel", bottomHud.transform, new Color(0.24f, 0.27f, 0.24f, 0.24f));
@@ -2809,7 +2857,7 @@ namespace PawSlayers
                 {
                     heroRowLayout.spacing = 18f;
                     heroRowLayout.padding = new RectOffset(0, 0, 0, 0);
-                    heroRowLayout.childAlignment = TextAnchor.LowerCenter;
+                    heroRowLayout.childAlignment = TextAnchor.MiddleRight;
                     heroRowLayout.childControlWidth = true;
                     heroRowLayout.childControlHeight = true;
                     heroRowLayout.childForceExpandWidth = false;
@@ -2836,7 +2884,7 @@ namespace PawSlayers
                 {
                     enemyRowLayout.spacing = 18f;
                     enemyRowLayout.padding = new RectOffset(0, 0, 0, 0);
-                    enemyRowLayout.childAlignment = TextAnchor.LowerCenter;
+                    enemyRowLayout.childAlignment = TextAnchor.MiddleLeft;
                     enemyRowLayout.childControlWidth = true;
                     enemyRowLayout.childControlHeight = true;
                     enemyRowLayout.childForceExpandWidth = false;
@@ -2931,7 +2979,7 @@ namespace PawSlayers
             SetAnchoredStretch(stagePanel, new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(640f, 30f), new Vector2(-680f, -30f));
 
             RectTransform bottomHud = EnsureNamedPanel("BottomHud", rootRect, new Color(0.18f, 0.16f, 0.13f, 0.92f));
-            SetAnchoredStretch(bottomHud, new Vector2(0f, 0f), new Vector2(1f, 0f), Vector2.zero, new Vector2(0f, 330f));
+            SetAnchoredStretch(bottomHud, new Vector2(0f, 0f), new Vector2(1f, 0f), Vector2.zero, new Vector2(0f, 390f));
 
             if (runProgressText != null)
             {
@@ -2998,11 +3046,11 @@ namespace PawSlayers
                 RectTransform heroContainerRect = heroContainer as RectTransform;
                 if (heroContainerRect != null)
                 {
-                    heroContainerRect.anchorMin = new Vector2(1f, 0f);
-                    heroContainerRect.anchorMax = new Vector2(1f, 0f);
-                    heroContainerRect.pivot = new Vector2(1f, 0f);
-                    heroContainerRect.anchoredPosition = new Vector2(-12f, 56f);
-                    heroContainerRect.sizeDelta = new Vector2(420f, 170f);
+                    heroContainerRect.anchorMin = new Vector2(1f, 0.5f);
+                    heroContainerRect.anchorMax = new Vector2(1f, 0.5f);
+                    heroContainerRect.pivot = new Vector2(1f, 0.5f);
+                    heroContainerRect.anchoredPosition = new Vector2(-18f, 8f);
+                    heroContainerRect.sizeDelta = new Vector2(430f, 180f);
                 }
             }
 
@@ -3029,11 +3077,11 @@ namespace PawSlayers
                 RectTransform enemyContainerRect = enemyContainer as RectTransform;
                 if (enemyContainerRect != null)
                 {
-                    enemyContainerRect.anchorMin = new Vector2(0f, 0f);
-                    enemyContainerRect.anchorMax = new Vector2(0f, 0f);
-                    enemyContainerRect.pivot = new Vector2(0f, 0f);
-                    enemyContainerRect.anchoredPosition = new Vector2(12f, 64f);
-                    enemyContainerRect.sizeDelta = new Vector2(460f, 170f);
+                    enemyContainerRect.anchorMin = new Vector2(0f, 0.5f);
+                    enemyContainerRect.anchorMax = new Vector2(0f, 0.5f);
+                    enemyContainerRect.pivot = new Vector2(0f, 0.5f);
+                    enemyContainerRect.anchoredPosition = new Vector2(18f, 8f);
+                    enemyContainerRect.sizeDelta = new Vector2(470f, 180f);
                 }
             }
 
@@ -3044,8 +3092,8 @@ namespace PawSlayers
                 handPanel.anchorMin = new Vector2(0f, 0f);
                 handPanel.anchorMax = new Vector2(1f, 0f);
                 handPanel.pivot = new Vector2(0.5f, 0f);
-                handPanel.offsetMin = new Vector2(260f, 25f);
-                handPanel.offsetMax = new Vector2(-260f, 310f);
+                handPanel.offsetMin = new Vector2(268f, 20f);
+                handPanel.offsetMax = new Vector2(-340f, 360f);
                 Image handPanelImage = handPanel.GetComponent<Image>();
                 if (handPanelImage != null)
                 {
@@ -3117,6 +3165,8 @@ namespace PawSlayers
                 SetTextRect(battleLogText, new Vector2(12f, -36f), new Vector2(286f, 118f), TextAnchor.UpperLeft);
                 battleLogText.fontSize = 12;
             }
+
+            Debug.Log("BattleUIManager: positioning cleanup applied");
 
             if (debugPanelRoot != null)
             {
@@ -3366,10 +3416,10 @@ namespace PawSlayers
             LayoutElement layout = view.GetComponent<LayoutElement>();
             if (layout != null)
             {
-                layout.preferredWidth = 160f;
-                layout.preferredHeight = 150f;
-                layout.minWidth = 160f;
-                layout.minHeight = 150f;
+                layout.preferredWidth = 170f;
+                layout.preferredHeight = 124f;
+                layout.minWidth = 170f;
+                layout.minHeight = 124f;
                 layout.flexibleWidth = 0f;
                 layout.flexibleHeight = 0f;
             }
@@ -3377,16 +3427,16 @@ namespace PawSlayers
             RectTransform rect = view.GetComponent<RectTransform>();
             if (rect != null)
             {
-                rect.sizeDelta = new Vector2(160f, 150f);
+                rect.sizeDelta = new Vector2(170f, 124f);
             }
 
             RectTransform hudPanel = EnsureUnitHudPanel(view.transform, "UnitHudPanel", new Color(0.95f, 0.90f, 0.82f, 0.92f));
             view.backgroundImage = hudPanel.GetComponent<Image>();
-            hudPanel.anchorMin = new Vector2(0f, 0f);
-            hudPanel.anchorMax = new Vector2(0f, 0f);
-            hudPanel.pivot = new Vector2(0f, 0f);
-            hudPanel.anchoredPosition = new Vector2(0f, 12f);
-            hudPanel.sizeDelta = new Vector2(96f, 62f);
+            hudPanel.anchorMin = new Vector2(1f, 0.5f);
+            hudPanel.anchorMax = new Vector2(1f, 0.5f);
+            hudPanel.pivot = new Vector2(1f, 0.5f);
+            hudPanel.anchoredPosition = new Vector2(0f, 0f);
+            hudPanel.sizeDelta = new Vector2(88f, 60f);
 
             RectTransform spriteHolder = EnsureUnitHudPanel(view.transform, "SpriteHolder", new Color(0f, 0f, 0f, 0f));
             Image spriteHolderImage = spriteHolder.GetComponent<Image>();
@@ -3395,67 +3445,67 @@ namespace PawSlayers
                 spriteHolderImage.enabled = false;
             }
 
-            spriteHolder.anchorMin = new Vector2(0.5f, 0.5f);
-            spriteHolder.anchorMax = new Vector2(0.5f, 0.5f);
-            spriteHolder.pivot = new Vector2(0.5f, 0.5f);
-            spriteHolder.anchoredPosition = new Vector2(12f, -6f);
-            spriteHolder.sizeDelta = new Vector2(118f, 118f);
+            spriteHolder.anchorMin = new Vector2(0f, 0.5f);
+            spriteHolder.anchorMax = new Vector2(0f, 0.5f);
+            spriteHolder.pivot = new Vector2(0f, 0.5f);
+            spriteHolder.anchoredPosition = new Vector2(0f, 0f);
+            spriteHolder.sizeDelta = new Vector2(92f, 92f);
 
             if (view.heroNameText != null)
             {
                 view.heroNameText.transform.SetParent(hudPanel, false);
-                SetTextRect(view.heroNameText, new Vector2(8f, -6f), new Vector2(80f, 12f), TextAnchor.UpperLeft);
-                view.heroNameText.fontSize = 10;
+                SetTextRect(view.heroNameText, new Vector2(8f, -6f), new Vector2(72f, 12f), TextAnchor.UpperLeft);
+                view.heroNameText.fontSize = 9;
             }
 
             if (view.heroClassText != null)
             {
                 view.heroClassText.transform.SetParent(hudPanel, false);
-                SetTextRect(view.heroClassText, new Vector2(8f, -18f), new Vector2(80f, 10f), TextAnchor.UpperLeft);
+                SetTextRect(view.heroClassText, new Vector2(8f, -17f), new Vector2(72f, 10f), TextAnchor.UpperLeft);
                 view.heroClassText.fontSize = 8;
             }
 
             if (view.hpText != null)
             {
                 view.hpText.transform.SetParent(hudPanel, false);
-                SetTextRect(view.hpText, new Vector2(8f, -38f), new Vector2(80f, 10f), TextAnchor.UpperLeft);
+                SetTextRect(view.hpText, new Vector2(8f, -35f), new Vector2(72f, 10f), TextAnchor.UpperLeft);
                 view.hpText.fontSize = 8;
             }
 
             if (view.blockText != null)
             {
                 view.blockText.transform.SetParent(hudPanel, false);
-                SetTextRect(view.blockText, new Vector2(8f, -48f), new Vector2(38f, 10f), TextAnchor.UpperLeft);
+                SetTextRect(view.blockText, new Vector2(8f, -45f), new Vector2(34f, 10f), TextAnchor.UpperLeft);
                 view.blockText.fontSize = 7;
             }
 
             if (view.stateText != null)
             {
                 view.stateText.transform.SetParent(hudPanel, false);
-                SetTextRect(view.stateText, new Vector2(88f, -48f), new Vector2(40f, 10f), TextAnchor.UpperRight);
+                SetTextRect(view.stateText, new Vector2(80f, -45f), new Vector2(36f, 10f), TextAnchor.UpperRight);
                 view.stateText.fontSize = 7;
             }
 
             if (view.statusText == null)
             {
-                view.statusText = CreateText("StatusText", hudPanel, new Vector2(8f, -58f), new Vector2(48f, 10f), 7, FontStyle.Normal, TextAnchor.UpperLeft);
+                view.statusText = CreateText("StatusText", hudPanel, new Vector2(8f, -55f), new Vector2(44f, 10f), 7, FontStyle.Normal, TextAnchor.UpperLeft);
             }
             else
             {
                 view.statusText.transform.SetParent(hudPanel, false);
-                SetTextRect(view.statusText, new Vector2(8f, -58f), new Vector2(48f, 10f), TextAnchor.UpperLeft);
+                SetTextRect(view.statusText, new Vector2(8f, -55f), new Vector2(44f, 10f), TextAnchor.UpperLeft);
                 view.statusText.fontSize = 7;
             }
 
             if (view.tauntText == null)
             {
-                view.tauntText = CreateText("TauntText", hudPanel, new Vector2(52f, -58f), new Vector2(36f, 10f), 7, FontStyle.Bold, TextAnchor.UpperRight);
+                view.tauntText = CreateText("TauntText", hudPanel, new Vector2(48f, -55f), new Vector2(32f, 10f), 7, FontStyle.Bold, TextAnchor.UpperRight);
                 view.tauntText.color = new Color(0.66f, 0.42f, 0.12f, 1f);
             }
             else
             {
                 view.tauntText.transform.SetParent(hudPanel, false);
-                SetTextRect(view.tauntText, new Vector2(52f, -58f), new Vector2(36f, 10f), TextAnchor.UpperRight);
+                SetTextRect(view.tauntText, new Vector2(48f, -55f), new Vector2(32f, 10f), TextAnchor.UpperRight);
                 view.tauntText.fontSize = 7;
             }
 
@@ -3479,7 +3529,7 @@ namespace PawSlayers
                 portraitRect.anchorMax = new Vector2(0.5f, 0.5f);
                 portraitRect.pivot = new Vector2(0.5f, 0.5f);
                 portraitRect.anchoredPosition = Vector2.zero;
-                portraitRect.sizeDelta = new Vector2(112f, 112f);
+                portraitRect.sizeDelta = new Vector2(92f, 92f);
                 view.portraitImage.preserveAspect = true;
             }
 
@@ -3507,8 +3557,8 @@ namespace PawSlayers
 
             CopyHeroAnimationTemplate(view.heroAnimationController);
 
-            EnsureExistingBarRootParent(view.hpBarFillImage, hudPanel, new Vector2(8f, -30f), new Vector2(80f, 6f));
-            EnsureBarVisuals(hudPanel, ref view.hpBarFillImage, "HpBarFill", new Vector2(8f, -30f), new Vector2(80f, 6f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
+            EnsureExistingBarRootParent(view.hpBarFillImage, hudPanel, new Vector2(8f, -26f), new Vector2(72f, 6f));
+            EnsureBarVisuals(hudPanel, ref view.hpBarFillImage, "HpBarFill", new Vector2(8f, -26f), new Vector2(72f, 6f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
             EnsureDimOverlay(view.transform, ref view.dimOverlayImage, "DimOverlay");
         }
 
@@ -3552,10 +3602,10 @@ namespace PawSlayers
             LayoutElement layout = view.GetComponent<LayoutElement>();
             if (layout != null)
             {
-                layout.preferredWidth = 170f;
-                layout.preferredHeight = 155f;
-                layout.minWidth = 170f;
-                layout.minHeight = 155f;
+                layout.preferredWidth = 180f;
+                layout.preferredHeight = 132f;
+                layout.minWidth = 180f;
+                layout.minHeight = 132f;
                 layout.flexibleWidth = 0f;
                 layout.flexibleHeight = 0f;
             }
@@ -3563,7 +3613,7 @@ namespace PawSlayers
             RectTransform rect = view.GetComponent<RectTransform>();
             if (rect != null)
             {
-                rect.sizeDelta = new Vector2(170f, 155f);
+                rect.sizeDelta = new Vector2(180f, 132f);
             }
 
             RectTransform spriteHolder = EnsureUnitHudPanel(view.transform, "SpriteHolder", new Color(0f, 0f, 0f, 0f));
@@ -3573,19 +3623,19 @@ namespace PawSlayers
                 enemySpriteHolderImage.enabled = false;
             }
 
-            spriteHolder.anchorMin = new Vector2(0.5f, 0.5f);
-            spriteHolder.anchorMax = new Vector2(0.5f, 0.5f);
-            spriteHolder.pivot = new Vector2(0.5f, 0.5f);
-            spriteHolder.anchoredPosition = new Vector2(-14f, -6f);
-            spriteHolder.sizeDelta = new Vector2(112f, 112f);
+            spriteHolder.anchorMin = new Vector2(1f, 0.5f);
+            spriteHolder.anchorMax = new Vector2(1f, 0.5f);
+            spriteHolder.pivot = new Vector2(1f, 0.5f);
+            spriteHolder.anchoredPosition = new Vector2(0f, 0f);
+            spriteHolder.sizeDelta = new Vector2(92f, 92f);
 
             RectTransform hudPanel = EnsureUnitHudPanel(view.transform, "UnitHudPanel", new Color(0.30f, 0.23f, 0.19f, 0.92f));
             view.backgroundImage = hudPanel.GetComponent<Image>();
-            hudPanel.anchorMin = new Vector2(1f, 0f);
-            hudPanel.anchorMax = new Vector2(1f, 0f);
-            hudPanel.pivot = new Vector2(1f, 0f);
-            hudPanel.anchoredPosition = new Vector2(0f, 12f);
-            hudPanel.sizeDelta = new Vector2(96f, 74f);
+            hudPanel.anchorMin = new Vector2(0f, 0.5f);
+            hudPanel.anchorMax = new Vector2(0f, 0.5f);
+            hudPanel.pivot = new Vector2(0f, 0.5f);
+            hudPanel.anchoredPosition = new Vector2(0f, 0f);
+            hudPanel.sizeDelta = new Vector2(96f, 76f);
 
             if (view.enemyNameText != null)
             {
@@ -3672,7 +3722,7 @@ namespace PawSlayers
                 spriteRect.anchorMax = new Vector2(0.5f, 0.5f);
                 spriteRect.pivot = new Vector2(0.5f, 0.5f);
                 spriteRect.anchoredPosition = Vector2.zero;
-                spriteRect.sizeDelta = new Vector2(112f, 112f);
+                spriteRect.sizeDelta = new Vector2(92f, 92f);
                 view.spriteImage.preserveAspect = true;
             }
 
@@ -3727,8 +3777,8 @@ namespace PawSlayers
             LayoutElement layout = view.GetComponent<LayoutElement>();
             if (layout != null)
             {
-                layout.preferredWidth = 198f;
-                layout.preferredHeight = 250f;
+                layout.preferredWidth = 186f;
+                layout.preferredHeight = 258f;
                 layout.flexibleWidth = 0f;
                 layout.flexibleHeight = 0f;
             }
@@ -3736,7 +3786,7 @@ namespace PawSlayers
             RectTransform rect = view.GetComponent<RectTransform>();
             if (rect != null)
             {
-                rect.sizeDelta = new Vector2(198f, 250f);
+                rect.sizeDelta = new Vector2(186f, 258f);
             }
 
             if (view.backgroundImage != null)
@@ -3935,8 +3985,8 @@ namespace PawSlayers
         {
             GameObject root = CreatePanel("CardView", parent, new Color(0.96f, 0.93f, 0.84f, 1f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
-            layout.preferredWidth = 198f;
-            layout.preferredHeight = 250f;
+            layout.preferredWidth = 186f;
+            layout.preferredHeight = 258f;
 
             Button button = root.AddComponent<Button>();
             CanvasGroup canvasGroup = root.AddComponent<CanvasGroup>();
@@ -4015,7 +4065,7 @@ namespace PawSlayers
                 layout.childControlHeight = true;
                 layout.childForceExpandWidth = false;
                 layout.childForceExpandHeight = false;
-                layout.childAlignment = TextAnchor.LowerCenter;
+                layout.childAlignment = name == "HeroContainer" ? TextAnchor.MiddleRight : TextAnchor.MiddleLeft;
             }
             else if (vertical)
             {
