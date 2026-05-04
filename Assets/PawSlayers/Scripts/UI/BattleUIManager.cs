@@ -480,9 +480,7 @@ namespace PawSlayers
 
             foreach (RuntimeHeroState hero in runManager.ActiveHeroesRuntime)
             {
-                BattleHeroView heroView = heroViewPrefab != null
-                    ? Instantiate(heroViewPrefab, heroContainer)
-                    : CreateRuntimeHeroView(heroContainer);
+                BattleHeroView heroView = CreateRuntimeHeroView(heroContainer);
 
                 EnsureHeroViewDisplayFields(heroView);
                 EnsureHeroViewInteractive(heroView);
@@ -508,9 +506,7 @@ namespace PawSlayers
 
             foreach (EnemyRuntimeState enemy in enemies)
             {
-                EnemyView enemyView = CanUseConfiguredEnemyViewPrefab()
-                    ? Instantiate(enemyViewPrefab, enemyContainer)
-                    : CreateRuntimeEnemyView(enemyContainer);
+                EnemyView enemyView = CreateRuntimeEnemyView(enemyContainer);
 
                 EnsureEnemyViewDisplayFields(enemyView);
                 EnsureEnemyViewInteractive(enemyView);
@@ -563,6 +559,7 @@ namespace PawSlayers
 
                 EnsureCardViewInteractive(cardView);
                 cardView.Setup(card, OnCardClicked);
+                EnsureCardVisuals(cardView);
 
                 bool isDisabled = IsCardDisabled(card, out string disabledReason);
                 cardView.SetDisabled(isDisabled, disabledReason);
@@ -2383,13 +2380,36 @@ namespace PawSlayers
                 scaler.referenceResolution = new Vector2(1920f, 1080f);
                 scaler.matchWidthOrHeight = 0.5f;
             }
+            else
+            {
+                CanvasScaler existingScaler = canvas.GetComponent<CanvasScaler>();
+                if (existingScaler == null)
+                {
+                    existingScaler = canvas.gameObject.AddComponent<CanvasScaler>();
+                }
+
+                existingScaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+                existingScaler.referenceResolution = new Vector2(1920f, 1080f);
+                existingScaler.matchWidthOrHeight = 0.5f;
+            }
+
+            Debug.Log("BattleUIManager: Building horizontal runtime battle layout v2");
 
             if (FindObjectOfType<UnityEngine.EventSystems.EventSystem>() == null)
             {
                 new GameObject("EventSystem", typeof(UnityEngine.EventSystems.EventSystem), typeof(UnityEngine.EventSystems.StandaloneInputModule));
             }
 
-            if (titleText != null && heroContainer != null && enemyContainer != null && handContainer != null && runProgressText != null && relicsText != null && rewardCardManager != null && rewardCardManager.continueButton != null && returnToSelectionButton != null)
+            if (CanReuseExistingBattleUi(canvas.transform) &&
+                titleText != null &&
+                heroContainer != null &&
+                enemyContainer != null &&
+                handContainer != null &&
+                runProgressText != null &&
+                relicsText != null &&
+                rewardCardManager != null &&
+                rewardCardManager.continueButton != null &&
+                returnToSelectionButton != null)
             {
                 rewardCardManager.battleUiManager = this;
                 EnsureBattleScenePolish(canvas.transform);
@@ -2402,142 +2422,175 @@ namespace PawSlayers
             }
 
             GameObject root = CreatePanel("BattleRoot", canvas.transform, new Color(0.12f, 0.16f, 0.14f, 1f));
-            StretchFull(root.GetComponent<RectTransform>(), 18f);
+            StretchFull(root.GetComponent<RectTransform>(), 0f);
 
-            GameObject topBar = CreatePanel("TopBar", root.transform, new Color(0.20f, 0.17f, 0.13f, 0.92f));
+            GameObject topBar = CreatePanel("TopBar", root.transform, new Color(0.20f, 0.17f, 0.13f, 0.94f));
             RectTransform topBarRect = topBar.GetComponent<RectTransform>();
             topBarRect.anchorMin = new Vector2(0f, 1f);
             topBarRect.anchorMax = new Vector2(1f, 1f);
             topBarRect.pivot = new Vector2(0.5f, 1f);
             topBarRect.anchoredPosition = Vector2.zero;
-            topBarRect.sizeDelta = new Vector2(0f, 88f);
+            topBarRect.offsetMin = new Vector2(0f, -90f);
+            topBarRect.offsetMax = Vector2.zero;
 
-            runProgressText = CreateText("RunProgressText", topBar.transform, new Vector2(20f, -18f), new Vector2(280f, 26f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            runProgressText = CreateText("RunProgressText", topBar.transform, new Vector2(22f, -18f), new Vector2(260f, 30f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
             runProgressText.color = new Color(0.98f, 0.92f, 0.75f, 1f);
-            titleText = CreateText("Title", topBar.transform, new Vector2(0f, -16f), new Vector2(380f, 32f), 32, FontStyle.Bold, TextAnchor.UpperCenter);
+            titleText = CreateText("Title", topBar.transform, new Vector2(0f, -16f), new Vector2(380f, 34f), 32, FontStyle.Bold, TextAnchor.UpperCenter);
             titleText.rectTransform.anchorMin = new Vector2(0.5f, 1f);
             titleText.rectTransform.anchorMax = new Vector2(0.5f, 1f);
             titleText.rectTransform.pivot = new Vector2(0.5f, 1f);
             titleText.rectTransform.anchoredPosition = new Vector2(0f, -16f);
             titleText.color = new Color(0.98f, 0.95f, 0.86f, 1f);
-            goldText = CreateText("GoldText", topBar.transform, new Vector2(-310f, -18f), new Vector2(130f, 24f), 18, FontStyle.Bold, TextAnchor.UpperRight);
+            goldText = CreateText("GoldText", topBar.transform, new Vector2(-270f, -18f), new Vector2(120f, 24f), 18, FontStyle.Bold, TextAnchor.UpperRight);
             goldText.rectTransform.anchorMin = new Vector2(1f, 1f);
             goldText.rectTransform.anchorMax = new Vector2(1f, 1f);
             goldText.rectTransform.pivot = new Vector2(1f, 1f);
-            goldText.rectTransform.anchoredPosition = new Vector2(-310f, -18f);
+            goldText.rectTransform.anchoredPosition = new Vector2(-270f, -18f);
             goldText.color = new Color(0.95f, 0.84f, 0.44f, 1f);
-            relicsText = CreateText("RelicsText", topBar.transform, new Vector2(-170f, -18f), new Vector2(150f, 24f), 18, FontStyle.Bold, TextAnchor.UpperRight);
+            relicsText = CreateText("RelicsText", topBar.transform, new Vector2(-130f, -18f), new Vector2(220f, 24f), 18, FontStyle.Bold, TextAnchor.UpperRight);
             relicsText.rectTransform.anchorMin = new Vector2(1f, 1f);
             relicsText.rectTransform.anchorMax = new Vector2(1f, 1f);
             relicsText.rectTransform.pivot = new Vector2(1f, 1f);
-            relicsText.rectTransform.anchoredPosition = new Vector2(-170f, -18f);
+            relicsText.rectTransform.anchoredPosition = new Vector2(-130f, -18f);
             relicsText.color = new Color(0.78f, 0.64f, 0.92f, 1f);
             debugToggleButton = CreateButton("DebugToggleButton", topBar.transform, "Debug");
             RectTransform debugToggleRect = debugToggleButton.GetComponent<RectTransform>();
             debugToggleRect.anchorMin = new Vector2(1f, 1f);
             debugToggleRect.anchorMax = new Vector2(1f, 1f);
             debugToggleRect.pivot = new Vector2(1f, 1f);
-            debugToggleRect.anchoredPosition = new Vector2(-20f, -16f);
-            debugToggleRect.sizeDelta = new Vector2(120f, 42f);
+            debugToggleRect.anchoredPosition = new Vector2(-16f, -18f);
+            debugToggleRect.sizeDelta = new Vector2(110f, 50f);
             debugToggleText = debugToggleButton.GetComponentInChildren<Text>();
 
-            turnText = CreateText("TurnText", root.transform, new Vector2(24f, -108f), new Vector2(240f, 28f), 20, FontStyle.Bold, TextAnchor.UpperLeft);
+            GameObject battlefieldArea = CreateUiObject("BattlefieldArea", root.transform, Vector2.zero);
+            RectTransform battlefieldRect = battlefieldArea.GetComponent<RectTransform>();
+            battlefieldRect.anchorMin = new Vector2(0f, 0f);
+            battlefieldRect.anchorMax = new Vector2(1f, 1f);
+            battlefieldRect.offsetMin = new Vector2(0f, 300f);
+            battlefieldRect.offsetMax = new Vector2(0f, -90f);
+
+            GameObject backgroundPanel = CreatePanel("BackgroundPanel", battlefieldArea.transform, new Color(0.10f, 0.15f, 0.12f, 1f));
+            StretchFull(backgroundPanel.GetComponent<RectTransform>(), 0f);
+
+            GameObject heroStage = CreateUiObject("HeroStage", battlefieldArea.transform, Vector2.zero);
+            RectTransform heroStageRect = heroStage.GetComponent<RectTransform>();
+            heroStageRect.anchorMin = new Vector2(0f, 0f);
+            heroStageRect.anchorMax = new Vector2(0f, 1f);
+            heroStageRect.pivot = new Vector2(0f, 0.5f);
+            heroStageRect.anchoredPosition = new Vector2(40f, 0f);
+            heroStageRect.sizeDelta = new Vector2(560f, 0f);
+            heroStageRect.offsetMin = new Vector2(40f, 30f);
+            heroStageRect.offsetMax = new Vector2(600f, -30f);
+
+            heroContainer = CreateLayoutContainer("HeroContainer", heroStage.transform, true, new Vector2(0f, 28f), new Vector2(0f, -8f));
+
+            GameObject centerStage = CreateUiObject("CenterStage", battlefieldArea.transform, Vector2.zero);
+            RectTransform centerStageRect = centerStage.GetComponent<RectTransform>();
+            centerStageRect.anchorMin = new Vector2(0f, 0f);
+            centerStageRect.anchorMax = new Vector2(1f, 1f);
+            centerStageRect.offsetMin = new Vector2(640f, 30f);
+            centerStageRect.offsetMax = new Vector2(-680f, -30f);
+
+            Text versusText = CreateText("VersusText", centerStage.transform, new Vector2(0f, -90f), new Vector2(120f, 44f), 30, FontStyle.Bold, TextAnchor.MiddleCenter);
+            versusText.rectTransform.anchorMin = new Vector2(0.5f, 0.5f);
+            versusText.rectTransform.anchorMax = new Vector2(0.5f, 0.5f);
+            versusText.rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            versusText.rectTransform.anchoredPosition = Vector2.zero;
+            versusText.text = "VS";
+            versusText.color = new Color(0.87f, 0.75f, 0.45f, 0.40f);
+
+            GameObject enemyStage = CreateUiObject("EnemyStage", battlefieldArea.transform, Vector2.zero);
+            RectTransform enemyStageRect = enemyStage.GetComponent<RectTransform>();
+            enemyStageRect.anchorMin = new Vector2(1f, 0f);
+            enemyStageRect.anchorMax = new Vector2(1f, 1f);
+            enemyStageRect.pivot = new Vector2(1f, 0.5f);
+            enemyStageRect.anchoredPosition = new Vector2(-40f, 0f);
+            enemyStageRect.sizeDelta = new Vector2(620f, 0f);
+            enemyStageRect.offsetMin = new Vector2(-660f, 30f);
+            enemyStageRect.offsetMax = new Vector2(-40f, -30f);
+
+            enemyContainer = CreateLayoutContainer("EnemyContainer", enemyStage.transform, true, new Vector2(0f, 28f), new Vector2(0f, -8f));
+
+            GameObject floatingTextLayer = CreateUiObject("FloatingTextLayer", battlefieldArea.transform, Vector2.zero);
+            StretchFull(floatingTextLayer.GetComponent<RectTransform>(), 0f);
+            GameObject vfxLayer = CreateUiObject("VfxLayer", battlefieldArea.transform, Vector2.zero);
+            StretchFull(vfxLayer.GetComponent<RectTransform>(), 0f);
+
+            GameObject bottomHud = CreatePanel("BottomHud", root.transform, new Color(0.16f, 0.14f, 0.12f, 0.94f));
+            RectTransform bottomHudRect = bottomHud.GetComponent<RectTransform>();
+            bottomHudRect.anchorMin = new Vector2(0f, 0f);
+            bottomHudRect.anchorMax = new Vector2(1f, 0f);
+            bottomHudRect.pivot = new Vector2(0.5f, 0f);
+            bottomHudRect.anchoredPosition = Vector2.zero;
+            bottomHudRect.sizeDelta = new Vector2(0f, 330f);
+
+            GameObject energyPanel = CreatePanel("EnergyPanel", bottomHud.transform, new Color(0.24f, 0.27f, 0.24f, 0.24f));
+            RectTransform energyPanelRect = energyPanel.GetComponent<RectTransform>();
+            energyPanelRect.anchorMin = new Vector2(0f, 0f);
+            energyPanelRect.anchorMax = new Vector2(0f, 0f);
+            energyPanelRect.pivot = new Vector2(0f, 0f);
+            energyPanelRect.anchoredPosition = new Vector2(30f, 30f);
+            energyPanelRect.sizeDelta = new Vector2(220f, 220f);
+
+            energyText = CreateText("EnergyText", energyPanel.transform, new Vector2(18f, -24f), new Vector2(190f, 42f), 30, FontStyle.Bold, TextAnchor.UpperLeft);
+            energyText.color = new Color(0.60f, 0.84f, 1f, 1f);
+            drawPileText = CreateText("DrawPileText", energyPanel.transform, new Vector2(18f, -82f), new Vector2(170f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            drawPileText.color = new Color(0.93f, 0.93f, 0.98f, 1f);
+            discardPileText = CreateText("DiscardPileText", energyPanel.transform, new Vector2(18f, -116f), new Vector2(170f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            discardPileText.color = new Color(0.93f, 0.93f, 0.98f, 1f);
+            turnText = CreateText("TurnText", energyPanel.transform, new Vector2(18f, -154f), new Vector2(190f, 30f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
             turnText.color = new Color(0.96f, 0.94f, 0.89f, 1f);
 
-            GameObject fieldArea = CreateUiObject("FieldArea", root.transform, Vector2.zero);
-            RectTransform fieldRect = fieldArea.GetComponent<RectTransform>();
-            fieldRect.anchorMin = new Vector2(0f, 0f);
-            fieldRect.anchorMax = new Vector2(1f, 1f);
-            fieldRect.offsetMin = new Vector2(22f, 296f);
-            fieldRect.offsetMax = new Vector2(-22f, -118f);
-
-            GameObject heroPanel = CreatePanel("HeroPanel", fieldArea.transform, new Color(0.94f, 0.90f, 0.82f, 0.96f));
-            RectTransform heroPanelRect = heroPanel.GetComponent<RectTransform>();
-            heroPanelRect.anchorMin = new Vector2(0f, 0f);
-            heroPanelRect.anchorMax = new Vector2(0.29f, 1f);
-            heroPanelRect.offsetMin = Vector2.zero;
-            heroPanelRect.offsetMax = new Vector2(-14f, 0f);
-            Text heroesLabel = CreateText("HeroesLabel", heroPanel.transform, new Vector2(14f, -12f), new Vector2(240f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
-            heroesLabel.text = "Active Heroes";
-            heroContainer = CreateLayoutContainer("HeroContainer", heroPanel.transform, true, new Vector2(12f, 12f), new Vector2(-12f, -48f));
-
-            Text versusText = CreateText("VersusText", fieldArea.transform, new Vector2(0f, -120f), new Vector2(120f, 44f), 30, FontStyle.Bold, TextAnchor.MiddleCenter);
-            versusText.rectTransform.anchorMin = new Vector2(0.5f, 1f);
-            versusText.rectTransform.anchorMax = new Vector2(0.5f, 1f);
-            versusText.rectTransform.pivot = new Vector2(0.5f, 1f);
-            versusText.rectTransform.anchoredPosition = new Vector2(0f, -120f);
-            versusText.text = "VS";
-            versusText.color = new Color(0.87f, 0.75f, 0.45f, 0.75f);
-
-            GameObject enemyPanel = CreatePanel("EnemyPanel", fieldArea.transform, new Color(0.21f, 0.17f, 0.15f, 0.96f));
-            RectTransform enemyPanelRect = enemyPanel.GetComponent<RectTransform>();
-            enemyPanelRect.anchorMin = new Vector2(0.71f, 0f);
-            enemyPanelRect.anchorMax = new Vector2(1f, 1f);
-            enemyPanelRect.offsetMin = new Vector2(14f, 0f);
-            enemyPanelRect.offsetMax = Vector2.zero;
-            Text enemiesLabel = CreateText("EnemiesLabel", enemyPanel.transform, new Vector2(14f, -12f), new Vector2(240f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft);
-            enemiesLabel.text = "Enemies";
-            enemiesLabel.color = new Color(0.98f, 0.95f, 0.86f, 1f);
-            enemyContainer = CreateLayoutContainer("EnemyContainer", enemyPanel.transform, true, new Vector2(12f, 12f), new Vector2(-12f, -48f));
-
-            GameObject bottomBar = CreatePanel("BottomBar", root.transform, new Color(0.20f, 0.17f, 0.13f, 0.92f));
-            RectTransform bottomBarRect = bottomBar.GetComponent<RectTransform>();
-            bottomBarRect.anchorMin = new Vector2(0f, 0f);
-            bottomBarRect.anchorMax = new Vector2(1f, 0f);
-            bottomBarRect.pivot = new Vector2(0.5f, 0f);
-            bottomBarRect.anchoredPosition = Vector2.zero;
-            bottomBarRect.sizeDelta = new Vector2(0f, 262f);
-
-            energyText = CreateText("EnergyText", bottomBar.transform, new Vector2(20f, -18f), new Vector2(160f, 34f), 26, FontStyle.Bold, TextAnchor.UpperLeft);
-            energyText.color = new Color(0.60f, 0.84f, 1f, 1f);
-            drawPileText = CreateText("DrawPileText", bottomBar.transform, new Vector2(20f, -58f), new Vector2(120f, 22f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
-            drawPileText.color = new Color(0.93f, 0.93f, 0.98f, 1f);
-            discardPileText = CreateText("DiscardPileText", bottomBar.transform, new Vector2(20f, -82f), new Vector2(120f, 22f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
-            discardPileText.color = new Color(0.93f, 0.93f, 0.98f, 1f);
-
-            endTurnButton = CreateButton("EndTurnButton", bottomBar.transform, "End Turn");
-            RectTransform endTurnRect = endTurnButton.GetComponent<RectTransform>();
-            endTurnRect.anchorMin = new Vector2(0f, 0f);
-            endTurnRect.anchorMax = new Vector2(0f, 0f);
-            endTurnRect.pivot = new Vector2(0f, 0f);
-            endTurnRect.anchoredPosition = new Vector2(20f, 18f);
-            endTurnRect.sizeDelta = new Vector2(180f, 50f);
-
-            GameObject handPanel = CreatePanel("HandPanel", bottomBar.transform, new Color(0.95f, 0.93f, 0.87f, 0.98f));
+            GameObject handPanel = CreatePanel("HandPanel", bottomHud.transform, new Color(0.96f, 0.92f, 0.84f, 0.04f));
             RectTransform handPanelRect = handPanel.GetComponent<RectTransform>();
             handPanelRect.anchorMin = new Vector2(0f, 0f);
-            handPanelRect.anchorMax = new Vector2(1f, 1f);
-            handPanelRect.offsetMin = new Vector2(220f, 18f);
-            handPanelRect.offsetMax = new Vector2(-360f, -18f);
-            CreateText("HandLabel", handPanel.transform, new Vector2(14f, -12f), new Vector2(200f, 26f), 22, FontStyle.Bold, TextAnchor.UpperLeft).text = "Hand";
-            handContainer = CreateLayoutContainer("HandContainer", handPanel.transform, false, new Vector2(10f, 12f), new Vector2(-10f, -44f));
+            handPanelRect.anchorMax = new Vector2(1f, 0f);
+            handPanelRect.pivot = new Vector2(0.5f, 0f);
+            handPanelRect.offsetMin = new Vector2(260f, 25f);
+            handPanelRect.offsetMax = new Vector2(-260f, 310f);
+            handContainer = CreateLayoutContainer("HandContainer", handPanel.transform, false, new Vector2(0f, 0f), new Vector2(0f, 0f));
 
-            GameObject logPanel = CreatePanel("LogPanel", bottomBar.transform, new Color(0.16f, 0.20f, 0.24f, 0.96f));
+            GameObject endTurnPanel = CreatePanel("EndTurnPanel", bottomHud.transform, new Color(0.24f, 0.27f, 0.24f, 0.24f));
+            RectTransform endTurnPanelRect = endTurnPanel.GetComponent<RectTransform>();
+            endTurnPanelRect.anchorMin = new Vector2(1f, 0f);
+            endTurnPanelRect.anchorMax = new Vector2(1f, 0f);
+            endTurnPanelRect.pivot = new Vector2(1f, 0f);
+            endTurnPanelRect.anchoredPosition = new Vector2(-30f, 50f);
+            endTurnPanelRect.sizeDelta = new Vector2(220f, 140f);
+
+            endTurnButton = CreateButton("EndTurnButton", endTurnPanel.transform, "End Turn");
+            RectTransform endTurnRect = endTurnButton.GetComponent<RectTransform>();
+            endTurnRect.anchorMin = new Vector2(0.5f, 0.5f);
+            endTurnRect.anchorMax = new Vector2(0.5f, 0.5f);
+            endTurnRect.pivot = new Vector2(0.5f, 0.5f);
+            endTurnRect.anchoredPosition = Vector2.zero;
+            endTurnRect.sizeDelta = new Vector2(180f, 64f);
+
+            GameObject logPanel = CreatePanel("CombatLogPanel", root.transform, new Color(0.16f, 0.20f, 0.24f, 0.78f));
             RectTransform logRect = logPanel.GetComponent<RectTransform>();
-            logRect.anchorMin = new Vector2(1f, 0f);
+            logRect.anchorMin = new Vector2(1f, 1f);
             logRect.anchorMax = new Vector2(1f, 1f);
-            logRect.pivot = new Vector2(1f, 0.5f);
-            logRect.anchoredPosition = new Vector2(-20f, 0f);
-            logRect.sizeDelta = new Vector2(320f, -36f);
-            combatLogTitleText = CreateText("CombatLogTitle", logPanel.transform, new Vector2(14f, -12f), new Vector2(180f, 24f), 20, FontStyle.Bold, TextAnchor.UpperLeft);
+            logRect.pivot = new Vector2(1f, 1f);
+            logRect.anchoredPosition = new Vector2(-40f, -110f);
+            logRect.sizeDelta = new Vector2(340f, 180f);
+            combatLogTitleText = CreateText("CombatLogTitle", logPanel.transform, new Vector2(12f, -10f), new Vector2(180f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
             combatLogTitleText.text = "Combat Log";
             combatLogTitleText.color = new Color(0.98f, 0.95f, 0.86f, 1f);
-            battleLogText = CreateText("BattleLog", logPanel.transform, new Vector2(14f, -42f), new Vector2(292f, 180f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
+            battleLogText = CreateText("BattleLog", logPanel.transform, new Vector2(12f, -36f), new Vector2(310f, 126f), 12, FontStyle.Normal, TextAnchor.UpperLeft);
             battleLogText.color = new Color(0.92f, 0.94f, 0.97f, 1f);
 
             debugPanelRoot = CreatePanel("DebugPanel", root.transform, new Color(0.17f, 0.20f, 0.18f, 0.98f));
-            GameObject debugPanel = debugPanelRoot;
-            RectTransform debugRect = debugPanel.GetComponent<RectTransform>();
+            RectTransform debugRect = debugPanelRoot.GetComponent<RectTransform>();
             debugRect.anchorMin = new Vector2(1f, 1f);
             debugRect.anchorMax = new Vector2(1f, 1f);
             debugRect.pivot = new Vector2(1f, 1f);
-            debugRect.anchoredPosition = new Vector2(-20f, -92f);
-            debugRect.sizeDelta = new Vector2(220f, 430f);
-            Text debugLabel = CreateText("DebugLabel", debugPanel.transform, new Vector2(12f, -12f), new Vector2(180f, 28f), 20, FontStyle.Bold, TextAnchor.UpperLeft);
-            debugLabel.text = "Debug Tools";
+            debugRect.anchoredPosition = new Vector2(-20f, -96f);
+            debugRect.sizeDelta = new Vector2(260f, 420f);
+            Text debugLabel = CreateText("DebugLabel", debugPanelRoot.transform, new Vector2(12f, -12f), new Vector2(180f, 24f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+            debugLabel.text = "Debug";
             debugLabel.color = new Color(0.98f, 0.95f, 0.86f, 1f);
 
-            debugButtonsContainer = CreateLayoutContainer("DebugButtons", debugPanel.transform, true, new Vector2(12f, 12f), new Vector2(-12f, -48f));
+            debugButtonsContainer = CreateLayoutContainer("DebugButtons", debugPanelRoot.transform, true, new Vector2(12f, 12f), new Vector2(-12f, -40f));
             Transform debugButtons = debugButtonsContainer;
             drawButton = CreateDebugActionButton("DrawButton", debugButtons, "Draw Card", DrawOneCard);
             killHero1Button = CreateDebugActionButton("KillHero1Button", debugButtons, "Kill Hero 1", () => MarkHeroDownByIndex(0));
@@ -2607,12 +2660,43 @@ namespace PawSlayers
             returnToSelectionButton.gameObject.SetActive(false);
         }
 
+        private bool HasLandscapeBattleLayout(Transform canvasTransform)
+        {
+            if (canvasTransform == null)
+            {
+                return false;
+            }
+
+            Transform root = canvasTransform.Find("BattleRoot");
+            if (root == null)
+            {
+                return false;
+            }
+
+            return root.Find("TopBar") != null &&
+                root.Find("BattlefieldArea") != null &&
+                root.Find("BottomHud") != null &&
+                root.Find("CombatLogPanel") != null &&
+                root.Find("BattlefieldArea/HeroStage") != null &&
+                root.Find("BattlefieldArea/EnemyStage") != null &&
+                root.Find("BattlefieldArea/CenterStage") != null;
+        }
+
+        private bool CanReuseExistingBattleUi(Transform canvasTransform)
+        {
+            // Rebuild the battle canvas each time so older generated/open scenes
+            // cannot keep stale dashboard hierarchies alive.
+            return false;
+        }
+
         private void EnsureBattleScenePolish(Transform canvasTransform)
         {
             if (canvasTransform == null)
             {
                 return;
             }
+
+            EnsureBattleCamera();
 
             if (titleText != null)
             {
@@ -2708,21 +2792,67 @@ namespace PawSlayers
                 battleLogText.color = new Color(0.92f, 0.94f, 0.97f, 1f);
             }
 
+            RectTransform rootRect = ResolveBattleLayoutRoot(canvasTransform);
+            if (rootRect != null)
+            {
+                Image rootImage = rootRect.GetComponent<Image>();
+                if (rootImage != null)
+                {
+                    rootImage.color = new Color(0.12f, 0.16f, 0.14f, 1f);
+                }
+            }
+
             if (heroContainer != null)
             {
+                HorizontalLayoutGroup heroRowLayout = heroContainer.GetComponent<HorizontalLayoutGroup>();
+                if (heroRowLayout != null)
+                {
+                    heroRowLayout.spacing = 18f;
+                    heroRowLayout.padding = new RectOffset(0, 0, 0, 0);
+                    heroRowLayout.childAlignment = TextAnchor.LowerCenter;
+                    heroRowLayout.childControlWidth = true;
+                    heroRowLayout.childControlHeight = true;
+                    heroRowLayout.childForceExpandWidth = false;
+                    heroRowLayout.childForceExpandHeight = false;
+                }
+
                 VerticalLayoutGroup heroLayout = heroContainer.GetComponent<VerticalLayoutGroup>();
                 if (heroLayout != null)
                 {
-                    heroLayout.spacing = 12f;
+                    heroLayout.spacing = 28f;
+                    heroLayout.padding = new RectOffset(0, 0, 10, 10);
+                    heroLayout.childAlignment = TextAnchor.MiddleRight;
+                    heroLayout.childControlWidth = true;
+                    heroLayout.childControlHeight = true;
+                    heroLayout.childForceExpandWidth = false;
+                    heroLayout.childForceExpandHeight = false;
                 }
             }
 
             if (enemyContainer != null)
             {
+                HorizontalLayoutGroup enemyRowLayout = enemyContainer.GetComponent<HorizontalLayoutGroup>();
+                if (enemyRowLayout != null)
+                {
+                    enemyRowLayout.spacing = 18f;
+                    enemyRowLayout.padding = new RectOffset(0, 0, 0, 0);
+                    enemyRowLayout.childAlignment = TextAnchor.LowerCenter;
+                    enemyRowLayout.childControlWidth = true;
+                    enemyRowLayout.childControlHeight = true;
+                    enemyRowLayout.childForceExpandWidth = false;
+                    enemyRowLayout.childForceExpandHeight = false;
+                }
+
                 VerticalLayoutGroup enemyLayout = enemyContainer.GetComponent<VerticalLayoutGroup>();
                 if (enemyLayout != null)
                 {
-                    enemyLayout.spacing = 12f;
+                    enemyLayout.spacing = 24f;
+                    enemyLayout.padding = new RectOffset(0, 0, 10, 10);
+                    enemyLayout.childAlignment = TextAnchor.MiddleLeft;
+                    enemyLayout.childControlWidth = true;
+                    enemyLayout.childControlHeight = true;
+                    enemyLayout.childForceExpandWidth = false;
+                    enemyLayout.childForceExpandHeight = false;
                 }
             }
 
@@ -2732,7 +2862,466 @@ namespace PawSlayers
                 if (handLayout != null)
                 {
                     handLayout.spacing = 12f;
-                    handLayout.childAlignment = TextAnchor.LowerCenter;
+                    handLayout.childAlignment = TextAnchor.MiddleCenter;
+                }
+            }
+
+            ApplyLandscapeBattleLayout(canvasTransform, rootRect);
+        }
+
+        private RectTransform ResolveBattleLayoutRoot(Transform canvasTransform)
+        {
+            if (canvasTransform == null)
+            {
+                return null;
+            }
+
+            Transform candidate = heroContainer != null ? heroContainer.parent : null;
+            if (candidate == null && enemyContainer != null)
+            {
+                candidate = enemyContainer.parent;
+            }
+
+            if (candidate == null && handContainer != null)
+            {
+                candidate = handContainer.parent;
+            }
+
+            if (candidate == null && titleText != null)
+            {
+                candidate = titleText.transform;
+            }
+
+            while (candidate != null && candidate.parent != null && candidate.parent != canvasTransform)
+            {
+                candidate = candidate.parent;
+            }
+
+            RectTransform resolvedRoot = candidate as RectTransform;
+            if (resolvedRoot != null)
+            {
+                return resolvedRoot;
+            }
+
+            if (canvasTransform.childCount > 0)
+            {
+                return canvasTransform.GetChild(0) as RectTransform;
+            }
+
+            return canvasTransform as RectTransform;
+        }
+
+        private void ApplyLandscapeBattleLayout(Transform canvasTransform, RectTransform rootRect)
+        {
+            if (rootRect == null)
+            {
+                return;
+            }
+
+            RectTransform topBar = EnsureNamedPanel("TopBar", rootRect, new Color(0.20f, 0.17f, 0.13f, 0.94f));
+            SetAnchoredStretch(topBar, new Vector2(0f, 1f), new Vector2(1f, 1f), new Vector2(0f, -90f), Vector2.zero);
+
+            RectTransform battlefieldArea = EnsureNamedPanel("BattlefieldArea", rootRect, new Color(0.10f, 0.15f, 0.12f, 1f));
+            SetAnchoredStretch(battlefieldArea, new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(0f, 300f), new Vector2(0f, -90f));
+
+            RectTransform backgroundPanel = EnsureNamedPanel("BackgroundPanel", battlefieldArea, new Color(0.10f, 0.15f, 0.12f, 1f));
+            StretchFull(backgroundPanel, 0f);
+
+            RectTransform stagePanel = EnsureNamedPanel("CenterStage", battlefieldArea, new Color(0f, 0f, 0f, 0f));
+            SetAnchoredStretch(stagePanel, new Vector2(0f, 0f), new Vector2(1f, 1f), new Vector2(640f, 30f), new Vector2(-680f, -30f));
+
+            RectTransform bottomHud = EnsureNamedPanel("BottomHud", rootRect, new Color(0.18f, 0.16f, 0.13f, 0.92f));
+            SetAnchoredStretch(bottomHud, new Vector2(0f, 0f), new Vector2(1f, 0f), Vector2.zero, new Vector2(0f, 330f));
+
+            if (runProgressText != null)
+            {
+                runProgressText.transform.SetParent(topBar, false);
+                SetTextRect(runProgressText, new Vector2(20f, -18f), new Vector2(260f, 28f), TextAnchor.UpperLeft);
+                runProgressText.color = new Color(0.98f, 0.92f, 0.75f, 1f);
+            }
+
+            if (titleText != null)
+            {
+                titleText.transform.SetParent(topBar, false);
+                RectTransform titleRect = titleText.rectTransform;
+                titleRect.anchorMin = new Vector2(0.5f, 1f);
+                titleRect.anchorMax = new Vector2(0.5f, 1f);
+                titleRect.pivot = new Vector2(0.5f, 1f);
+                titleRect.anchoredPosition = new Vector2(0f, -16f);
+                titleRect.sizeDelta = new Vector2(320f, 34f);
+                titleText.alignment = TextAnchor.UpperCenter;
+            }
+
+            if (goldText != null)
+            {
+                goldText.transform.SetParent(topBar, false);
+                SetRightTopRect(goldText, new Vector2(-270f, -18f), new Vector2(120f, 24f));
+            }
+
+            if (relicsText != null)
+            {
+                relicsText.transform.SetParent(topBar, false);
+                SetRightTopRect(relicsText, new Vector2(-130f, -18f), new Vector2(220f, 24f));
+            }
+
+            if (debugToggleButton != null)
+            {
+                debugToggleButton.transform.SetParent(topBar, false);
+                RectTransform debugToggleRect = debugToggleButton.GetComponent<RectTransform>();
+                debugToggleRect.anchorMin = new Vector2(1f, 1f);
+                debugToggleRect.anchorMax = new Vector2(1f, 1f);
+                debugToggleRect.pivot = new Vector2(1f, 1f);
+                debugToggleRect.anchoredPosition = new Vector2(-18f, -14f);
+                debugToggleRect.sizeDelta = new Vector2(110f, 42f);
+            }
+
+            RectTransform heroPanel = heroContainer != null ? heroContainer.parent as RectTransform : null;
+            if (heroPanel != null)
+            {
+                heroPanel.SetParent(battlefieldArea, false);
+                heroPanel.anchorMin = new Vector2(0f, 0f);
+                heroPanel.anchorMax = new Vector2(0f, 1f);
+                heroPanel.pivot = new Vector2(0f, 0.5f);
+                heroPanel.anchoredPosition = new Vector2(40f, 0f);
+                heroPanel.sizeDelta = new Vector2(560f, 0f);
+                heroPanel.offsetMin = new Vector2(40f, 30f);
+                heroPanel.offsetMax = new Vector2(600f, -30f);
+                Image heroPanelImage = heroPanel.GetComponent<Image>();
+                if (heroPanelImage != null)
+                {
+                    heroPanelImage.color = new Color(0f, 0f, 0f, 0f);
+                }
+            }
+
+            if (heroContainer != null)
+            {
+                RectTransform heroContainerRect = heroContainer as RectTransform;
+                if (heroContainerRect != null)
+                {
+                    heroContainerRect.anchorMin = new Vector2(1f, 0f);
+                    heroContainerRect.anchorMax = new Vector2(1f, 0f);
+                    heroContainerRect.pivot = new Vector2(1f, 0f);
+                    heroContainerRect.anchoredPosition = new Vector2(-12f, 56f);
+                    heroContainerRect.sizeDelta = new Vector2(420f, 170f);
+                }
+            }
+
+            RectTransform enemyPanel = enemyContainer != null ? enemyContainer.parent as RectTransform : null;
+            if (enemyPanel != null)
+            {
+                enemyPanel.SetParent(battlefieldArea, false);
+                enemyPanel.anchorMin = new Vector2(1f, 0f);
+                enemyPanel.anchorMax = new Vector2(1f, 1f);
+                enemyPanel.pivot = new Vector2(1f, 0.5f);
+                enemyPanel.anchoredPosition = new Vector2(-40f, 0f);
+                enemyPanel.sizeDelta = new Vector2(620f, 0f);
+                enemyPanel.offsetMin = new Vector2(-660f, 30f);
+                enemyPanel.offsetMax = new Vector2(-40f, -30f);
+                Image enemyPanelImage = enemyPanel.GetComponent<Image>();
+                if (enemyPanelImage != null)
+                {
+                    enemyPanelImage.color = new Color(0f, 0f, 0f, 0f);
+                }
+            }
+
+            if (enemyContainer != null)
+            {
+                RectTransform enemyContainerRect = enemyContainer as RectTransform;
+                if (enemyContainerRect != null)
+                {
+                    enemyContainerRect.anchorMin = new Vector2(0f, 0f);
+                    enemyContainerRect.anchorMax = new Vector2(0f, 0f);
+                    enemyContainerRect.pivot = new Vector2(0f, 0f);
+                    enemyContainerRect.anchoredPosition = new Vector2(12f, 64f);
+                    enemyContainerRect.sizeDelta = new Vector2(460f, 170f);
+                }
+            }
+
+            RectTransform handPanel = handContainer != null ? handContainer.parent as RectTransform : null;
+            if (handPanel != null)
+            {
+                handPanel.SetParent(bottomHud, false);
+                handPanel.anchorMin = new Vector2(0f, 0f);
+                handPanel.anchorMax = new Vector2(1f, 0f);
+                handPanel.pivot = new Vector2(0.5f, 0f);
+                handPanel.offsetMin = new Vector2(260f, 25f);
+                handPanel.offsetMax = new Vector2(-260f, 310f);
+                Image handPanelImage = handPanel.GetComponent<Image>();
+                if (handPanelImage != null)
+                {
+                    handPanelImage.color = new Color(0.96f, 0.92f, 0.84f, 0.04f);
+                }
+            }
+
+            if (energyText != null)
+            {
+                energyText.transform.SetParent(bottomHud, false);
+                SetTextRect(energyText, new Vector2(40f, -42f), new Vector2(170f, 36f), TextAnchor.UpperLeft);
+            }
+
+            if (drawPileText != null)
+            {
+                drawPileText.transform.SetParent(bottomHud, false);
+                SetTextRect(drawPileText, new Vector2(40f, -92f), new Vector2(170f, 24f), TextAnchor.UpperLeft);
+            }
+
+            if (discardPileText != null)
+            {
+                discardPileText.transform.SetParent(bottomHud, false);
+                SetTextRect(discardPileText, new Vector2(40f, -124f), new Vector2(170f, 24f), TextAnchor.UpperLeft);
+            }
+
+            if (turnText != null)
+            {
+                turnText.transform.SetParent(bottomHud, false);
+                SetTextRect(turnText, new Vector2(40f, -156f), new Vector2(180f, 24f), TextAnchor.UpperLeft);
+            }
+
+            if (endTurnButton != null)
+            {
+                endTurnButton.transform.SetParent(bottomHud, false);
+                RectTransform endTurnRect = endTurnButton.GetComponent<RectTransform>();
+                endTurnRect.anchorMin = new Vector2(1f, 0f);
+                endTurnRect.anchorMax = new Vector2(1f, 0f);
+                endTurnRect.pivot = new Vector2(1f, 0f);
+                endTurnRect.anchoredPosition = new Vector2(-30f, 50f);
+                endTurnRect.sizeDelta = new Vector2(180f, 64f);
+            }
+
+            RectTransform logPanel = battleLogText != null ? battleLogText.transform.parent as RectTransform : null;
+            if (logPanel != null)
+            {
+                logPanel.SetParent(rootRect, false);
+                logPanel.anchorMin = new Vector2(1f, 1f);
+                logPanel.anchorMax = new Vector2(1f, 1f);
+                logPanel.pivot = new Vector2(1f, 1f);
+                logPanel.anchoredPosition = new Vector2(-40f, -110f);
+                logPanel.sizeDelta = new Vector2(310f, 170f);
+                Image logImage = logPanel.GetComponent<Image>();
+                if (logImage != null)
+                {
+                    logImage.color = new Color(0.16f, 0.20f, 0.24f, 0.88f);
+                }
+            }
+
+            if (combatLogTitleText != null)
+            {
+                combatLogTitleText.transform.SetParent(logPanel, false);
+                SetTextRect(combatLogTitleText, new Vector2(12f, -10f), new Vector2(180f, 22f), TextAnchor.UpperLeft);
+                combatLogTitleText.fontSize = 18;
+            }
+
+            if (battleLogText != null)
+            {
+                battleLogText.transform.SetParent(logPanel, false);
+                SetTextRect(battleLogText, new Vector2(12f, -36f), new Vector2(286f, 118f), TextAnchor.UpperLeft);
+                battleLogText.fontSize = 12;
+            }
+
+            if (debugPanelRoot != null)
+            {
+                RectTransform debugRect = debugPanelRoot.GetComponent<RectTransform>();
+                if (debugRect != null)
+                {
+                    debugPanelRoot.transform.SetParent(rootRect, false);
+                    debugRect.anchorMin = new Vector2(1f, 1f);
+                    debugRect.anchorMax = new Vector2(1f, 1f);
+                    debugRect.pivot = new Vector2(1f, 1f);
+                    debugRect.anchoredPosition = new Vector2(-18f, -70f);
+                    debugRect.sizeDelta = new Vector2(220f, 420f);
+                }
+            }
+
+            Debug.Log("BattleUIManager: overlap cleanup layout applied");
+            HideNoCameraPreviewObjects(rootRect);
+        }
+
+        private void EnsureBattleCamera()
+        {
+            Camera existingCamera = FindObjectOfType<Camera>();
+            if (existingCamera != null)
+            {
+                existingCamera.gameObject.name = "Main Camera";
+                existingCamera.tag = "MainCamera";
+                existingCamera.clearFlags = CameraClearFlags.SolidColor;
+                existingCamera.backgroundColor = new Color(0.08f, 0.10f, 0.09f, 1f);
+                existingCamera.orthographic = true;
+                existingCamera.orthographicSize = 5f;
+                existingCamera.targetDisplay = 0;
+                existingCamera.enabled = true;
+                existingCamera.transform.position = new Vector3(0f, 0f, -10f);
+                existingCamera.transform.rotation = Quaternion.identity;
+                return;
+            }
+
+            GameObject cameraObject = new GameObject("Main Camera");
+            Camera cameraComponent = cameraObject.AddComponent<Camera>();
+            cameraComponent.clearFlags = CameraClearFlags.SolidColor;
+            cameraComponent.backgroundColor = new Color(0.08f, 0.10f, 0.09f, 1f);
+            cameraComponent.orthographic = true;
+            cameraComponent.orthographicSize = 5f;
+            cameraComponent.targetDisplay = 0;
+            cameraObject.tag = "MainCamera";
+            cameraObject.transform.position = new Vector3(0f, 0f, -10f);
+            cameraObject.transform.rotation = Quaternion.identity;
+        }
+
+        private RectTransform EnsureNamedPanel(string name, Transform parent, Color color)
+        {
+            Transform existing = parent.Find(name);
+            if (existing != null)
+            {
+                Image existingImage = existing.GetComponent<Image>();
+                if (existingImage != null)
+                {
+                    existingImage.color = color;
+                }
+
+                return existing as RectTransform;
+            }
+
+            GameObject panel = CreatePanel(name, parent, color);
+            return panel.GetComponent<RectTransform>();
+        }
+
+        private RectTransform EnsureUnitHudPanel(Transform parent, string name, Color color)
+        {
+            Transform existing = parent.Find(name);
+            if (existing != null)
+            {
+                Image existingImage = existing.GetComponent<Image>();
+                if (existingImage != null)
+                {
+                    existingImage.color = color;
+                }
+
+                return existing as RectTransform;
+            }
+
+            GameObject panel = CreatePanel(name, parent, color);
+            return panel.GetComponent<RectTransform>();
+        }
+
+        private void CopyHeroAnimationTemplate(HeroAnimationController targetController)
+        {
+            if (targetController == null || heroViewPrefab == null || heroViewPrefab.heroAnimationController == null)
+            {
+                return;
+            }
+
+            HeroAnimationController template = heroViewPrefab.heroAnimationController;
+
+            if ((targetController.idleFrames == null || targetController.idleFrames.Length == 0) &&
+                template.idleFrames != null &&
+                template.idleFrames.Length > 0)
+            {
+                targetController.idleFrames = template.idleFrames;
+            }
+
+            if ((targetController.swiftSlashFrames == null || targetController.swiftSlashFrames.Length == 0) &&
+                template.swiftSlashFrames != null &&
+                template.swiftSlashFrames.Length > 0)
+            {
+                targetController.swiftSlashFrames = template.swiftSlashFrames;
+            }
+
+            if (template.idleFps > 0f)
+            {
+                targetController.idleFps = template.idleFps;
+            }
+
+            if (template.swiftSlashFps > 0f)
+            {
+                targetController.swiftSlashFps = template.swiftSlashFps;
+            }
+        }
+
+        private void EnsureExistingBarRootParent(Image fillImage, Transform parent, Vector2 anchoredPosition, Vector2 size)
+        {
+            if (fillImage == null || fillImage.transform.parent == null)
+            {
+                return;
+            }
+
+            RectTransform barRoot = fillImage.transform.parent as RectTransform;
+            if (barRoot == null)
+            {
+                return;
+            }
+
+            barRoot.SetParent(parent, false);
+            barRoot.anchorMin = new Vector2(0f, 1f);
+            barRoot.anchorMax = new Vector2(0f, 1f);
+            barRoot.pivot = new Vector2(0f, 1f);
+            barRoot.anchoredPosition = anchoredPosition;
+            barRoot.sizeDelta = size;
+        }
+
+        private void SetAnchoredStretch(RectTransform rectTransform, Vector2 anchorMin, Vector2 anchorMax, Vector2 offsetMin, Vector2 offsetMax)
+        {
+            if (rectTransform == null)
+            {
+                return;
+            }
+
+            rectTransform.anchorMin = anchorMin;
+            rectTransform.anchorMax = anchorMax;
+            rectTransform.offsetMin = offsetMin;
+            rectTransform.offsetMax = offsetMax;
+        }
+
+        private void SetRightTopRect(Text text, Vector2 anchoredPosition, Vector2 size)
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            RectTransform rect = text.rectTransform;
+            rect.anchorMin = new Vector2(1f, 1f);
+            rect.anchorMax = new Vector2(1f, 1f);
+            rect.pivot = new Vector2(1f, 1f);
+            rect.anchoredPosition = anchoredPosition;
+            rect.sizeDelta = size;
+            text.alignment = TextAnchor.UpperRight;
+        }
+
+        private void SetTextRect(Text text, Vector2 anchoredPosition, Vector2 size, TextAnchor anchor)
+        {
+            if (text == null)
+            {
+                return;
+            }
+
+            RectTransform rect = text.rectTransform;
+            rect.anchorMin = new Vector2(0f, 1f);
+            rect.anchorMax = new Vector2(0f, 1f);
+            rect.pivot = anchor == TextAnchor.UpperRight || anchor == TextAnchor.MiddleRight
+                ? new Vector2(1f, 1f)
+                : new Vector2(0f, 1f);
+            rect.anchoredPosition = anchoredPosition;
+            rect.sizeDelta = size;
+            text.alignment = anchor;
+        }
+
+        private void HideNoCameraPreviewObjects(Transform root)
+        {
+            if (root == null)
+            {
+                return;
+            }
+
+            foreach (Transform child in root.GetComponentsInChildren<Transform>(true))
+            {
+                string lowerName = child.name.ToLowerInvariant();
+                if (lowerName.Contains("display") || lowerName.Contains("preview") || lowerName.Contains("camera"))
+                {
+                    RawImage rawImage = child.GetComponent<RawImage>();
+                    Text previewText = child.GetComponent<Text>();
+                    if (rawImage != null || (previewText != null && previewText.text.Contains("No cameras rendering")))
+                    {
+                        child.gameObject.SetActive(false);
+                    }
                 }
             }
         }
@@ -2769,27 +3358,105 @@ namespace PawSlayers
                 return;
             }
 
+            if (view.backgroundImage != null)
+            {
+                view.backgroundImage.color = new Color(0f, 0f, 0f, 0f);
+            }
+
             LayoutElement layout = view.GetComponent<LayoutElement>();
             if (layout != null)
             {
-                layout.preferredHeight = Mathf.Max(layout.preferredHeight, 192f);
+                layout.preferredWidth = 160f;
+                layout.preferredHeight = 150f;
+                layout.minWidth = 160f;
+                layout.minHeight = 150f;
+                layout.flexibleWidth = 0f;
+                layout.flexibleHeight = 0f;
             }
 
             RectTransform rect = view.GetComponent<RectTransform>();
-            if (rect != null && rect.sizeDelta.y < 192f)
+            if (rect != null)
             {
-                rect.sizeDelta = new Vector2(rect.sizeDelta.x, 192f);
+                rect.sizeDelta = new Vector2(160f, 150f);
+            }
+
+            RectTransform hudPanel = EnsureUnitHudPanel(view.transform, "UnitHudPanel", new Color(0.95f, 0.90f, 0.82f, 0.92f));
+            view.backgroundImage = hudPanel.GetComponent<Image>();
+            hudPanel.anchorMin = new Vector2(0f, 0f);
+            hudPanel.anchorMax = new Vector2(0f, 0f);
+            hudPanel.pivot = new Vector2(0f, 0f);
+            hudPanel.anchoredPosition = new Vector2(0f, 12f);
+            hudPanel.sizeDelta = new Vector2(96f, 62f);
+
+            RectTransform spriteHolder = EnsureUnitHudPanel(view.transform, "SpriteHolder", new Color(0f, 0f, 0f, 0f));
+            Image spriteHolderImage = spriteHolder.GetComponent<Image>();
+            if (spriteHolderImage != null)
+            {
+                spriteHolderImage.enabled = false;
+            }
+
+            spriteHolder.anchorMin = new Vector2(0.5f, 0.5f);
+            spriteHolder.anchorMax = new Vector2(0.5f, 0.5f);
+            spriteHolder.pivot = new Vector2(0.5f, 0.5f);
+            spriteHolder.anchoredPosition = new Vector2(12f, -6f);
+            spriteHolder.sizeDelta = new Vector2(118f, 118f);
+
+            if (view.heroNameText != null)
+            {
+                view.heroNameText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.heroNameText, new Vector2(8f, -6f), new Vector2(80f, 12f), TextAnchor.UpperLeft);
+                view.heroNameText.fontSize = 10;
+            }
+
+            if (view.heroClassText != null)
+            {
+                view.heroClassText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.heroClassText, new Vector2(8f, -18f), new Vector2(80f, 10f), TextAnchor.UpperLeft);
+                view.heroClassText.fontSize = 8;
+            }
+
+            if (view.hpText != null)
+            {
+                view.hpText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.hpText, new Vector2(8f, -38f), new Vector2(80f, 10f), TextAnchor.UpperLeft);
+                view.hpText.fontSize = 8;
+            }
+
+            if (view.blockText != null)
+            {
+                view.blockText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.blockText, new Vector2(8f, -48f), new Vector2(38f, 10f), TextAnchor.UpperLeft);
+                view.blockText.fontSize = 7;
+            }
+
+            if (view.stateText != null)
+            {
+                view.stateText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.stateText, new Vector2(88f, -48f), new Vector2(40f, 10f), TextAnchor.UpperRight);
+                view.stateText.fontSize = 7;
             }
 
             if (view.statusText == null)
             {
-                view.statusText = CreateText("StatusText", view.transform, new Vector2(12f, -144f), new Vector2(230f, 34f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
+                view.statusText = CreateText("StatusText", hudPanel, new Vector2(8f, -58f), new Vector2(48f, 10f), 7, FontStyle.Normal, TextAnchor.UpperLeft);
+            }
+            else
+            {
+                view.statusText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.statusText, new Vector2(8f, -58f), new Vector2(48f, 10f), TextAnchor.UpperLeft);
+                view.statusText.fontSize = 7;
             }
 
             if (view.tauntText == null)
             {
-                view.tauntText = CreateText("TauntText", view.transform, new Vector2(150f, -98f), new Vector2(90f, 20f), 14, FontStyle.Bold, TextAnchor.UpperRight);
+                view.tauntText = CreateText("TauntText", hudPanel, new Vector2(52f, -58f), new Vector2(36f, 10f), 7, FontStyle.Bold, TextAnchor.UpperRight);
                 view.tauntText.color = new Color(0.66f, 0.42f, 0.12f, 1f);
+            }
+            else
+            {
+                view.tauntText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.tauntText, new Vector2(52f, -58f), new Vector2(36f, 10f), TextAnchor.UpperRight);
+                view.tauntText.fontSize = 7;
             }
 
             if (view.portraitImage == null)
@@ -2806,12 +3473,13 @@ namespace PawSlayers
 
             if (view.portraitImage != null)
             {
+                view.portraitImage.transform.SetParent(spriteHolder, false);
                 RectTransform portraitRect = view.portraitImage.rectTransform;
-                portraitRect.anchorMin = new Vector2(1f, 1f);
-                portraitRect.anchorMax = new Vector2(1f, 1f);
-                portraitRect.pivot = new Vector2(1f, 1f);
-                portraitRect.anchoredPosition = new Vector2(-14f, -14f);
-                portraitRect.sizeDelta = new Vector2(78f, 78f);
+                portraitRect.anchorMin = new Vector2(0.5f, 0.5f);
+                portraitRect.anchorMax = new Vector2(0.5f, 0.5f);
+                portraitRect.pivot = new Vector2(0.5f, 0.5f);
+                portraitRect.anchoredPosition = Vector2.zero;
+                portraitRect.sizeDelta = new Vector2(112f, 112f);
                 view.portraitImage.preserveAspect = true;
             }
 
@@ -2837,7 +3505,10 @@ namespace PawSlayers
                 view.heroAnimationController = controller;
             }
 
-            EnsureBarVisuals(view.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(12f, -72f), new Vector2(170f, 12f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
+            CopyHeroAnimationTemplate(view.heroAnimationController);
+
+            EnsureExistingBarRootParent(view.hpBarFillImage, hudPanel, new Vector2(8f, -30f), new Vector2(80f, 6f));
+            EnsureBarVisuals(hudPanel, ref view.hpBarFillImage, "HpBarFill", new Vector2(8f, -30f), new Vector2(80f, 6f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
             EnsureDimOverlay(view.transform, ref view.dimOverlayImage, "DimOverlay");
         }
 
@@ -2873,36 +3544,112 @@ namespace PawSlayers
                 return;
             }
 
+            if (view.backgroundImage != null)
+            {
+                view.backgroundImage.color = new Color(0f, 0f, 0f, 0f);
+            }
+
             LayoutElement layout = view.GetComponent<LayoutElement>();
             if (layout != null)
             {
-                layout.preferredHeight = Mathf.Max(layout.preferredHeight, 224f);
+                layout.preferredWidth = 170f;
+                layout.preferredHeight = 155f;
+                layout.minWidth = 170f;
+                layout.minHeight = 155f;
+                layout.flexibleWidth = 0f;
+                layout.flexibleHeight = 0f;
             }
 
             RectTransform rect = view.GetComponent<RectTransform>();
-            if (rect != null && rect.sizeDelta.y < 224f)
+            if (rect != null)
             {
-                rect.sizeDelta = new Vector2(rect.sizeDelta.x, 224f);
+                rect.sizeDelta = new Vector2(170f, 155f);
+            }
+
+            RectTransform spriteHolder = EnsureUnitHudPanel(view.transform, "SpriteHolder", new Color(0f, 0f, 0f, 0f));
+            Image enemySpriteHolderImage = spriteHolder.GetComponent<Image>();
+            if (enemySpriteHolderImage != null)
+            {
+                enemySpriteHolderImage.enabled = false;
+            }
+
+            spriteHolder.anchorMin = new Vector2(0.5f, 0.5f);
+            spriteHolder.anchorMax = new Vector2(0.5f, 0.5f);
+            spriteHolder.pivot = new Vector2(0.5f, 0.5f);
+            spriteHolder.anchoredPosition = new Vector2(-14f, -6f);
+            spriteHolder.sizeDelta = new Vector2(112f, 112f);
+
+            RectTransform hudPanel = EnsureUnitHudPanel(view.transform, "UnitHudPanel", new Color(0.30f, 0.23f, 0.19f, 0.92f));
+            view.backgroundImage = hudPanel.GetComponent<Image>();
+            hudPanel.anchorMin = new Vector2(1f, 0f);
+            hudPanel.anchorMax = new Vector2(1f, 0f);
+            hudPanel.pivot = new Vector2(1f, 0f);
+            hudPanel.anchoredPosition = new Vector2(0f, 12f);
+            hudPanel.sizeDelta = new Vector2(96f, 74f);
+
+            if (view.enemyNameText != null)
+            {
+                view.enemyNameText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.enemyNameText, new Vector2(6f, -6f), new Vector2(84f, 12f), TextAnchor.UpperLeft);
+                view.enemyNameText.fontSize = 9;
+            }
+
+            if (view.hpText != null)
+            {
+                view.hpText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.hpText, new Vector2(6f, -26f), new Vector2(84f, 10f), TextAnchor.UpperLeft);
+                view.hpText.fontSize = 7;
             }
 
             if (view.blockText == null)
             {
-                view.blockText = CreateText("BlockText", view.transform, new Vector2(12f, -66f), new Vector2(220f, 22f), 18, FontStyle.Normal, TextAnchor.UpperLeft);
+                view.blockText = CreateText("BlockText", hudPanel, new Vector2(6f, -36f), new Vector2(84f, 10f), 7, FontStyle.Normal, TextAnchor.UpperLeft);
+            }
+            else
+            {
+                view.blockText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.blockText, new Vector2(6f, -36f), new Vector2(84f, 10f), TextAnchor.UpperLeft);
+                view.blockText.fontSize = 7;
             }
 
             if (view.phaseText == null)
             {
-                view.phaseText = CreateText("PhaseText", view.transform, new Vector2(12f, -90f), new Vector2(220f, 22f), 18, FontStyle.Bold, TextAnchor.UpperLeft);
+                view.phaseText = CreateText("PhaseText", hudPanel, new Vector2(6f, -46f), new Vector2(84f, 10f), 7, FontStyle.Bold, TextAnchor.UpperLeft);
+            }
+            else
+            {
+                view.phaseText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.phaseText, new Vector2(6f, -46f), new Vector2(84f, 10f), TextAnchor.UpperLeft);
+                view.phaseText.fontSize = 7;
+            }
+
+            if (view.intentText != null)
+            {
+                view.intentText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.intentText, new Vector2(6f, -56f), new Vector2(84f, 10f), TextAnchor.UpperLeft);
+                view.intentText.fontSize = 7;
             }
 
             if (view.intentDescriptionText == null)
             {
-                view.intentDescriptionText = CreateText("IntentDescriptionText", view.transform, new Vector2(12f, -138f), new Vector2(220f, 32f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+                view.intentDescriptionText = CreateText("IntentDescriptionText", hudPanel, new Vector2(6f, -66f), new Vector2(84f, 10f), 6, FontStyle.Normal, TextAnchor.UpperLeft);
+            }
+            else
+            {
+                view.intentDescriptionText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.intentDescriptionText, new Vector2(6f, -66f), new Vector2(84f, 10f), TextAnchor.UpperLeft);
+                view.intentDescriptionText.fontSize = 6;
             }
 
             if (view.statusText == null)
             {
-                view.statusText = CreateText("StatusText", view.transform, new Vector2(12f, -172f), new Vector2(220f, 32f), 14, FontStyle.Normal, TextAnchor.UpperLeft);
+                view.statusText = CreateText("StatusText", hudPanel, new Vector2(6f, -76f), new Vector2(84f, 8f), 6, FontStyle.Normal, TextAnchor.UpperLeft);
+            }
+            else
+            {
+                view.statusText.transform.SetParent(hudPanel, false);
+                SetTextRect(view.statusText, new Vector2(6f, -76f), new Vector2(84f, 8f), TextAnchor.UpperLeft);
+                view.statusText.fontSize = 6;
             }
 
             if (view.spriteImage == null)
@@ -2919,16 +3666,18 @@ namespace PawSlayers
 
             if (view.spriteImage != null)
             {
+                view.spriteImage.transform.SetParent(spriteHolder, false);
                 RectTransform spriteRect = view.spriteImage.rectTransform;
-                spriteRect.anchorMin = new Vector2(1f, 1f);
-                spriteRect.anchorMax = new Vector2(1f, 1f);
-                spriteRect.pivot = new Vector2(1f, 1f);
-                spriteRect.anchoredPosition = new Vector2(-14f, -14f);
-                spriteRect.sizeDelta = new Vector2(88f, 88f);
+                spriteRect.anchorMin = new Vector2(0.5f, 0.5f);
+                spriteRect.anchorMax = new Vector2(0.5f, 0.5f);
+                spriteRect.pivot = new Vector2(0.5f, 0.5f);
+                spriteRect.anchoredPosition = Vector2.zero;
+                spriteRect.sizeDelta = new Vector2(112f, 112f);
                 view.spriteImage.preserveAspect = true;
             }
 
-            EnsureBarVisuals(view.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(12f, -42f), new Vector2(180f, 12f), new Color(0.82f, 0.22f, 0.22f, 1f), new Color(0.20f, 0.12f, 0.12f, 1f));
+            EnsureExistingBarRootParent(view.hpBarFillImage, hudPanel, new Vector2(6f, -18f), new Vector2(84f, 6f));
+            EnsureBarVisuals(hudPanel, ref view.hpBarFillImage, "HpBarFill", new Vector2(6f, -18f), new Vector2(84f, 6f), new Color(0.82f, 0.22f, 0.22f, 1f), new Color(0.20f, 0.12f, 0.12f, 1f));
             EnsureDimOverlay(view.transform, ref view.dimOverlayImage, "DimOverlay");
         }
 
@@ -2978,14 +3727,16 @@ namespace PawSlayers
             LayoutElement layout = view.GetComponent<LayoutElement>();
             if (layout != null)
             {
-                layout.preferredWidth = 220f;
-                layout.preferredHeight = 318f;
+                layout.preferredWidth = 198f;
+                layout.preferredHeight = 250f;
+                layout.flexibleWidth = 0f;
+                layout.flexibleHeight = 0f;
             }
 
             RectTransform rect = view.GetComponent<RectTransform>();
             if (rect != null)
             {
-                rect.sizeDelta = new Vector2(220f, 318f);
+                rect.sizeDelta = new Vector2(198f, 250f);
             }
 
             if (view.backgroundImage != null)
@@ -3085,9 +3836,12 @@ namespace PawSlayers
 
         private BattleHeroView CreateRuntimeHeroView(Transform parent)
         {
-            GameObject root = CreatePanel("BattleHeroView", parent, new Color(0.92f, 0.88f, 0.78f, 1f));
+            GameObject root = CreatePanel("BattleHeroView", parent, new Color(0f, 0f, 0f, 0.02f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
-            layout.preferredHeight = 192f;
+            layout.preferredWidth = 320f;
+            layout.preferredHeight = 205f;
+            layout.flexibleWidth = 0f;
+            layout.flexibleHeight = 0f;
             Button button = root.AddComponent<Button>();
             Outline outline = root.AddComponent<Outline>();
             outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
@@ -3098,22 +3852,22 @@ namespace PawSlayers
             view.backgroundImage = root.GetComponent<Image>();
             view.button = button;
             view.highlightOutline = outline;
-            view.heroNameText = CreateText("HeroName", root.transform, new Vector2(14f, -14f), new Vector2(190f, 26f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.heroClassText = CreateText("HeroClass", root.transform, new Vector2(14f, -40f), new Vector2(190f, 20f), 17, FontStyle.Italic, TextAnchor.UpperLeft);
-            view.hpText = CreateText("HpText", root.transform, new Vector2(14f, -90f), new Vector2(180f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.blockText = CreateText("BlockText", root.transform, new Vector2(14f, -114f), new Vector2(120f, 20f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
-            view.tauntText = CreateText("TauntText", root.transform, new Vector2(146f, -114f), new Vector2(90f, 20f), 14, FontStyle.Bold, TextAnchor.UpperRight);
+            view.heroNameText = CreateText("HeroName", root.transform, new Vector2(18f, -14f), new Vector2(250f, 26f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.heroClassText = CreateText("HeroClass", root.transform, new Vector2(18f, -40f), new Vector2(250f, 20f), 17, FontStyle.Italic, TextAnchor.UpperLeft);
+            view.hpText = CreateText("HpText", root.transform, new Vector2(18f, -88f), new Vector2(250f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.blockText = CreateText("BlockText", root.transform, new Vector2(18f, -112f), new Vector2(120f, 20f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.tauntText = CreateText("TauntText", root.transform, new Vector2(280f, -138f), new Vector2(80f, 20f), 13, FontStyle.Bold, TextAnchor.UpperRight);
             view.tauntText.color = new Color(0.66f, 0.42f, 0.12f, 1f);
-            view.stateText = CreateText("StateText", root.transform, new Vector2(14f, -136f), new Vector2(160f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
-            view.statusText = CreateText("StatusText", root.transform, new Vector2(14f, -158f), new Vector2(228f, 28f), 13, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.stateText = CreateText("StateText", root.transform, new Vector2(148f, -112f), new Vector2(120f, 20f), 15, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.statusText = CreateText("StatusText", root.transform, new Vector2(18f, -138f), new Vector2(260f, 24f), 13, FontStyle.Normal, TextAnchor.UpperLeft);
 
             GameObject portrait = CreatePanel("Portrait", root.transform, new Color(0.75f, 0.75f, 0.75f, 1f));
             RectTransform portraitRect = portrait.GetComponent<RectTransform>();
             portraitRect.anchorMin = new Vector2(1f, 1f);
             portraitRect.anchorMax = new Vector2(1f, 1f);
             portraitRect.pivot = new Vector2(1f, 1f);
-            portraitRect.anchoredPosition = new Vector2(-14f, -14f);
-            portraitRect.sizeDelta = new Vector2(78f, 78f);
+            portraitRect.anchoredPosition = new Vector2(-18f, -10f);
+            portraitRect.sizeDelta = new Vector2(140f, 140f);
             view.portraitImage = portrait.GetComponent<Image>();
             view.portraitImage.preserveAspect = true;
             UISpriteSheetAnimator spriteAnimator = portrait.AddComponent<UISpriteSheetAnimator>();
@@ -3124,16 +3878,19 @@ namespace PawSlayers
             animationController.heroImage = view.portraitImage;
             animationController.spriteAnimator = spriteAnimator;
             view.heroAnimationController = animationController;
-            EnsureBarVisuals(root.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(14f, -66f), new Vector2(160f, 12f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
+            EnsureBarVisuals(root.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(18f, -62f), new Vector2(250f, 12f), new Color(0.78f, 0.18f, 0.18f, 1f), new Color(0.22f, 0.14f, 0.14f, 1f));
             EnsureDimOverlay(root.transform, ref view.dimOverlayImage, "DimOverlay");
             return view;
         }
 
         private EnemyView CreateRuntimeEnemyView(Transform parent)
         {
-            GameObject root = CreatePanel("EnemyView", parent, new Color(0.48f, 0.37f, 0.30f, 1f));
+            GameObject root = CreatePanel("EnemyView", parent, new Color(0f, 0f, 0f, 0.02f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
-            layout.preferredHeight = 224f;
+            layout.preferredWidth = 360f;
+            layout.preferredHeight = 215f;
+            layout.flexibleWidth = 0f;
+            layout.flexibleHeight = 0f;
             Button button = root.AddComponent<Button>();
             Outline outline = root.AddComponent<Outline>();
             outline.effectColor = new Color(1f, 0.9f, 0.2f, 1f);
@@ -3144,32 +3901,32 @@ namespace PawSlayers
             view.backgroundImage = root.GetComponent<Image>();
             view.button = button;
             view.highlightOutline = outline;
-            view.enemyNameText = CreateText("EnemyName", root.transform, new Vector2(14f, -14f), new Vector2(220f, 24f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.enemyNameText = CreateText("EnemyName", root.transform, new Vector2(186f, -14f), new Vector2(320f, 26f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
             view.enemyNameText.color = new Color(0.98f, 0.95f, 0.88f, 1f);
-            view.hpText = CreateText("HpText", root.transform, new Vector2(14f, -90f), new Vector2(220f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.hpText = CreateText("HpText", root.transform, new Vector2(186f, -68f), new Vector2(240f, 20f), 15, FontStyle.Bold, TextAnchor.UpperLeft);
             view.hpText.color = new Color(0.98f, 0.95f, 0.88f, 1f);
-            view.blockText = CreateText("BlockText", root.transform, new Vector2(14f, -114f), new Vector2(220f, 20f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.blockText = CreateText("BlockText", root.transform, new Vector2(186f, -90f), new Vector2(240f, 20f), 15, FontStyle.Normal, TextAnchor.UpperLeft);
             view.blockText.color = new Color(0.90f, 0.92f, 0.98f, 1f);
-            view.phaseText = CreateText("PhaseText", root.transform, new Vector2(14f, -136f), new Vector2(220f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.phaseText = CreateText("PhaseText", root.transform, new Vector2(186f, -110f), new Vector2(240f, 20f), 15, FontStyle.Bold, TextAnchor.UpperLeft);
             view.phaseText.color = new Color(0.98f, 0.83f, 0.60f, 1f);
-            view.intentText = CreateText("IntentText", root.transform, new Vector2(14f, -160f), new Vector2(220f, 20f), 16, FontStyle.Bold, TextAnchor.UpperLeft);
+            view.intentText = CreateText("IntentText", root.transform, new Vector2(186f, -132f), new Vector2(330f, 20f), 15, FontStyle.Bold, TextAnchor.UpperLeft);
             view.intentText.color = new Color(1f, 0.92f, 0.74f, 1f);
-            view.intentDescriptionText = CreateText("IntentDescriptionText", root.transform, new Vector2(14f, -184f), new Vector2(220f, 24f), 13, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.intentDescriptionText = CreateText("IntentDescriptionText", root.transform, new Vector2(186f, -154f), new Vector2(330f, 28f), 12, FontStyle.Normal, TextAnchor.UpperLeft);
             view.intentDescriptionText.color = new Color(0.96f, 0.94f, 0.89f, 1f);
-            view.statusText = CreateText("StatusText", root.transform, new Vector2(14f, -206f), new Vector2(220f, 18f), 12, FontStyle.Normal, TextAnchor.UpperLeft);
+            view.statusText = CreateText("StatusText", root.transform, new Vector2(186f, -176f), new Vector2(330f, 18f), 11, FontStyle.Normal, TextAnchor.UpperLeft);
             view.statusText.color = new Color(0.88f, 0.90f, 0.95f, 1f);
 
             GameObject sprite = CreatePanel("EnemySprite", root.transform, new Color(0.70f, 0.70f, 0.74f, 1f));
             RectTransform spriteRect = sprite.GetComponent<RectTransform>();
-            spriteRect.anchorMin = new Vector2(1f, 1f);
-            spriteRect.anchorMax = new Vector2(1f, 1f);
-            spriteRect.pivot = new Vector2(1f, 1f);
-            spriteRect.anchoredPosition = new Vector2(-14f, -14f);
-            spriteRect.sizeDelta = new Vector2(88f, 88f);
+            spriteRect.anchorMin = new Vector2(0f, 1f);
+            spriteRect.anchorMax = new Vector2(0f, 1f);
+            spriteRect.pivot = new Vector2(0f, 1f);
+            spriteRect.anchoredPosition = new Vector2(18f, -14f);
+            spriteRect.sizeDelta = new Vector2(150f, 150f);
             view.spriteImage = sprite.GetComponent<Image>();
             view.spriteImage.preserveAspect = true;
 
-            EnsureBarVisuals(root.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(14f, -66f), new Vector2(170f, 12f), new Color(0.82f, 0.22f, 0.22f, 1f), new Color(0.20f, 0.12f, 0.12f, 1f));
+            EnsureBarVisuals(root.transform, ref view.hpBarFillImage, "HpBarFill", new Vector2(186f, -42f), new Vector2(240f, 12f), new Color(0.82f, 0.22f, 0.22f, 1f), new Color(0.20f, 0.12f, 0.12f, 1f));
             EnsureDimOverlay(root.transform, ref view.dimOverlayImage, "DimOverlay");
             return view;
         }
@@ -3178,8 +3935,8 @@ namespace PawSlayers
         {
             GameObject root = CreatePanel("CardView", parent, new Color(0.96f, 0.93f, 0.84f, 1f));
             LayoutElement layout = root.AddComponent<LayoutElement>();
-            layout.preferredWidth = 220f;
-            layout.preferredHeight = 318f;
+            layout.preferredWidth = 198f;
+            layout.preferredHeight = 250f;
 
             Button button = root.AddComponent<Button>();
             CanvasGroup canvasGroup = root.AddComponent<CanvasGroup>();
@@ -3248,23 +4005,37 @@ namespace PawSlayers
             rect.offsetMin = offsetMin;
             rect.offsetMax = offsetMax;
 
-            if (vertical)
+            bool useBattlefieldRowLayout = name == "HeroContainer" || name == "EnemyContainer";
+
+            if (useBattlefieldRowLayout)
+            {
+                HorizontalLayoutGroup layout = container.AddComponent<HorizontalLayoutGroup>();
+                layout.spacing = 18f;
+                layout.childControlWidth = true;
+                layout.childControlHeight = true;
+                layout.childForceExpandWidth = false;
+                layout.childForceExpandHeight = false;
+                layout.childAlignment = TextAnchor.LowerCenter;
+            }
+            else if (vertical)
             {
                 VerticalLayoutGroup layout = container.AddComponent<VerticalLayoutGroup>();
-                layout.spacing = 10f;
+                layout.spacing = 28f;
                 layout.childControlWidth = true;
-                layout.childControlHeight = false;
-                layout.childForceExpandWidth = true;
+                layout.childControlHeight = true;
+                layout.childForceExpandWidth = false;
                 layout.childForceExpandHeight = false;
+                layout.childAlignment = TextAnchor.MiddleCenter;
             }
             else
             {
                 HorizontalLayoutGroup layout = container.AddComponent<HorizontalLayoutGroup>();
-                layout.spacing = 10f;
+                layout.spacing = 14f;
                 layout.childControlWidth = false;
-                layout.childControlHeight = false;
+                layout.childControlHeight = true;
                 layout.childForceExpandWidth = false;
                 layout.childForceExpandHeight = false;
+                layout.childAlignment = TextAnchor.MiddleCenter;
             }
 
             return container.transform;

@@ -977,156 +977,9 @@ namespace PawSlayers.EditorTools
             Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             scene.name = "Battle";
 
-            Canvas canvas = CreateCanvas();
+            CreateCanvas();
             CreateEventSystem();
-
-            GameObject rootPanel = CreatePanel("BattleRoot", canvas.transform, new Color(0.88f, 0.93f, 0.96f, 1f));
-            StretchFull(rootPanel.GetComponent<RectTransform>(), 20f);
-
-            Text titleText = CreateText("Title", rootPanel.transform, new Vector2(20f, -20f), new Vector2(600f, 40f), 30, FontStyle.Bold, TextAnchor.UpperLeft);
-            titleText.text = "Paw Slayers - Battle Prototype";
-            Text turnText = CreateText("TurnText", rootPanel.transform, new Vector2(20f, -62f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-            Text energyText = CreateText("EnergyText", rootPanel.transform, new Vector2(260f, -62f), new Vector2(220f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft);
-
-            GameObject fieldArea = CreateUiObject("FieldArea", rootPanel.transform, Vector2.zero);
-            RectTransform fieldRect = fieldArea.GetComponent<RectTransform>();
-            fieldRect.anchorMin = new Vector2(0f, 0f);
-            fieldRect.anchorMax = new Vector2(1f, 1f);
-            fieldRect.offsetMin = new Vector2(20f, 290f);
-            fieldRect.offsetMax = new Vector2(-240f, -120f);
-
-            GameObject heroPanel = CreatePanel("HeroPanel", fieldArea.transform, new Color(0.85f, 0.91f, 0.84f, 1f));
-            RectTransform heroPanelRect = heroPanel.GetComponent<RectTransform>();
-            heroPanelRect.anchorMin = new Vector2(0f, 0f);
-            heroPanelRect.anchorMax = new Vector2(0.48f, 1f);
-            heroPanelRect.offsetMin = Vector2.zero;
-            heroPanelRect.offsetMax = new Vector2(-10f, 0f);
-            CreateText("HeroesLabel", heroPanel.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft).text = "Heroes";
-
-            GameObject heroContainer = CreateUiObject("HeroContainer", heroPanel.transform, Vector2.zero);
-            RectTransform heroRect = heroContainer.GetComponent<RectTransform>();
-            heroRect.anchorMin = new Vector2(0f, 0f);
-            heroRect.anchorMax = new Vector2(1f, 1f);
-            heroRect.offsetMin = new Vector2(12f, 12f);
-            heroRect.offsetMax = new Vector2(-12f, -48f);
-            VerticalLayoutGroup heroLayout = heroContainer.AddComponent<VerticalLayoutGroup>();
-            heroLayout.spacing = 10f;
-            heroLayout.childControlWidth = true;
-            heroLayout.childControlHeight = false;
-            heroLayout.childForceExpandWidth = true;
-            heroLayout.childForceExpandHeight = false;
-
-            GameObject enemyPanel = CreatePanel("EnemyPanel", fieldArea.transform, new Color(0.94f, 0.85f, 0.85f, 1f));
-            RectTransform enemyPanelRect = enemyPanel.GetComponent<RectTransform>();
-            enemyPanelRect.anchorMin = new Vector2(0.52f, 0f);
-            enemyPanelRect.anchorMax = new Vector2(1f, 1f);
-            enemyPanelRect.offsetMin = new Vector2(10f, 0f);
-            enemyPanelRect.offsetMax = Vector2.zero;
-            CreateText("EnemiesLabel", enemyPanel.transform, new Vector2(12f, -12f), new Vector2(240f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft).text = "Enemies";
-
-            GameObject enemyContainer = CreateUiObject("EnemyContainer", enemyPanel.transform, Vector2.zero);
-            RectTransform enemyRect = enemyContainer.GetComponent<RectTransform>();
-            enemyRect.anchorMin = new Vector2(0f, 0f);
-            enemyRect.anchorMax = new Vector2(1f, 1f);
-            enemyRect.offsetMin = new Vector2(12f, 12f);
-            enemyRect.offsetMax = new Vector2(-12f, -48f);
-            VerticalLayoutGroup enemyLayout = enemyContainer.AddComponent<VerticalLayoutGroup>();
-            enemyLayout.spacing = 10f;
-            enemyLayout.childControlWidth = true;
-            enemyLayout.childControlHeight = false;
-            enemyLayout.childForceExpandWidth = true;
-            enemyLayout.childForceExpandHeight = false;
-
-            GameObject debugPanel = CreatePanel("DebugPanel", rootPanel.transform, new Color(0.82f, 0.82f, 0.82f, 1f));
-            RectTransform debugRect = debugPanel.GetComponent<RectTransform>();
-            debugRect.anchorMin = new Vector2(1f, 0.5f);
-            debugRect.anchorMax = new Vector2(1f, 0.5f);
-            debugRect.pivot = new Vector2(1f, 0.5f);
-            debugRect.anchoredPosition = new Vector2(-20f, 0f);
-            debugRect.sizeDelta = new Vector2(200f, 420f);
-            CreateText("DebugLabel", debugPanel.transform, new Vector2(12f, -12f), new Vector2(180f, 28f), 22, FontStyle.Bold, TextAnchor.UpperLeft).text = "Debug";
-
-            GameObject buttonRow = CreateUiObject("DebugButtons", debugPanel.transform, Vector2.zero);
-            RectTransform buttonRect = buttonRow.GetComponent<RectTransform>();
-            buttonRect.anchorMin = new Vector2(0f, 0f);
-            buttonRect.anchorMax = new Vector2(1f, 1f);
-            buttonRect.offsetMin = new Vector2(12f, 12f);
-            buttonRect.offsetMax = new Vector2(-12f, -48f);
-            VerticalLayoutGroup buttonLayout = buttonRow.AddComponent<VerticalLayoutGroup>();
-            buttonLayout.spacing = 10f;
-            buttonLayout.childControlWidth = true;
-            buttonLayout.childControlHeight = false;
-            buttonLayout.childForceExpandWidth = true;
-            buttonLayout.childForceExpandHeight = false;
-
-            Button drawButton = CreateButton("DrawButton", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Draw Card", TextAnchor.MiddleLeft).GetComponent<Button>();
-            Button endTurnButton = CreateButton("EndTurnButton", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "End Turn", TextAnchor.MiddleLeft).GetComponent<Button>();
-            Button kill1Button = CreateButton("KillHero1Button", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Kill Hero 1", TextAnchor.MiddleLeft).GetComponent<Button>();
-            Button kill2Button = CreateButton("KillHero2Button", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Kill Hero 2", TextAnchor.MiddleLeft).GetComponent<Button>();
-            Button kill3Button = CreateButton("KillHero3Button", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Kill Hero 3", TextAnchor.MiddleLeft).GetComponent<Button>();
-            Button healButton = CreateButton("HealAllButton", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Heal All", TextAnchor.MiddleLeft).GetComponent<Button>();
-            Button winButton = CreateButton("WinBattleButton", buttonRow.transform, Vector2.zero, new Vector2(120f, 44f), "Win Battle", TextAnchor.MiddleLeft).GetComponent<Button>();
-
-            GameObject handPanel = CreatePanel("HandPanel", rootPanel.transform, new Color(0.95f, 0.93f, 0.87f, 1f));
-            RectTransform handPanelRect = handPanel.GetComponent<RectTransform>();
-            handPanelRect.anchorMin = new Vector2(0f, 0f);
-            handPanelRect.anchorMax = new Vector2(1f, 0f);
-            handPanelRect.pivot = new Vector2(0.5f, 0f);
-            handPanelRect.offsetMin = new Vector2(20f, 20f);
-            handPanelRect.offsetMax = new Vector2(-20f, 260f);
-            CreateText("HandLabel", handPanel.transform, new Vector2(12f, -12f), new Vector2(200f, 28f), 24, FontStyle.Bold, TextAnchor.UpperLeft).text = "Hand";
-
-            GameObject handContainer = CreateUiObject("HandContainer", handPanel.transform, Vector2.zero);
-            RectTransform handRect = handContainer.GetComponent<RectTransform>();
-            handRect.anchorMin = new Vector2(0f, 0f);
-            handRect.anchorMax = new Vector2(1f, 1f);
-            handRect.offsetMin = new Vector2(12f, 12f);
-            handRect.offsetMax = new Vector2(-12f, -48f);
-            HorizontalLayoutGroup handLayout = handContainer.AddComponent<HorizontalLayoutGroup>();
-            handLayout.spacing = 10f;
-            handLayout.childControlWidth = false;
-            handLayout.childControlHeight = false;
-            handLayout.childForceExpandWidth = false;
-            handLayout.childForceExpandHeight = false;
-
-            GameObject logPanel = CreatePanel("LogPanel", rootPanel.transform, new Color(0.85f, 0.89f, 0.94f, 1f));
-            RectTransform logRect = logPanel.GetComponent<RectTransform>();
-            logRect.anchorMin = new Vector2(0f, 0f);
-            logRect.anchorMax = new Vector2(0f, 0f);
-            logRect.pivot = new Vector2(0f, 0f);
-            logRect.anchoredPosition = new Vector2(20f, 260f);
-            logRect.sizeDelta = new Vector2(520f, 130f);
-            Text battleLog = CreateText("BattleLog", logPanel.transform, new Vector2(12f, -12f), new Vector2(496f, 106f), 16, FontStyle.Normal, TextAnchor.UpperLeft);
-
-            GameObject rewardPanel = CreatePanel("RewardPanel", rootPanel.transform, new Color(0f, 0f, 0f, 0.7f));
-            RectTransform rewardRect = rewardPanel.GetComponent<RectTransform>();
-            rewardRect.anchorMin = new Vector2(0f, 0f);
-            rewardRect.anchorMax = new Vector2(1f, 1f);
-            rewardRect.offsetMin = Vector2.zero;
-            rewardRect.offsetMax = Vector2.zero;
-
-            GameObject rewardBox = CreatePanel("RewardBox", rewardPanel.transform, new Color(0.97f, 0.95f, 0.88f, 1f));
-            RectTransform rewardBoxRect = rewardBox.GetComponent<RectTransform>();
-            rewardBoxRect.anchorMin = new Vector2(0.5f, 0.5f);
-            rewardBoxRect.anchorMax = new Vector2(0.5f, 0.5f);
-            rewardBoxRect.pivot = new Vector2(0.5f, 0.5f);
-            rewardBoxRect.sizeDelta = new Vector2(760f, 420f);
-            rewardBoxRect.anchoredPosition = Vector2.zero;
-
-            Text rewardTitle = CreateText("RewardTitle", rewardBox.transform, new Vector2(20f, -20f), new Vector2(300f, 32f), 28, FontStyle.Bold, TextAnchor.UpperLeft);
-            GameObject rewardContainer = CreateUiObject("RewardContainer", rewardBox.transform, Vector2.zero);
-            RectTransform rewardContainerRect = rewardContainer.GetComponent<RectTransform>();
-            rewardContainerRect.anchorMin = new Vector2(0f, 0f);
-            rewardContainerRect.anchorMax = new Vector2(1f, 1f);
-            rewardContainerRect.offsetMin = new Vector2(20f, 20f);
-            rewardContainerRect.offsetMax = new Vector2(-20f, -70f);
-            HorizontalLayoutGroup rewardLayout = rewardContainer.AddComponent<HorizontalLayoutGroup>();
-            rewardLayout.spacing = 12f;
-            rewardLayout.childControlWidth = false;
-            rewardLayout.childControlHeight = false;
-            rewardLayout.childForceExpandWidth = false;
-            rewardLayout.childForceExpandHeight = false;
-            rewardPanel.SetActive(false);
+            CreateMainCamera();
 
             GameObject managerObject = new GameObject("BattleManagers");
             BattleUIManager battleUiManager = managerObject.AddComponent<BattleUIManager>();
@@ -1150,33 +1003,13 @@ namespace PawSlayers.EditorTools
             battleUiManager.enemyViewPrefab = enemyViewPrefab;
             battleUiManager.cardViewPrefab = cardViewPrefab;
             battleUiManager.rewardCardManager = rewardCardManager;
-            battleUiManager.drawButton = drawButton;
-            battleUiManager.endTurnButton = endTurnButton;
-            battleUiManager.killHero1Button = kill1Button;
-            battleUiManager.killHero2Button = kill2Button;
-            battleUiManager.killHero3Button = kill3Button;
-            battleUiManager.healAllButton = healButton;
-            battleUiManager.winBattleButton = winButton;
-            battleUiManager.battleLogText = battleLog;
-            battleUiManager.handContainer = handContainer.transform;
-            battleUiManager.heroContainer = heroContainer.transform;
-            battleUiManager.enemyContainer = enemyContainer.transform;
 
             rewardCardManager.runManager = runManager;
             rewardCardManager.cardDatabase = cardDatabase;
             rewardCardManager.rewardCardPrefab = cardViewPrefab;
-            rewardCardManager.rewardPanel = rewardPanel;
-            rewardCardManager.rewardContainer = rewardContainer.transform;
-            rewardCardManager.rewardTitleText = rewardTitle;
 
             debugControls.battleUiManager = battleUiManager;
             debugControls.runManager = runManager;
-
-            UnityEventTools.AddIntPersistentListener(kill1Button.onClick, debugControls.KillHeroSlot, 0);
-            UnityEventTools.AddIntPersistentListener(kill2Button.onClick, debugControls.KillHeroSlot, 1);
-            UnityEventTools.AddIntPersistentListener(kill3Button.onClick, debugControls.KillHeroSlot, 2);
-            UnityEventTools.AddPersistentListener(healButton.onClick, debugControls.HealAllHeroes);
-            UnityEventTools.AddPersistentListener(winButton.onClick, debugControls.WinBattle);
 
             EditorSceneManager.SaveScene(scene, SceneFolder + "/Battle.unity");
         }
@@ -1256,6 +1089,22 @@ namespace PawSlayers.EditorTools
             scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
             scaler.matchWidthOrHeight = 0.5f;
             return canvas;
+        }
+
+        private static void CreateMainCamera()
+        {
+            GameObject cameraObject = new GameObject("Main Camera", typeof(Camera));
+            Camera cameraComponent = cameraObject.GetComponent<Camera>();
+            cameraObject.tag = "MainCamera";
+            cameraComponent.clearFlags = CameraClearFlags.SolidColor;
+            cameraComponent.backgroundColor = new Color(0.08f, 0.10f, 0.09f, 1f);
+            cameraComponent.orthographic = true;
+            cameraComponent.orthographicSize = 5f;
+            cameraComponent.cullingMask = ~0;
+            cameraComponent.targetDisplay = 0;
+            cameraComponent.enabled = true;
+            cameraObject.transform.position = new Vector3(0f, 0f, -10f);
+            cameraObject.transform.rotation = Quaternion.identity;
         }
 
         private static void CreateEventSystem()
